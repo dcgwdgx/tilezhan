@@ -33,7 +33,7 @@ jobs:
 
       - name: Install Apple Distribution Certificate
         run: |
-          echo "${{ secrets.APPLE_P12_BASE64 }}" | base64 -d > signing_cert.p12
+          echo -n "${{ secrets.APPLE_P12_BASE64 }}" | base64 -d > signing_cert.p12
           security create-keychain -p temp123 signing_temp.keychain
           security set-keychain-settings -lut 21600 signing_temp.keychain
           security unlock-keychain -p temp123 signing_temp.keychain
@@ -45,7 +45,7 @@ jobs:
       - name: Install Provisioning Profile
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
+          echo -n "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
 
       - name: Force iOS 13.0
         run: |
