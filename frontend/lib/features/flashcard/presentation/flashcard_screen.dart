@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -221,22 +222,21 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
 
   Widget _buildCountdownRing() {
     final progress = _countdownValue / _totalTime;
+    final urgent = _countdownValue < 0.3;
+    final color = urgent ? AppColors.vermillion : AppColors.neonGold;
     return SizedBox(
-      width: 60, height: 60,
+      width: 80, height: 80,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          CircularProgressIndicator(
-            value: progress,
-            strokeWidth: 3,
-            backgroundColor: AppColors.jadeHover,
-            color: _countdownValue < 0.3 ? AppColors.vermillion : AppColors.neonGold,
+          CustomPaint(
+            size: const Size(80, 80),
+            painter: _GlowRingPainter(progress: progress, color: color, urgent: urgent),
           ),
           Text(_countdownValue.toStringAsFixed(1),
               style: TextStyle(
-                fontSize: 20, fontWeight: FontWeight.w700,
-                color: _countdownValue < 0.3 ? AppColors.vermillion : AppColors.neonGold,
-                fontFamily: 'JetBrains Mono',
+                fontSize: 24, fontWeight: FontWeight.w700,
+                color: color, fontFamily: 'JetBrains Mono',
               )),
         ],
       ),
@@ -245,39 +245,72 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
 
   Widget _buildTileDisplay(TileModel tile) {
     final state = ref.read(flashcardQuizProvider);
+    final isCorrect = state.lastCorrectId == tile.id;
     return GestureDetector(
       onTap: state.isAnswering ? _showMnemonic : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: 150, height: 190,
+        width: 160, height: 200,
         decoration: BoxDecoration(
-          color: AppColors.jadeCard,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft, end: Alignment.bottomRight,
+            colors: [AppColors.jadeCard, AppColors.jadeDeep],
+          ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: tile.suitColor.withValues(alpha: 0.4), width: 2),
+          border: Border.all(
+            color: isCorrect
+                ? const Color(0xFF2CE574)
+                : tile.suitColor.withValues(alpha: 0.5),
+            width: 2,
+          ),
           boxShadow: [
-            BoxShadow(
-              color: state.lastCorrectId == tile.id
-                  ? const Color(0xFF2CE574).withValues(alpha: 0.3)
-                  : Colors.black54,
-              blurRadius: state.lastCorrectId == tile.id ? 24 : 8,
-              offset: const Offset(0, 4),
-            ),
+            if (isCorrect)
+              BoxShadow(color: const Color(0xFF2CE574).withValues(alpha: 0.3), blurRadius: 24, spreadRadius: 2),
+            BoxShadow(color: Colors.black54, blurRadius: 12, offset: const Offset(0, 6)),
           ],
         ),
         child: Stack(
           children: [
+            // Neon glow overlay
+            if (isCorrect)
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: CustomPaint(
+                    painter: _TileGlowPainter(color: const Color(0xFF2CE574), glowIntensity: 1.0),
+                  ),
+                ),
+              ),
+            // Inner glow border
+            Positioned(
+              top: 8, left: 8, right: 8, bottom: 8,
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: tile.suitColor.withValues(alpha: 0.15),
+                      width: 1,
+                    ),
+                  ),
+                ),
+              ),
+            ),
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(tile.character, style: const TextStyle(
-                    fontSize: 52, fontWeight: FontWeight.w900,
+                  Text(tile.character, style: TextStyle(
+                    fontSize: 56, fontWeight: FontWeight.w900,
                     color: AppColors.jadeWhite,
                     fontFamily: 'Noto Serif SC',
+                    shadows: isCorrect ? [
+                      const Shadow(color: Color(0xFF2CE574), blurRadius: 12),
+                    ] : null,
                   )),
                   const SizedBox(height: 4),
                   Text(tile.seal, style: TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w700,
+                    fontSize: 18, fontWeight: FontWeight.w700,
                     color: tile.suitColor,
                   )),
                 ],
@@ -515,4 +548,78 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
       ),
     );
   }
+}
+
+// ── Custom Painters ──
+
+class _GlowRingPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+  final bool urgent;
+
+  _GlowRingPainter({required this.progress, required this.color, required this.urgent});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 4;
+
+    // Background ring
+    final bgPaint = Paint()
+      ..color = AppColors.jadeHover
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+    canvas.drawCircle(center, radius, bgPaint);
+
+    // Glow shadow (neon effect)
+    if (progress > 0) {
+      final glowPaint = Paint()
+        ..color = color.withValues(alpha: 0.3)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 8
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2, progress * 2 * math.pi, false, glowPaint,
+      );
+    }
+
+    // Progress arc
+    final arcPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2, progress * 2 * math.pi, false, arcPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _GlowRingPainter old) =>
+      old.progress != progress || old.urgent != urgent;
+}
+
+class _TileGlowPainter extends CustomPainter {
+  final Color color;
+  final double glowIntensity;
+
+  _TileGlowPainter({required this.color, required this.glowIntensity});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (glowIntensity <= 0) return;
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size, const Radius.circular(16),
+    );
+    final paint = Paint()
+      ..color = color.withValues(alpha: glowIntensity * 0.4)
+      ..maskFilter = MaskFilter.blur(BlurStyle.outer, 12 * glowIntensity);
+    canvas.drawRRect(rrect, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TileGlowPainter old) =>
+      old.glowIntensity != glowIntensity;
 }
