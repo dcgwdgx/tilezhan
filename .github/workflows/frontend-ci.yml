@@ -71,30 +71,9 @@ jobs:
           P12_PWD: ${{ secrets.APPLE_P12_PASSWORD }}
           DEV_P12_B64: ${{ secrets.APPLE_DEV_P12_BASE64 }}
 
-      - name: Activate keychain for Xcode
+      - name: Build IPA
         run: |
-          security list-keychains -d user -s signing_temp.keychain login.keychain
-          security default-keychain -s signing_temp.keychain
-          security find-identity -v -p codesigning
-
-      - name: Install Provisioning Profiles
-        run: |
-          python3 -c "
-          import base64, os
-          dest = os.path.expanduser('~/Library/MobileDevice/Provisioning Profiles')
-          os.makedirs(dest, exist_ok=True)
-          for name, secret_key in [('tilezhan_appstore.mobileprovision', 'PROFILE_B64'), ('tilezhan_dev.mobileprovision', 'DEV_PROFILE_B64')]:
-              b64 = os.environ[secret_key]
-              with open(os.path.join(dest, name), 'wb') as f:
-                  f.write(base64.b64decode(b64))
-          print('Both profiles installed')
-          "
-        env:
-          PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
-          DEV_PROFILE_B64: ${{ secrets.BUILD_DEV_PROFILE_BASE64 }}
-
-      - name: Create ExportOptions.plist
-        run: |
+          echo "DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Release.xcconfig
           cat > ios/ExportOptions.plist << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -102,37 +81,10 @@ jobs:
           <dict>
             <key>method</key>
             <string>app-store</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>signingCertificate</key>
-            <string>Apple Distribution</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.tilezhan.app</key>
-              <string>TileZhan App Store</string>
-            </dict>
           </dict>
           </plist>
           EOF
-          echo "DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Release.xcconfig
-
-      - name: Build iOS (no-sign)
-        run: flutter build ios --release --no-codesign
-
-      - name: Build IPA (signed) & Upload
-        run: |
-          cd ios
-          xcodebuild -workspace Runner.xcworkspace -scheme Runner \
-            -configuration Release -archivePath ../build/ios/Runner.xcarchive \
-            archive \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            -allowProvisioningUpdates
-          xcodebuild -exportArchive \
-            -archivePath ../build/ios/Runner.xcarchive \
-            -exportOptionsPlist ExportOptions.plist \
-            -exportPath ../build/ios/ipa
-          ls ../build/ios/ipa/
+          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
