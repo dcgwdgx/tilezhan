@@ -55,11 +55,25 @@ jobs:
           os.remove('signing_cert.p12')
           os.remove('cert.pem')
           os.remove('key.pem')
+          # Verify and activate
+          r = subprocess.run(['security','find-identity','-v','-p','codesigning','signing_temp.keychain'], capture_output=True, text=True)
+          print(f'Identities: {r.stdout[:300]}')
           print('CERT IMPORTED')
           PYEOF
+
+      - name: Activate keychain for Xcode
+        run: |
+          security list-keychains -d user -s signing_temp.keychain login.keychain
+          security default-keychain -s signing_temp.keychain
+          security find-identity -v -p codesigning
         env:
           P12_B64: ${{ secrets.APPLE_P12_BASE64 }}
           P12_PWD: ${{ secrets.APPLE_P12_PASSWORD }}
+
+      - name: Force iOS 13.0
+        run: |
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 10.0;/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' "s/platform :ios, '10.0'/platform :ios, '13.0'/g" ios/Podfile 2>/dev/null || true
 
       - name: Install Provisioning Profile
         run: |
