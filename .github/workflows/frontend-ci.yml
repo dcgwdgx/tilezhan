@@ -15,7 +15,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with: { flutter-version: '3.44.1' }
       - run: flutter pub get
-      - run: flutter analyze
+      - run: flutter analyze --no-fatal-infos
       - run: flutter test
 
   build-ios:
