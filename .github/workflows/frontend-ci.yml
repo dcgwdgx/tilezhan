@@ -70,11 +70,6 @@ jobs:
           security default-keychain -s signing_temp.keychain
           security find-identity -v -p codesigning
 
-      - name: Force iOS 13.0
-        run: |
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 10.0;/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' "s/platform :ios, '10.0'/platform :ios, '13.0'/g" ios/Podfile 2>/dev/null || true
-
       - name: Install Provisioning Profile
         run: |
           python3 -c "
@@ -89,11 +84,14 @@ jobs:
         env:
           PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
 
-      - name: Force iOS 13.0
+      - name: Configure Xcode Project
         run: |
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 10.0;/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' "s/platform :ios, '10.0'/platform :ios, '13.0'/g" ios/Podfile 2>/dev/null || true
           sed -i '' 's/platform :ios, "10.0"/platform :ios, "13.0"/g' ios/Podfile 2>/dev/null || true
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = "${{ secrets.APPLE_TEAM_ID }}";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.example.frontend;/PRODUCT_BUNDLE_IDENTIFIER = com.tilezhan.app;/g' ios/Runner.xcodeproj/project.pbxproj
 
       - name: Create ExportOptions.plist
         run: |
