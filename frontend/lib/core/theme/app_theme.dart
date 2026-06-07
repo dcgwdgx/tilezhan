@@ -29,13 +29,12 @@ class AppTheme {
       ),
 
       // Cards
-      cardTheme: CardThemeData(
+      cardTheme: const CardTheme(
         color: AppColors.jadeCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(16)),
         ),
-        margin: EdgeInsets.zero,
       ),
 
       // Elevated buttons
