@@ -132,7 +132,8 @@ jobs:
 
       - name: Build & Export IPA
         run: |
-          export DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
+          echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Release.xcconfig
+          echo "CODE_SIGN_STYLE = Manual" >> ios/Flutter/Release.xcconfig
           flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
 
       - name: Upload to TestFlight
