@@ -42,30 +42,14 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
 
-      - name: Activate keychain
-        run: security list-keychains -d user -s signing_temp.keychain login.keychain
+      - name: Set development team
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :objects:1A2E3F4G:developmentTeam ${{ secrets.APPLE_TEAM_ID }}" ios/Runner.xcodeproj/project.pbxproj 2>/dev/null || true
+          sed -i '' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = \"${{ secrets.APPLE_TEAM_ID }}\";/g" ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.example.frontend;/PRODUCT_BUNDLE_IDENTIFIER = com.tilezhan.app;/g" ios/Runner.xcodeproj/project.pbxproj
 
       - name: Build IPA
-        run: |
-          # Create ExportOptions.plist for App Store distribution
-          cat > ios/ExportOptions.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store</string>
-            <key>teamID</key>
-            <string>${{ secrets.APPLE_TEAM_ID }}</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.tilezhan.app</key>
-              <string>TileZhan App Store</string>
-            </dict>
-          </dict>
-          </plist>
-          EOF
-          flutter build ipa --export-options-plist=ios/ExportOptions.plist --release
+        run: flutter build ipa --release --export-method app-store
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
