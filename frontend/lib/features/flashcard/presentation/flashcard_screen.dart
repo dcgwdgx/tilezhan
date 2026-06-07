@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/models/tile_model.dart';
-import '../../../shared/widgets/tz_tile.dart';
 import '../domain/flashcard_provider.dart';
 
 class FlashcardScreen extends ConsumerStatefulWidget {
@@ -72,11 +71,6 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
       ref.read(flashcardQuizProvider.notifier).nextCard();
       _startCountdown();
     });
-  }
-
-  void _onNext() {
-    ref.read(flashcardQuizProvider.notifier).nextCard();
-    _startCountdown();
   }
 
   @override

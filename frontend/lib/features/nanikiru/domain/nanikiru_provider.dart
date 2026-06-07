@@ -1,7 +1,7 @@
-import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/models/tile_model.dart';
 import '../../../shared/data/tile_repository.dart';
+import '../../../core/providers/tile_data_provider.dart';
 import 'nanikiru_state.dart';
 
 final nanikiruProvider =

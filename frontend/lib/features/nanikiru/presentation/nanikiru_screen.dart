@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../shared/models/tile_model.dart';
 import '../../../shared/widgets/tz_tile.dart';
+import '../../../core/providers/tile_data_provider.dart';
 import '../domain/nanikiru_provider.dart';
 import '../domain/nanikiru_state.dart';
 
@@ -210,9 +210,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
                 spacing: 5, runSpacing: 5,
                 alignment: WrapAlignment.center,
                 children: state.handTiles.asMap().entries.map((entry) {
-                  final i = entry.key;
                   final tile = entry.value;
-                  final isNewDraw = i == state.handTiles.length - 1;
                   final isSelected = state.selectedTileId == tile.id;
 
                   return TzTile(
@@ -268,7 +266,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
   Widget _buildFeedbackSheet(NaniKiruState state, NanikiruNotifier notifier) {
     final isPerfect = state.isPerfect;
     return GestureDetector(
-      onTap: () => notifier.nextPuzzle().then((_) => _startCountdown()),
+      onTap: () { notifier.nextPuzzle(); _startCountdown(); },
       child: Container(
         color: Colors.black54,
         child: Column(

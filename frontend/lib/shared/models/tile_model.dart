@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum TileSuit { man, pin, sou, wind, dragon }
 
 class MnemonicData {

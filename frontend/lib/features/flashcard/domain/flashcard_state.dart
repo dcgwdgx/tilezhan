@@ -1,4 +1,4 @@
-import '../../shared/models/tile_model.dart';
+import '../../../shared/models/tile_model.dart';
 
 class FlashcardQuizState {
   final List<TileModel> queue;

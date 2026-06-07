@@ -26,7 +26,6 @@ dependencies:
   purchases_flutter: ^6.30.0
   flame: ^1.17.0
   rive: ^0.13.0
-  confetti_widget: ^0.3.0
   freezed_annotation: ^2.4.1
   json_annotation: ^4.9.0
   ntp: ^2.0.0

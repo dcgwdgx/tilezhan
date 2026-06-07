@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/shared/models/tile_model.dart';
 
@@ -26,15 +25,15 @@ void main() {
     test('suitColor returns correct colors', () {
       final man = TileModel.fromJson({
         'id':'m1','suit':'man','character':'一','seal':'萬','value':1,'label':'1-Man',
-        'mnemonic':{},'confused_with':[],
+        'mnemonic':<String,dynamic>{},'confused_with':<String>[],
       });
-      expect(man.suitColor.value, 0xFFE74C3C);
+      expect(man.suitColor.toARGB32(), 0xFFE74C3C);
 
       final pin = TileModel.fromJson({
         'id':'p1','suit':'pin','character':'一','seal':'筒','value':1,'label':'1-Pin',
-        'mnemonic':{},'confused_with':[],
+        'mnemonic':<String,dynamic>{},'confused_with':<String>[],
       });
-      expect(pin.suitColor.value, 0xFF3498DB);
+      expect(pin.suitColor.toARGB32(), 0xFF3498DB);
     });
   });
 }
