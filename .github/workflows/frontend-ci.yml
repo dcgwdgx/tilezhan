@@ -42,11 +42,12 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
 
-      - name: Set development team
+      - name: Set development team + deployment target
         run: |
-          /usr/libexec/PlistBuddy -c "Set :objects:1A2E3F4G:developmentTeam ${{ secrets.APPLE_TEAM_ID }}" ios/Runner.xcodeproj/project.pbxproj 2>/dev/null || true
           sed -i '' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = \"${{ secrets.APPLE_TEAM_ID }}\";/g" ios/Runner.xcodeproj/project.pbxproj
           sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.example.frontend;/PRODUCT_BUNDLE_IDENTIFIER = com.tilezhan.app;/g" ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 10.0;/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/platform :ios, .*/platform :ios, "13.0"/g' ios/Podfile 2>/dev/null || true
 
       - name: Build iOS (xcodebuild)
         run: |
@@ -67,7 +68,6 @@ jobs:
           </dict>
           </plist>
           EOF
-          export IPHONEOS_DEPLOYMENT_TARGET=13.0
           flutter build ios --release --no-codesign
           cd ios
           xcodebuild -workspace Runner.xcworkspace -scheme Runner \
