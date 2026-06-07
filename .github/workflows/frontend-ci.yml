@@ -77,19 +77,21 @@ jobs:
           security default-keychain -s signing_temp.keychain
           security find-identity -v -p codesigning
 
-      - name: Install Provisioning Profile
+      - name: Install Provisioning Profiles
         run: |
           python3 -c "
           import base64, os
-          b64 = os.environ['PROFILE_B64']
-          os.makedirs(os.path.expanduser('~/Library/MobileDevice/Provisioning Profiles'), exist_ok=True)
-          path = os.path.expanduser('~/Library/MobileDevice/Provisioning Profiles/tilezhan.mobileprovision')
-          with open(path, 'wb') as f:
-              f.write(base64.b64decode(b64))
-          print('Provisioning profile installed')
+          dest = os.path.expanduser('~/Library/MobileDevice/Provisioning Profiles')
+          os.makedirs(dest, exist_ok=True)
+          for name, secret_key in [('tilezhan_appstore.mobileprovision', 'PROFILE_B64'), ('tilezhan_dev.mobileprovision', 'DEV_PROFILE_B64')]:
+              b64 = os.environ[secret_key]
+              with open(os.path.join(dest, name), 'wb') as f:
+                  f.write(base64.b64decode(b64))
+          print('Both profiles installed')
           "
         env:
           PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          DEV_PROFILE_B64: ${{ secrets.BUILD_DEV_PROFILE_BASE64 }}
 
       - name: Configure Xcode Project
         run: |
