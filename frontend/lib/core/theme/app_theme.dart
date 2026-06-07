@@ -29,12 +29,11 @@ class AppTheme {
       ),
 
       // Cards
-      cardTheme: CardThemeData(
+      cardTheme: const CardTheme(
         color: AppColors.jadeCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.neonGold.withOpacity(0.1)),
+          borderRadius: BorderRadius.all(Radius.circular(16)),
         ),
         margin: EdgeInsets.zero,
       ),
