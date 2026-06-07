@@ -29,7 +29,7 @@ class AppTheme {
       ),
 
       // Cards
-      cardTheme: const CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.jadeCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
