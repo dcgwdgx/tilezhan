@@ -60,15 +60,15 @@ jobs:
           print(f'Identities: {r.stdout[:300]}')
           print('CERT IMPORTED')
           PYEOF
+        env:
+          P12_B64: ${{ secrets.APPLE_P12_BASE64 }}
+          P12_PWD: ${{ secrets.APPLE_P12_PASSWORD }}
 
       - name: Activate keychain for Xcode
         run: |
           security list-keychains -d user -s signing_temp.keychain login.keychain
           security default-keychain -s signing_temp.keychain
           security find-identity -v -p codesigning
-        env:
-          P12_B64: ${{ secrets.APPLE_P12_BASE64 }}
-          P12_PWD: ${{ secrets.APPLE_P12_PASSWORD }}
 
       - name: Force iOS 13.0
         run: |
