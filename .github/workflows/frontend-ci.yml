@@ -116,8 +116,25 @@ jobs:
           EOF
           echo "DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Release.xcconfig
 
-      - name: Build & Export IPA
-        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+      - name: Build iOS (no-sign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Build IPA (signed) & Upload
+        run: |
+          cd ios
+          xcodebuild -workspace Runner.xcworkspace -scheme Runner \
+            -configuration Release -archivePath ../build/ios/Runner.xcarchive \
+            archive \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="TileZhan App Store" \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+            -allowProvisioningUpdates
+          xcodebuild -exportArchive \
+            -archivePath ../build/ios/Runner.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath ../build/ios/ipa
+          ls ../build/ios/ipa/
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
