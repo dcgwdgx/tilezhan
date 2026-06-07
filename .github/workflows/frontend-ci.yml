@@ -13,46 +13,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { flutter-version: '3.44.1' }
+        with: { flutter-version: '3.24.4', channel: stable, cache: true }
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos
       - run: flutter test
 
   build-ios:
     needs: analyze-and-test
-    runs-on: macos-latest
+    runs-on: macos-14
     defaults: { run: { working-directory: frontend } }
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { flutter-version: '3.44.1' }
+        with: { flutter-version: '3.24.4', channel: stable, cache: true }
       - run: flutter pub get
 
       - name: Setup iOS project
         run: flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
 
-      - name: Import signing certificate
-        uses: apple-actions/import-codesign-certs@v2
-        with:
-          p12-file-base64: ${{ secrets.APPLE_P12_BASE64 }}
-          p12-password: ${{ secrets.APPLE_P12_PASSWORD }}
-
-      - name: Install provisioning profile
+      - name: Force iOS 13.0
         run: |
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
-
-      - name: Set development team + deployment target
-        run: |
-          sed -i '' "s/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = \"${{ secrets.APPLE_TEAM_ID }}\";/g" ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.example.frontend;/PRODUCT_BUNDLE_IDENTIFIER = com.tilezhan.app;/g" ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 10.0;/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/platform :ios, .*/platform :ios, "13.0"/g' ios/Podfile 2>/dev/null || true
-
-      - name: Force iOS 13.0 globally
-        run: |
-          sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = 10.0;/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/g" ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/platform :ios, "10.0"/platform :ios, "13.0"/g' ios/Podfile 2>/dev/null || true
           sed -i '' "s/platform :ios, '10.0'/platform :ios, '13.0'/g" ios/Podfile 2>/dev/null || true
 
       - name: Install CocoaPods
@@ -63,12 +44,17 @@ jobs:
           flutter clean
           flutter pub get
 
-      - name: Reinstall Pods
+      - name: Install Pods
         run: |
           cd ios
           rm -rf Pods Podfile.lock
-          pod deintegrate 2>/dev/null || true
           pod install --repo-update
 
       - name: Build iOS Release
         run: flutter build ios --release --no-codesign
+
+      - name: Upload iOS App
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release
+          path: build/ios/Release-iphoneos/
