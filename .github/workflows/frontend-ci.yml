@@ -116,12 +116,6 @@ jobs:
           EOF
           echo "DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Release.xcconfig
 
-      - name: Clean & Reset
-        run: |
-          flutter clean
-          flutter pub get
-          cd ios && rm -rf Pods Podfile.lock && pod install --repo-update && cd ..
-
       - name: Build & Export IPA
         run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
 
