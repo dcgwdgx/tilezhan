@@ -93,20 +93,6 @@ jobs:
           PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
           DEV_PROFILE_B64: ${{ secrets.BUILD_DEV_PROFILE_BASE64 }}
 
-      - name: Configure Xcode Project
-        run: |
-          echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Release.xcconfig
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 10.0;/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/g' ios/Runner.xcodeproj/project.pbxproj
-
-      - name: Set Manual Signing + Provisioning Profile
-        run: |
-          # Change all code sign identities from Developer to Distribution for release
-          sed -i '' 's/"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = "iPhone Developer";/"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";/g' ios/Runner.xcodeproj/project.pbxproj
-          # Add provisioning profile specifier
-          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = "";/PROVISIONING_PROFILE_SPECIFIER = "TileZhan App Store";/g' ios/Runner.xcodeproj/project.pbxproj
-          # Ensure manual signing
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
-
       - name: Create ExportOptions.plist
         run: |
           cat > ios/ExportOptions.plist << 'EOF'
@@ -130,9 +116,20 @@ jobs:
 
       - name: Build & Export IPA
         run: |
-          echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Release.xcconfig
-          echo "CODE_SIGN_STYLE = Manual" >> ios/Flutter/Release.xcconfig
-          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+          flutter build ios --release --no-codesign
+          cd ios
+          xcodebuild -workspace Runner.xcworkspace -scheme Runner \
+            -configuration Release -archivePath ../build/ios/Runner.xcarchive \
+            archive \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="iPhone Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="TileZhan App Store" \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
+          xcodebuild -exportArchive \
+            -archivePath ../build/ios/Runner.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath ../build/ios/ipa
+          ls ../build/ios/ipa/
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
