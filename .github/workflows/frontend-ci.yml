@@ -31,7 +31,7 @@ jobs:
       - run: flutter pub get
 
       - name: Setup iOS project
-        run: flutter create --platforms=ios .
+        run: flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
 
       - name: Import signing certificate
         uses: apple-actions/import-codesign-certs@v2
