@@ -42,18 +42,19 @@ jobs:
           print(f'Decoded: {len(data)} bytes')
           with open('signing_cert.p12', 'wb') as f:
               f.write(data)
-          # Convert to legacy P12 (macOS security tool requires legacy format)
-          subprocess.run(['openssl','pkcs12','-in','signing_cert.p12','-passin',f'pass:{pwd}','-nodes','-out','temp_cert.pem'], check=True)
-          subprocess.run(['openssl','pkcs12','-export','-legacy','-in','temp_cert.pem','-out','signing_cert_legacy.p12','-passout',f'pass:{pwd}'], check=True)
-          os.rename('signing_cert_legacy.p12', 'signing_cert.p12')
-          os.remove('temp_cert.pem')
-          # Import
+          # Extract cert and key separately (avoid P12 MAC issue on macOS)
+          subprocess.run(['openssl','pkcs12','-in','signing_cert.p12','-passin',f'pass:{pwd}','-clcerts','-nokeys','-out','cert.pem'], check=True)
+          subprocess.run(['openssl','pkcs12','-in','signing_cert.p12','-passin',f'pass:{pwd}','-nocerts','-nodes','-out','key.pem'], check=True)
+          # Import cert and key
           subprocess.run(['security','create-keychain','-p','temp123','signing_temp.keychain'], check=True)
           subprocess.run(['security','unlock-keychain','-p','temp123','signing_temp.keychain'], check=True)
-          subprocess.run(['security','import','signing_cert.p12','-k','signing_temp.keychain','-f','pkcs12','-A','-T','/usr/bin/codesign','-T','/usr/bin/security','-P',pwd], check=True)
+          subprocess.run(['security','import','cert.pem','-k','signing_temp.keychain','-A','-T','/usr/bin/codesign'], check=True)
+          subprocess.run(['security','import','key.pem','-k','signing_temp.keychain','-A','-T','/usr/bin/codesign'], check=True)
           subprocess.run(['security','set-key-partition-list','-S','apple-tool:,apple:','-k','temp123','signing_temp.keychain'], check=True)
           subprocess.run(['security','list-keychains','-d','user','-s','signing_temp.keychain','login.keychain'], check=True)
           os.remove('signing_cert.p12')
+          os.remove('cert.pem')
+          os.remove('key.pem')
           print('CERT IMPORTED')
           PYEOF
         env:
