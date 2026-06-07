@@ -1,0 +1,20 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "srs_items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "next_review", "order": "ASCENDING"},
+        {"fieldPath": "easiness_factor", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "puzzles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "type", "order": "ASCENDING"},
+        {"fieldPath": "difficulty", "order": "ASCENDING"}
+      ]
+    }
+  ]
+}
