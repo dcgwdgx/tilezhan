@@ -95,12 +95,13 @@ jobs:
 
       - name: Configure Xcode Project
         run: |
+          echo "DEVELOPMENT_TEAM = ${{ secrets.APPLE_TEAM_ID }}" >> ios/Flutter/Release.xcconfig
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 10.0;/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' "s/platform :ios, '10.0'/platform :ios, '13.0'/g" ios/Podfile 2>/dev/null || true
-          sed -i '' 's/platform :ios, "10.0"/platform :ios, "13.0"/g' ios/Podfile 2>/dev/null || true
-          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = "${{ secrets.APPLE_TEAM_ID }}";/g' ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Set Manual Signing
+        run: |
           sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.example.frontend;/PRODUCT_BUNDLE_IDENTIFIER = com.tilezhan.app;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
 
       - name: Create ExportOptions.plist
         run: |
@@ -111,13 +112,6 @@ jobs:
           <dict>
             <key>method</key>
             <string>app-store</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.tilezhan.app</key>
-              <string>TileZhan App Store</string>
-            </dict>
-            <key>signingCertificate</key>
-            <string>Apple Distribution</string>
             <key>signingStyle</key>
             <string>manual</string>
           </dict>
