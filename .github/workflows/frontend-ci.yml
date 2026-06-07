@@ -43,7 +43,26 @@ jobs:
           echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
 
       - name: Build IPA
-        run: flutter build ipa --export-method app-store --release
+        run: |
+          # Create ExportOptions.plist for App Store distribution
+          cat > ios/ExportOptions.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>${{ secrets.APPLE_TEAM_ID }}</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.tilezhan.app</key>
+              <string>TileZhan App Store</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+          flutter build ipa --export-options-plist=ios/ExportOptions.plist --release
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
