@@ -42,6 +42,9 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
 
+      - name: Activate keychain
+        run: security list-keychains -d user -s signing_temp.keychain login.keychain
+
       - name: Build IPA
         run: |
           # Create ExportOptions.plist for App Store distribution
