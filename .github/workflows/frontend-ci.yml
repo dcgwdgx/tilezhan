@@ -42,12 +42,11 @@ jobs:
           print(f'Decoded: {len(data)} bytes')
           with open('signing_cert.p12', 'wb') as f:
               f.write(data)
-          # Verify P12
-          r = subprocess.run(['openssl','pkcs12','-in','signing_cert.p12','-passin',f'pass:{pwd}','-noout'], capture_output=True, text=True)
-          print(f'openssl: ret={r.returncode} stderr={r.stderr[:200]}')
-          if r.returncode != 0:
-              print('P12 VERIFY FAILED')
-              exit(1)
+          # Convert to legacy P12 (macOS security tool requires legacy format)
+          subprocess.run(['openssl','pkcs12','-in','signing_cert.p12','-passin',f'pass:{pwd}','-nodes','-out','temp_cert.pem'], check=True)
+          subprocess.run(['openssl','pkcs12','-export','-legacy','-in','temp_cert.pem','-out','signing_cert_legacy.p12','-passout',f'pass:{pwd}'], check=True)
+          os.rename('signing_cert_legacy.p12', 'signing_cert.p12')
+          os.remove('temp_cert.pem')
           # Import
           subprocess.run(['security','create-keychain','-p','temp123','signing_temp.keychain'], check=True)
           subprocess.run(['security','unlock-keychain','-p','temp123','signing_temp.keychain'], check=True)
