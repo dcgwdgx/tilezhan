@@ -28,8 +28,6 @@ jobs:
         with: { flutter-version: '3.24.4', channel: stable, cache: true }
       - run: flutter pub get
 
-      - name: Setup iOS project
-        run: flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
 
       - name: Install Apple Distribution Certificate
         run: |
