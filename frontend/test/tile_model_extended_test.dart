@@ -17,7 +17,7 @@ void main() {
             'id': 'x', 'suit': entry.key.name, 'character': '', 'seal': '',
             'value': 0, 'label': '',
             'mnemonic': <String, dynamic>{}, 'confused_with': <String>[],
-          }).suitColor.toARGB32(),
+          }).suitColor.value,
           entry.value,
         );
       }

@@ -34,7 +34,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.neonGold.withValues(alpha: 0.1)),
+          side: BorderSide(color: AppColors.neonGold.withOpacity(0.1)),
         ),
         margin: EdgeInsets.zero,
       ),

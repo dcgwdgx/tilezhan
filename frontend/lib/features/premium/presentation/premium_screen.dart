@@ -54,7 +54,7 @@ class PremiumScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 Text('Restore Purchases  ·  Terms  ·  Privacy',
-                    style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted.withValues(alpha: 0.6))),
+                    style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted.withOpacity(0.6))),
               ],
             ),
           ),
@@ -108,7 +108,7 @@ class PremiumScreen extends ConsumerWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: isPopular
-            ? AppColors.neonGold.withValues(alpha: 0.08)
+            ? AppColors.neonGold.withOpacity(0.08)
             : AppColors.jadeCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(

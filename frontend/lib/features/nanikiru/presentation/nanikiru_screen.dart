@@ -114,7 +114,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
         decoration: BoxDecoration(
           color: AppColors.jadeCard,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.neonGold.withValues(alpha: 0.15)),
+          border: Border.all(color: AppColors.neonGold.withOpacity(0.15)),
         ),
         child: Column(
           children: [
@@ -126,10 +126,10 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.neonGold.withValues(alpha: 0.08),
+                  color: AppColors.neonGold.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: AppColors.neonGold.withValues(alpha: 0.3),
+                    color: AppColors.neonGold.withOpacity(0.3),
                     strokeAlign: BorderSide.strokeAlignInside,
                   ),
                 ),
@@ -151,7 +151,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
             const SizedBox(height: 8),
             Text('Discard 1 tile for max efficiency',
                 style: TextStyle(
-                  fontSize: 13, color: AppColors.neonGold.withValues(alpha: 0.8),
+                  fontSize: 13, color: AppColors.neonGold.withOpacity(0.8),
                   fontWeight: FontWeight.w600,
                 )),
           ],
@@ -271,7 +271,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter, end: Alignment.bottomCenter,
-            colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7), Colors.black87],
+            colors: [Colors.transparent, Colors.black.withOpacity(0.7), Colors.black87],
           ),
         ),
         child: Column(
@@ -292,7 +292,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
                   top: BorderSide(color: isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion, width: 2),
                 ),
                 boxShadow: [BoxShadow(
-                  color: (isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion).withValues(alpha: 0.2),
+                  color: (isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion).withOpacity(0.2),
                   blurRadius: 20, offset: const Offset(0, -4),
                 )],
               ),
@@ -301,7 +301,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
                   fontSize: 40, fontWeight: FontWeight.w900,
                   color: isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion,
                   shadows: [Shadow(
-                    color: (isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion).withValues(alpha: 0.4),
+                    color: (isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion).withOpacity(0.4),
                     blurRadius: 12,
                   )],
                 )),
@@ -316,7 +316,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
                   Text('Correct discard: ${state.correctDiscardId}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2CE574))),
                 ],
                 const SizedBox(height: 20),
-                Text('Tap anywhere to continue', style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteMuted.withValues(alpha: 0.5))),
+                Text('Tap anywhere to continue', style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteMuted.withOpacity(0.5))),
               ]),
             ),
           ],

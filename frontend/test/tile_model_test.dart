@@ -27,13 +27,13 @@ void main() {
         'id':'m1','suit':'man','character':'一','seal':'萬','value':1,'label':'1-Man',
         'mnemonic':<String,dynamic>{},'confused_with':<String>[],
       });
-      expect(man.suitColor.toARGB32(), 0xFFE74C3C);
+      expect(man.suitColor.value, 0xFFE74C3C);
 
       final pin = TileModel.fromJson({
         'id':'p1','suit':'pin','character':'一','seal':'筒','value':1,'label':'1-Pin',
         'mnemonic':<String,dynamic>{},'confused_with':<String>[],
       });
-      expect(pin.suitColor.toARGB32(), 0xFF3498DB);
+      expect(pin.suitColor.value, 0xFF3498DB);
     });
   });
 }

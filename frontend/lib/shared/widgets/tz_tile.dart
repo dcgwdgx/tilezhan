@@ -51,19 +51,19 @@ class TzTile extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: state == TileState.dimmed
-              ? AppColors.jadeDeep.withValues(alpha: 0.5)
+              ? AppColors.jadeDeep.withOpacity(0.5)
               : AppColors.jadeCard,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: state == TileState.selected
                 ? AppColors.neonGold
-                : tile.suitColor.withValues(alpha: 0.3),
+                : tile.suitColor.withOpacity(0.3),
             width: state == TileState.selected ? 2.0 : 1.0,
           ),
           boxShadow: state == TileState.selected
               ? [
                   BoxShadow(
-                    color: tile.suitColor.withValues(alpha: 0.4),
+                    color: tile.suitColor.withOpacity(0.4),
                     blurRadius: 16, spreadRadius: 2,
                   ),
                   const BoxShadow(

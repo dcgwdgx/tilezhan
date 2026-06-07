@@ -47,6 +47,3 @@ flutter:
     - assets/data/
     - assets/tiles/
     - assets/mnemonic/
-    - assets/animations/
-    - assets/sounds/
-    - assets/fonts/

@@ -56,7 +56,7 @@ class TileBrowserScreen extends ConsumerWidget {
               color: AppColors.jadeCard,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: (suitColors[tile.suit] ?? AppColors.jadeHover).withValues(alpha: 0.3),
+                color: (suitColors[tile.suit] ?? AppColors.jadeHover).withOpacity(0.3),
               ),
             ),
             child: Column(
@@ -115,7 +115,7 @@ class TileBrowserScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.celadonBlue.withValues(alpha: 0.1),
+                color: AppColors.celadonBlue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(tile.mnemonic.anchor, style: const TextStyle(

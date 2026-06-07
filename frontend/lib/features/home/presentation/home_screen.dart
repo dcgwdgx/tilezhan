@@ -103,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.demonPurple.withValues(alpha: 0.15),
+                color: AppColors.demonPurple.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Text('👑 PRO', style: TextStyle(
@@ -127,8 +127,8 @@ class _HomeScreenState extends State<HomeScreen> {
             begin: Alignment.topLeft, end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.neonGold.withValues(alpha: 0.15)),
-          boxShadow: [BoxShadow(color: AppColors.neonGold.withValues(alpha: 0.05), blurRadius: 30)],
+          border: Border.all(color: AppColors.neonGold.withOpacity(0.15)),
+          boxShadow: [BoxShadow(color: AppColors.neonGold.withOpacity(0.05), blurRadius: 30)],
         ),
         child: Row(
           children: [
@@ -137,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [AppColors.demonPurple, Color(0xFF6C3483)]),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: AppColors.demonPurple.withValues(alpha: 0.3), blurRadius: 12)],
+                boxShadow: [BoxShadow(color: AppColors.demonPurple.withOpacity(0.3), blurRadius: 12)],
               ),
               child: const Center(child: Text('🏆', style: TextStyle(fontSize: 28))),
             ),
@@ -167,8 +167,8 @@ class _HomeScreenState extends State<HomeScreen> {
             begin: Alignment.topLeft, end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.neonGold.withValues(alpha: 0.2)),
-          boxShadow: [BoxShadow(color: AppColors.neonGold.withValues(alpha: 0.06), blurRadius: 40, spreadRadius: 2)],
+          border: Border.all(color: AppColors.neonGold.withOpacity(0.2)),
+          boxShadow: [BoxShadow(color: AppColors.neonGold.withOpacity(0.06), blurRadius: 40, spreadRadius: 2)],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                  shadowColor: AppColors.neonGold.withValues(alpha: 0.4),
+                  shadowColor: AppColors.neonGold.withOpacity(0.4),
                   elevation: 8,
                 ),
                 child: const Text('⚡ START DAILY QUEST', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
@@ -224,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
               widthFactor: progress,
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.6)]),
+                  gradient: LinearGradient(colors: [color, color.withOpacity(0.6)]),
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -253,8 +253,8 @@ class _HomeScreenState extends State<HomeScreen> {
               decoration: BoxDecoration(
                 color: AppColors.jadeCard,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.jadeHover.withValues(alpha: 0.5)),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 2))],
+                border: Border.all(color: AppColors.jadeHover.withOpacity(0.5)),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2))],
               ),
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Text(item.$1, style: const TextStyle(fontSize: 30)),
@@ -294,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: active ? [BoxShadow(color: AppColors.neonGold.withValues(alpha: 0.15), blurRadius: 8)] : null,
+                boxShadow: active ? [BoxShadow(color: AppColors.neonGold.withOpacity(0.15), blurRadius: 8)] : null,
               ),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Text(t.$1, style: TextStyle(fontSize: active ? 22 : 20)),

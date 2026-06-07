@@ -42,10 +42,10 @@ class CollectionScreen extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
-                color: isActive ? AppColors.neonGold.withValues(alpha: 0.15) : AppColors.jadeCard,
+                color: isActive ? AppColors.neonGold.withOpacity(0.15) : AppColors.jadeCard,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isActive ? AppColors.neonGold.withValues(alpha: 0.3) : Colors.transparent,
+                  color: isActive ? AppColors.neonGold.withOpacity(0.3) : Colors.transparent,
                 ),
               ),
               child: Text(e.value, style: TextStyle(
@@ -85,17 +85,17 @@ class CollectionScreen extends ConsumerWidget {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
-              color: y.$4 ? AppColors.jadeCard : AppColors.jadeCard.withValues(alpha: 0.4),
+              color: y.$4 ? AppColors.jadeCard : AppColors.jadeCard.withOpacity(0.4),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: y.$4 ? AppColors.jadeHover : AppColors.jadeHover.withValues(alpha: 0.3),
+                color: y.$4 ? AppColors.jadeHover : AppColors.jadeHover.withOpacity(0.3),
               ),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(y.$1, style: TextStyle(
-                  fontSize: 32, color: y.$4 ? null : AppColors.jadeWhiteMuted.withValues(alpha: 0.4),
+                  fontSize: 32, color: y.$4 ? null : AppColors.jadeWhiteMuted.withOpacity(0.4),
                 )),
                 const SizedBox(height: 4),
                 Text(y.$2, style: TextStyle(
@@ -104,7 +104,7 @@ class CollectionScreen extends ConsumerWidget {
                 )),
                 Text(y.$3, style: TextStyle(
                   fontSize: 10,
-                  color: y.$4 ? AppColors.jadeWhiteMuted : AppColors.jadeWhiteMuted.withValues(alpha: 0.4),
+                  color: y.$4 ? AppColors.jadeWhiteMuted : AppColors.jadeWhiteMuted.withOpacity(0.4),
                 )),
                 const SizedBox(height: 2),
                 if (y.$4)

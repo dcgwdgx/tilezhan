@@ -202,10 +202,10 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
-                  color: isActive ? AppColors.neonGold.withValues(alpha: 0.15) : AppColors.jadeCard,
+                  color: isActive ? AppColors.neonGold.withOpacity(0.15) : AppColors.jadeCard,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isActive ? AppColors.neonGold.withValues(alpha: 0.4) : Colors.transparent,
+                    color: isActive ? AppColors.neonGold.withOpacity(0.4) : Colors.transparent,
                   ),
                 ),
                 child: Text(s.$2, style: TextStyle(
@@ -260,12 +260,12 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
           border: Border.all(
             color: isCorrect
                 ? const Color(0xFF2CE574)
-                : tile.suitColor.withValues(alpha: 0.5),
+                : tile.suitColor.withOpacity(0.5),
             width: 2,
           ),
           boxShadow: [
             if (isCorrect)
-              BoxShadow(color: const Color(0xFF2CE574).withValues(alpha: 0.3), blurRadius: 24, spreadRadius: 2),
+              BoxShadow(color: const Color(0xFF2CE574).withOpacity(0.3), blurRadius: 24, spreadRadius: 2),
             BoxShadow(color: Colors.black54, blurRadius: 12, offset: const Offset(0, 6)),
           ],
         ),
@@ -289,7 +289,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: tile.suitColor.withValues(alpha: 0.15),
+                      color: tile.suitColor.withOpacity(0.15),
                       width: 1,
                     ),
                   ),
@@ -346,11 +346,11 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
           final isCorrect = opt.id == tile.id;
           Color? bgColor;
           if (state.isAnswering && state.lastCorrectId == tile.id && isCorrect) {
-            bgColor = const Color(0xFF2CE574).withValues(alpha: 0.15);
+            bgColor = const Color(0xFF2CE574).withOpacity(0.15);
           } else if (state.isAnswering && state.lastWrongId != null && isCorrect) {
-            bgColor = const Color(0xFF2CE574).withValues(alpha: 0.15);
+            bgColor = const Color(0xFF2CE574).withOpacity(0.15);
           } else if (state.isAnswering && state.lastWrongId == opt.id && !isCorrect) {
-            bgColor = AppColors.vermillion.withValues(alpha: 0.12);
+            bgColor = AppColors.vermillion.withOpacity(0.12);
           }
 
           return Padding(
@@ -426,7 +426,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
           decoration: BoxDecoration(
             color: color, shape: BoxShape.circle,
             boxShadow: i == state.currentIndex
-                ? [BoxShadow(color: AppColors.neonGold.withValues(alpha: 0.5), blurRadius: 4)]
+                ? [BoxShadow(color: AppColors.neonGold.withOpacity(0.5), blurRadius: 4)]
                 : null,
           ),
         );
@@ -443,7 +443,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
     return GestureDetector(
       onTap: _hideMnemonic,
       child: Container(
-        color: AppColors.jadeDeep.withValues(alpha: 0.97),
+        color: AppColors.jadeDeep.withOpacity(0.97),
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -471,7 +471,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.celadonBlue.withValues(alpha: 0.1),
+                    color: AppColors.celadonBlue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(tile.mnemonic.anchor, style: const TextStyle(
@@ -574,7 +574,7 @@ class _GlowRingPainter extends CustomPainter {
     // Glow shadow (neon effect)
     if (progress > 0) {
       final glowPaint = Paint()
-        ..color = color.withValues(alpha: 0.3)
+        ..color = color.withOpacity(0.3)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 8
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
@@ -614,7 +614,7 @@ class _TileGlowPainter extends CustomPainter {
       Offset.zero & size, const Radius.circular(16),
     );
     final paint = Paint()
-      ..color = color.withValues(alpha: glowIntensity * 0.4)
+      ..color = color.withOpacity(glowIntensity * 0.4)
       ..maskFilter = MaskFilter.blur(BlurStyle.outer, 12 * glowIntensity);
     canvas.drawRRect(rrect, paint);
   }

@@ -153,13 +153,13 @@ class _RadarPainter extends CustomPainter {
 
     // Grid rings
     for (int i = 1; i <= 3; i++) {
-      paint.color = AppColors.jadeHover.withValues(alpha: 0.3 + i * 0.15);
+      paint.color = AppColors.jadeHover.withOpacity(0.3 + i * 0.15);
       paint.strokeWidth = 0.5;
       _drawPentagon(canvas, center, radius * i / 3, paint);
     }
 
     // Axes
-    paint.color = AppColors.jadeHover.withValues(alpha: 0.5);
+    paint.color = AppColors.jadeHover.withOpacity(0.5);
     paint.strokeWidth = 0.5;
     for (int i = 0; i < 5; i++) {
       final angle = -3.14159 / 2 + i * 2 * 3.14159 / 5;
@@ -179,10 +179,10 @@ class _RadarPainter extends CustomPainter {
       else path.lineTo(point.dx, point.dy);
     }
     path.close();
-    paint.color = AppColors.vermillion.withValues(alpha: 0.6);
+    paint.color = AppColors.vermillion.withOpacity(0.6);
     paint.strokeWidth = 2;
     canvas.drawPath(path, paint);
-    paint.color = AppColors.vermillion.withValues(alpha: 0.15);
+    paint.color = AppColors.vermillion.withOpacity(0.15);
     paint.style = PaintingStyle.fill;
     canvas.drawPath(path, paint);
 
