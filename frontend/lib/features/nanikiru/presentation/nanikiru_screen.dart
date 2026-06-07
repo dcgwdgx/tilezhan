@@ -268,52 +268,56 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
     return GestureDetector(
       onTap: () { notifier.nextPuzzle(); _startCountdown(); },
       child: Container(
-        color: Colors.black54,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter, end: Alignment.bottomCenter,
+            colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7), Colors.black87],
+          ),
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
-                color: isPerfect
-                    ? const Color(0xFF0F3526)
-                    : const Color(0xFF2A0F0F),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border(
-                  top: BorderSide(
-                    color: isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion,
-                    width: 2,
-                  ),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                  colors: isPerfect
+                      ? [const Color(0xFF0A2F1D), const Color(0xFF0D3D26)]
+                      : [const Color(0xFF2A0F0F), const Color(0xFF1A0806)],
                 ),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                border: Border(
+                  top: BorderSide(color: isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion, width: 2),
+                ),
+                boxShadow: [BoxShadow(
+                  color: (isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion).withValues(alpha: 0.2),
+                  blurRadius: 20, offset: const Offset(0, -4),
+                )],
               ),
-              child: Column(
-                children: [
-                  Text(isPerfect ? '🎯 PERFECT!' : '💥 BLUNDER!', style: TextStyle(
-                    fontSize: 36, fontWeight: FontWeight.w900,
-                    color: isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion,
-                  )),
+              child: Column(children: [
+                Text(isPerfect ? '🎯 PERFECT!' : '💥 BLUNDER!', style: TextStyle(
+                  fontSize: 40, fontWeight: FontWeight.w900,
+                  color: isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion,
+                  shadows: [Shadow(
+                    color: (isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion).withValues(alpha: 0.4),
+                    blurRadius: 12,
+                  )],
+                )),
+                const SizedBox(height: 16),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+                  _stat('${state.ukeireCount}', isPerfect ? 'Acceptance Tiles' : 'Your Pick'),
+                  _stat('${state.ukeireTypes}', 'Types'),
+                  _stat(isPerfect ? 'Tenpai!' : '-7 tiles', 'Shanten'),
+                ]),
+                if (!isPerfect) ...[
                   const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _stat('${state.ukeireCount}', isPerfect ? 'Acceptance Tiles' : 'Your Acceptance'),
-                      _stat('${state.ukeireTypes}', 'Types'),
-                      _stat(isPerfect ? 'Tenpai!' : '-7 tiles', 'Shanten'),
-                    ],
-                  ),
-                  if (!isPerfect) ...[
-                    const SizedBox(height: 12),
-                    Text('Correct discard: ${state.correctDiscardId}', style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2CE574),
-                    )),
-                  ],
-                  const SizedBox(height: 20),
-                  Text('Tap anywhere to continue', style: TextStyle(
-                    fontSize: 12, color: AppColors.jadeWhiteMuted.withValues(alpha: 0.6),
-                  )),
+                  Text('Correct discard: ${state.correctDiscardId}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2CE574))),
                 ],
-              ),
+                const SizedBox(height: 20),
+                Text('Tap anywhere to continue', style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteMuted.withValues(alpha: 0.5))),
+              ]),
             ),
           ],
         ),

@@ -122,29 +122,32 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [Color(0xFF103D28), Color(0xFF0D3D26)]),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF103D28), Color(0xFF0D3D26)],
+            begin: Alignment.topLeft, end: Alignment.bottomRight,
+          ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.neonGold.withValues(alpha: 0.15)),
+          boxShadow: [BoxShadow(color: AppColors.neonGold.withValues(alpha: 0.05), blurRadius: 30)],
         ),
         child: Row(
           children: [
             Container(
-              width: 52, height: 52,
+              width: 56, height: 56,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [AppColors.demonPurple, Color(0xFF6C3483)]),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: AppColors.demonPurple.withValues(alpha: 0.3), blurRadius: 12)],
               ),
-              child: const Center(child: Text('🏆', style: TextStyle(fontSize: 26))),
+              child: const Center(child: Text('🏆', style: TextStyle(fontSize: 28))),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 16),
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Adept · Lv.7', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
-                    color: AppColors.jadeWhite)),
+                Text('Adept · Lv.7', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.jadeWhite)),
                 SizedBox(height: 2),
-                Text('1248 ELO', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-                    color: AppColors.neonGold)),
+                Text('1248 ELO', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.neonGold)),
               ],
             ),
           ],
@@ -157,26 +160,27 @@ class _HomeScreenState extends State<HomeScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [Color(0xFF0F3526), Color(0xFF0D3D26)]),
-          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF0F3526), Color(0xFF0D3D26)],
+            begin: Alignment.topLeft, end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(color: AppColors.neonGold.withValues(alpha: 0.2)),
+          boxShadow: [BoxShadow(color: AppColors.neonGold.withValues(alpha: 0.06), blurRadius: 40, spreadRadius: 2)],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('✦ TODAY\'S QUEST', style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 2,
-              color: AppColors.neonGold,
-            )),
+            const Text('✦ TODAY\'S QUEST', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 2, color: AppColors.neonGold)),
+            const SizedBox(height: 20),
+            _questItem('🃏', 'Tile Flashcards · Manzu Advanced', '8/10', 0.8, AppColors.neonGold),
             const SizedBox(height: 16),
-            _questItem('🃏', 'Tile Flashcards — Manzu Advanced', '8/10', 0.8, AppColors.neonGold),
-            const SizedBox(height: 12),
-            _questItem('⚔️', 'Nani-Kiru — Two-Sided Waits', '1/3', 0.33, AppColors.neonGold),
-            const SizedBox(height: 12),
+            _questItem('⚔️', 'Nani-Kiru · Two-Sided Waits', '1/3', 0.33, AppColors.neonGold),
+            const SizedBox(height: 16),
             _questItem('👻', 'Tile Graveyard Review', '⚠ 12 due', 0.0, AppColors.vermillion),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -186,9 +190,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  shadowColor: AppColors.neonGold.withValues(alpha: 0.4),
+                  elevation: 8,
                 ),
-                child: const Text('⚡ START DAILY QUEST',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                child: const Text('⚡ START DAILY QUEST', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
               ),
             ),
           ],
@@ -201,27 +206,29 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(children: [
-              Text(icon, style: const TextStyle(fontSize: 16)),
-              const SizedBox(width: 8),
-              Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
-                  color: AppColors.jadeWhite)),
-            ]),
-            Text(count, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
-                color: AppColors.jadeWhiteDim)),
-          ],
-        ),
-        const SizedBox(height: 6),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Row(children: [Text(icon, style: const TextStyle(fontSize: 16)), const SizedBox(width: 8), Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.jadeWhite))]),
+          Text(count, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.jadeWhiteDim)),
+        ]),
+        const SizedBox(height: 8),
         ClipRRect(
           borderRadius: BorderRadius.circular(3),
-          child: LinearProgressIndicator(
-            value: progress,
-            backgroundColor: AppColors.jadeHover,
-            color: color,
-            minHeight: 5,
+          child: Container(
+            height: 6,
+            decoration: BoxDecoration(
+              color: AppColors.jadeHover,
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: progress,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.6)]),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
           ),
         ),
       ],
@@ -230,22 +237,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildQuickGrid() {
     final items = [
-      ('🃏', 'Flashcards', '/flashcard'),
-      ('⚔️', 'Nani-Kiru', '/nanikiru'),
-      ('🔍', 'Tile Browser', '/tiles'),
-      ('📚', 'Yaku Guide', '/collection'),
-      ('👻', 'Graveyard', '/graveyard'),
-      ('⚙️', 'Settings', '/'),
+      ('🃏', 'Flashcards', '/flashcard'), ('⚔️', 'Nani-Kiru', '/nanikiru'),
+      ('🔍', 'Tile Browser', '/tiles'), ('📚', 'Yaku Guide', '/collection'),
+      ('👻', 'Graveyard', '/graveyard'), ('⚙️', 'Settings', '/'),
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GridView.count(
-        crossAxisCount: 3,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 1.3,
+        crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.2,
         children: items.map((item) {
           return GestureDetector(
             onTap: () => context.go(item.$3),
@@ -253,17 +253,14 @@ class _HomeScreenState extends State<HomeScreen> {
               decoration: BoxDecoration(
                 color: AppColors.jadeCard,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.jadeHover),
+                border: Border.all(color: AppColors.jadeHover.withValues(alpha: 0.5)),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 2))],
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(item.$1, style: const TextStyle(fontSize: 28)),
-                  const SizedBox(height: 4),
-                  Text(item.$2, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-                      color: AppColors.jadeWhite)),
-                ],
-              ),
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Text(item.$1, style: const TextStyle(fontSize: 30)),
+                const SizedBox(height: 4),
+                Text(item.$2, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.jadeWhite)),
+              ]),
             ),
           );
         }).toList(),
@@ -273,35 +270,40 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBottomTabBar() {
     final tabs = [
-      ('🏠', 'Home', true),
-      ('🀄', 'Tiles', false),
-      ('📚', 'Yaku', false),
-      ('👻', 'Review', false),
+      ('🏠', 'Home', true, '/'),
+      ('🀄', 'Tiles', false, '/tiles'),
+      ('📚', 'Yaku', false, '/collection'),
+      ('👻', 'Review', false, '/graveyard'),
     ];
     return Container(
-      height: 68,
+      height: 72,
       decoration: const BoxDecoration(
-        color: Color(0xFF0D3D26),
-        border: Border(top: BorderSide(color: Color(0xFF1A4A30))),
+        color: Color(0xFF0A2818),
+        border: Border(top: BorderSide(color: Color(0xFF1A4A30), width: 0.5)),
+        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, -2))],
       ),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: tabs.map((t) {
+          final active = t.$3;
           return GestureDetector(
-            onTap: () {
-              if (t.$1 == '🀄') context.go('/tiles');
-              if (t.$1 == '📚') context.go('/collection');
-              if (t.$1 == '👻') context.go('/graveyard');
-            },
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(t.$1, style: const TextStyle(fontSize: 20)),
+            onTap: () => context.go(t.$4),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: active ? [BoxShadow(color: AppColors.neonGold.withValues(alpha: 0.15), blurRadius: 8)] : null,
+              ),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text(t.$1, style: TextStyle(fontSize: active ? 22 : 20)),
+                const SizedBox(height: 2),
                 Text(t.$2, style: TextStyle(
                   fontSize: 10, fontWeight: FontWeight.w700,
-                  color: t.$3 ? AppColors.neonGold : AppColors.jadeWhiteMuted,
+                  color: active ? AppColors.neonGold : AppColors.jadeWhiteMuted,
                 )),
-              ],
+              ]),
             ),
           );
         }).toList(),
