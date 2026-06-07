@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/models/tile_model.dart';
 import '../../../core/providers/tile_data_provider.dart';
@@ -86,43 +87,41 @@ class TileBrowserScreen extends ConsumerWidget {
   }
 
   void _showMnemonic(BuildContext context, TileModel tile) {
+    final svgPath = 'assets/mnemonic/${tile.id}.svg';
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.jadeDeep,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(tile.mnemonic.emoji, style: const TextStyle(fontSize: 64)),
-            const SizedBox(height: 8),
-            Text(tile.mnemonic.name, style: const TextStyle(
-              fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.neonGold,
-            )),
-            const SizedBox(height: 4),
-            Text(tile.mnemonic.slogan, style: const TextStyle(
-              fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.jadeWhite,
-            )),
-            const SizedBox(height: 8),
-            Text(tile.mnemonic.desc, textAlign: TextAlign.center, style: const TextStyle(
-              fontSize: 12, color: AppColors.jadeWhiteDim, height: 1.5,
-            )),
-            const SizedBox(height: 8),
-            Text(tile.mnemonic.chinese, style: const TextStyle(
-              fontSize: 11, color: AppColors.jadeWhiteMuted, fontStyle: FontStyle.italic,
-            )),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppColors.celadonBlue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(tile.mnemonic.anchor, style: const TextStyle(
-                fontSize: 10, color: AppColors.celadonBlue,
-              )),
+        content: SizedBox(
+          width: 300,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: SvgPicture.asset(svgPath, height: 280, fit: BoxFit.contain),
+                ),
+                const SizedBox(height: 12),
+                Text(tile.mnemonic.name, style: const TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.neonGold,
+                )),
+                const SizedBox(height: 4),
+                Text(tile.mnemonic.slogan, style: const TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.jadeWhite,
+                )),
+                const SizedBox(height: 8),
+                Text(tile.mnemonic.desc, textAlign: TextAlign.center, style: const TextStyle(
+                  fontSize: 12, color: AppColors.jadeWhiteDim, height: 1.5,
+                )),
+                const SizedBox(height: 8),
+                Text(tile.mnemonic.chinese, style: const TextStyle(
+                  fontSize: 11, color: AppColors.jadeWhiteMuted, fontStyle: FontStyle.italic,
+                )),
+              ],
             ),
-          ],
+          ),
         ),
         actions: [
           Center(

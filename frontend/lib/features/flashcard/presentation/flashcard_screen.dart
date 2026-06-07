@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../shared/models/tile_model.dart';
 import '../domain/flashcard_provider.dart';
 
@@ -440,18 +441,25 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   }
 
   Widget _buildMnemonicOverlay(TileModel tile) {
+    final svgPath = 'assets/mnemonic/${tile.id}.svg';
     return GestureDetector(
       onTap: _hideMnemonic,
       child: Container(
         color: AppColors.jadeDeep.withOpacity(0.97),
         child: Center(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(tile.mnemonic.emoji, style: const TextStyle(fontSize: 72)),
-                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    width: 280, height: 350,
+                    child: SvgPicture.asset(svgPath, fit: BoxFit.contain),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Text(tile.mnemonic.name, style: const TextStyle(
                   fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.neonGold,
                 )),
@@ -463,22 +471,11 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
                 Text(tile.mnemonic.desc, textAlign: TextAlign.center, style: const TextStyle(
                   fontSize: 13, color: AppColors.jadeWhiteDim, height: 1.6,
                 )),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Text(tile.mnemonic.chinese, style: const TextStyle(
                   fontSize: 12, color: AppColors.jadeWhiteMuted, fontStyle: FontStyle.italic,
                 )),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.celadonBlue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(tile.mnemonic.anchor, style: const TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.celadonBlue,
-                  )),
-                ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 const Text('Tap anywhere to close',
                     style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteMuted)),
               ],
