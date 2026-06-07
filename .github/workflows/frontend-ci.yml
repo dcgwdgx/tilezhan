@@ -27,23 +27,31 @@ jobs:
       - uses: subosito/flutter-action@v2
         with: { flutter-version: '3.44.1', channel: stable, cache: true }
       - run: flutter pub get
-      - name: Import signing cert (Python)
+      - name: Import signing cert + key (PEM)
         run: |
           python3 -c "
           import base64, os, subprocess
-          with open('signing.p12','wb') as f:
-              f.write(base64.b64decode(os.environ['P12_B64']))
+          # Decode cert and key from secrets
+          cert_b64 = os.environ['CERT_B64']
+          key_b64 = os.environ['KEY_B64']
+          with open('cert.pem','wb') as f: f.write(base64.b64decode(cert_b64))
+          with open('key.pem','wb') as f: f.write(base64.b64decode(key_b64))
+          # Create keychain and import
           subprocess.run(['security','create-keychain','-p','temp123','signing_temp.keychain'],check=True)
           subprocess.run(['security','unlock-keychain','-p','temp123','signing_temp.keychain'],check=True)
-          subprocess.run(['security','import','signing.p12','-k','signing_temp.keychain','-f','pkcs12','-A','-T','/usr/bin/codesign','-T','/usr/bin/security','-P',''],check=True)
+          subprocess.run(['security','import','cert.pem','-k','signing_temp.keychain','-A','-T','/usr/bin/codesign'],check=True)
+          subprocess.run(['security','import','key.pem','-k','signing_temp.keychain','-A','-T','/usr/bin/codesign'],check=True)
           subprocess.run(['security','set-key-partition-list','-S','apple-tool:,apple:','-k','temp123','signing_temp.keychain'],check=True)
           subprocess.run(['security','list-keychains','-d','user','-s','signing_temp.keychain','login.keychain'],check=True)
-          subprocess.run(['security','default-keychain','-s','signing_temp.keychain'],check=True)
-          os.remove('signing.p12')
+          os.remove('cert.pem'); os.remove('key.pem')
+          # Verify
+          r = subprocess.run(['security','find-identity','-v','-p','codesigning','signing_temp.keychain'], capture_output=True, text=True)
+          print(r.stdout[:300])
           print('CERT OK')
           "
         env:
-          P12_B64: ${{ secrets.APPLE_P12_BASE64 }}
+          CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
+          KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
       - run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo -n "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan_appstore.mobileprovision
