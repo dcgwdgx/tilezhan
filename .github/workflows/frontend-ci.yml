@@ -33,24 +33,40 @@ jobs:
 
       - name: Install Apple Distribution Certificate
         run: |
+          set -x
           python3 -c "
-          import base64, os, subprocess, sys
-          b64 = os.environ['P12_B64']
-          pwd = os.environ['P12_PWD']
+          import base64, os, subprocess
+          b64 = os.environ['P12_B64'].strip()
+          pwd = os.environ['P12_PWD'].strip()
+          print(f'Base64 length: {len(b64)}')
+          print(f'Password length: {len(pwd)}')
+          print(f'Password repr: {repr(pwd)}')
+          data = base64.b64decode(b64)
+          print(f'Decoded bytes: {len(data)}')
           with open('signing_cert.p12', 'wb') as f:
-              f.write(base64.b64decode(b64))
-          subprocess.run(['security','create-keychain','-p','temp123','signing_temp.keychain'], check=True)
-          subprocess.run(['security','set-keychain-settings','-lut','21600','signing_temp.keychain'], check=True)
-          subprocess.run(['security','unlock-keychain','-p','temp123','signing_temp.keychain'], check=True)
-          subprocess.run(['security','import','signing_cert.p12','-k','signing_temp.keychain','-f','pkcs12','-A','-T','/usr/bin/codesign','-T','/usr/bin/security','-P',pwd], check=True)
-          subprocess.run(['security','set-key-partition-list','-S','apple-tool:,apple:','-k','temp123','signing_temp.keychain'], check=True)
-          subprocess.run(['security','list-keychains','-d','user','-s','signing_temp.keychain','login.keychain'], check=True)
-          os.remove('signing_cert.p12')
-          print('Certificate imported successfully')
+              f.write(data)
+          r = subprocess.run(['openssl','pkcs12','-in','signing_cert.p12','-passin',f'pass:{pwd}','-noout','-passout','pass:test123'], capture_output=True, text=True)
+          print(f'openssl verify stdout: {r.stdout}')
+          print(f'openssl verify stderr: {r.stderr}')
+          if r.returncode != 0:
+              print(f'P12 verification FAILED with returncode {r.returncode}')
+              exit(1)
+          print('P12 verified OK')
           "
         env:
           P12_B64: ${{ secrets.APPLE_P12_BASE64 }}
           P12_PWD: ${{ secrets.APPLE_P12_PASSWORD }}
+
+      - name: Import cert to keychain
+        run: |
+          security create-keychain -p temp123 signing_temp.keychain
+          security set-keychain-settings -lut 21600 signing_temp.keychain
+          security unlock-keychain -p temp123 signing_temp.keychain
+          security import signing_cert.p12 -k signing_temp.keychain -f pkcs12 -A -T /usr/bin/codesign -T /usr/bin/security -P "${{ secrets.APPLE_P12_PASSWORD }}"
+          security set-key-partition-list -S apple-tool:,apple: -k temp123 signing_temp.keychain
+          security list-keychains -d user -s signing_temp.keychain login.keychain
+          rm signing_cert.p12
+          echo "Certificate imported"
 
       - name: Install Provisioning Profile
         run: |
