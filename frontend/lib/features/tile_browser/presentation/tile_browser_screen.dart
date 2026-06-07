@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/models/tile_model.dart';
 import '../../../core/providers/tile_data_provider.dart';
@@ -87,7 +86,7 @@ class TileBrowserScreen extends ConsumerWidget {
   }
 
   void _showMnemonic(BuildContext context, TileModel tile) {
-    final svgPath = 'assets/mnemonic/${tile.id}.svg';
+    final pngPath = 'assets/mnemonic_png/${tile.id}.png';
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -101,7 +100,7 @@ class TileBrowserScreen extends ConsumerWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: SvgPicture.asset(svgPath, height: 280, fit: BoxFit.contain),
+                  child: Image.asset(pngPath, height: 280, fit: BoxFit.contain),
                 ),
                 const SizedBox(height: 12),
                 Text(tile.mnemonic.name, style: const TextStyle(

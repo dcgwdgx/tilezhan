@@ -1,20 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" width="200" height="280">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#873a32"/>
-      <stop offset="100%" style="stop-color:#4d1914"/>
-    </linearGradient>
-  </defs>
-  <!-- Card body -->
-  <rect x="6" y="6" width="188" height="268" rx="14" fill="url(#bg)" stroke="#E74C3C" stroke-width="2.5"/>
-  <!-- Inner border -->
-  <rect x="18" y="18" width="164" height="244" rx="8" fill="none" stroke="#E74C3C" stroke-opacity="0.2" stroke-width="1"/>
-  <!-- Main character -->
-  <text x="100" y="175" text-anchor="middle" font-family="Noto Serif SC, SimSun, serif" font-size="72" font-weight="700" fill="#F5F0E8">一</text>
-  <!-- Seal -->
-  <text x="100" y="230" text-anchor="middle" font-family="Noto Serif SC, SimSun, serif" font-size="22" font-weight="700" fill="#FF3B30">萬</text>
-  <!-- Corner label (top-right) -->
-  <text x="172" y="42" text-anchor="end" font-family="Poppins, sans-serif" font-size="10" font-weight="600" fill="#E74C3C">1m</text>
-  <!-- Corner label (bottom-left) -->
-  <text x="28" y="252" text-anchor="start" font-family="Poppins, sans-serif" font-size="10" font-weight="600" fill="#E74C3C" opacity="0.5">1m</text>
+<rect x="3" y="3" width="194" height="274" rx="12" fill="#F8F0E0"/>
+<rect x="6" y="6" width="188" height="268" rx="10" fill="#FDF8F0" stroke="#D4C8B0" stroke-width="1.5"/>
+<rect x="16" y="16" width="168" height="248" rx="6" fill="none" stroke="#E8DCC8" stroke-width="0.8"/>
+<text x="100" y="165" text-anchor="middle" font-family="serif" font-size="76" font-weight="900" fill="#8B0000">一</text>
+<text x="100" y="240" text-anchor="middle" font-family="serif" font-size="24" font-weight="700" fill="#8B0000">萬</text>
+<text x="190" y="22" text-anchor="end" font-family="sans-serif" font-size="10" font-weight="600" fill="#999">1m</text>
+<text x="14" y="268" text-anchor="start" font-family="sans-serif" font-size="9" fill="#CCC">1m</text>
 </svg>

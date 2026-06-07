@@ -247,17 +247,14 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   Widget _buildTileDisplay(TileModel tile) {
     final state = ref.read(flashcardQuizProvider);
     final isCorrect = state.lastCorrectId == tile.id;
+    final tileSvg = 'assets/tiles/${tile.id}.svg';
     return GestureDetector(
       onTap: state.isAnswering ? _showMnemonic : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: 160, height: 200,
+        width: 160, height: 224,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft, end: Alignment.bottomRight,
-            colors: [AppColors.jadeCard, AppColors.jadeDeep],
-          ),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isCorrect
                 ? const Color(0xFF2CE574)
@@ -272,62 +269,19 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
         ),
         child: Stack(
           children: [
-            // Neon glow overlay
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SvgPicture.asset(tileSvg, fit: BoxFit.fill),
+            ),
             if (isCorrect)
               Positioned.fill(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(10),
                   child: CustomPaint(
                     painter: _TileGlowPainter(color: const Color(0xFF2CE574), glowIntensity: 1.0),
                   ),
                 ),
               ),
-            // Inner glow border
-            Positioned(
-              top: 8, left: 8, right: 8, bottom: 8,
-              child: IgnorePointer(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: tile.suitColor.withOpacity(0.15),
-                      width: 1,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(tile.character, style: TextStyle(
-                    fontSize: 56, fontWeight: FontWeight.w900,
-                    color: AppColors.jadeWhite,
-                    fontFamily: 'Noto Serif SC',
-                    shadows: isCorrect ? [
-                      const Shadow(color: Color(0xFF2CE574), blurRadius: 12),
-                    ] : null,
-                  )),
-                  const SizedBox(height: 4),
-                  Text(tile.seal, style: TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w700,
-                    color: tile.suitColor,
-                  )),
-                ],
-              ),
-            ),
-            Positioned(top: 8, right: 10,
-              child: Text(tile.label, style: const TextStyle(
-                fontSize: 10, fontWeight: FontWeight.w600,
-                color: AppColors.celadonLight,
-              ))),
-            Positioned(bottom: 8, left: 0, right: 0,
-              child: Center(
-                child: Text(tile.suit.name.toUpperCase(), style: TextStyle(
-                  fontSize: 10, fontWeight: FontWeight.w600, color: tile.suitColor,
-                )),
-              )),
           ],
         ),
       ),
@@ -441,7 +395,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   }
 
   Widget _buildMnemonicOverlay(TileModel tile) {
-    final svgPath = 'assets/mnemonic/${tile.id}.svg';
+    final pngPath = 'assets/mnemonic_png/${tile.id}.png';
     return GestureDetector(
       onTap: _hideMnemonic,
       child: Container(
@@ -454,10 +408,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    width: 280, height: 350,
-                    child: SvgPicture.asset(svgPath, fit: BoxFit.contain),
-                  ),
+                  child: Image.asset(pngPath, width: 280, height: 350, fit: BoxFit.contain),
                 ),
                 const SizedBox(height: 16),
                 Text(tile.mnemonic.name, style: const TextStyle(

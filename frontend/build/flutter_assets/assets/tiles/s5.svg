@@ -1,20 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" width="200" height="280">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#2b7a4c"/>
-      <stop offset="100%" style="stop-color:#0f4425"/>
-    </linearGradient>
-  </defs>
-  <!-- Card body -->
-  <rect x="6" y="6" width="188" height="268" rx="14" fill="url(#bg)" stroke="#2ECC71" stroke-width="2.5"/>
-  <!-- Inner border -->
-  <rect x="18" y="18" width="164" height="244" rx="8" fill="none" stroke="#2ECC71" stroke-opacity="0.2" stroke-width="1"/>
-  <!-- Main character -->
-  <text x="100" y="175" text-anchor="middle" font-family="Noto Serif SC, SimSun, serif" font-size="72" font-weight="700" fill="#F5F0E8">五</text>
-  <!-- Seal -->
-  <text x="100" y="230" text-anchor="middle" font-family="Noto Serif SC, SimSun, serif" font-size="22" font-weight="700" fill="#FF3B30">条</text>
-  <!-- Corner label (top-right) -->
-  <text x="172" y="42" text-anchor="end" font-family="Poppins, sans-serif" font-size="10" font-weight="600" fill="#2ECC71">5s</text>
-  <!-- Corner label (bottom-left) -->
-  <text x="28" y="252" text-anchor="start" font-family="Poppins, sans-serif" font-size="10" font-weight="600" fill="#2ECC71" opacity="0.5">5s</text>
+<rect x="3" y="3" width="194" height="274" rx="12" fill="#F8F0E0"/>
+<rect x="6" y="6" width="188" height="268" rx="10" fill="#FDF8F0" stroke="#D4C8B0" stroke-width="1.5"/>
+<rect x="16" y="16" width="168" height="248" rx="6" fill="none" stroke="#E8DCC8" stroke-width="0.8"/>
+<line x1="70" y1="90" x2="70" y2="170" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
+<line x1="100" y1="90" x2="100" y2="170" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
+<line x1="130" y1="90" x2="130" y2="170" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
+<line x1="85" y1="180" x2="85" y2="200" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
+<line x1="115" y1="180" x2="115" y2="200" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
+<text x="100" y="255" text-anchor="middle" font-family="serif" font-size="14" fill="#999">条</text>
+<text x="190" y="22" text-anchor="end" font-family="sans-serif" font-size="10" font-weight="600" fill="#999">5s</text>
+<text x="14" y="268" text-anchor="start" font-family="sans-serif" font-size="9" fill="#CCC">5s</text>
 </svg>
