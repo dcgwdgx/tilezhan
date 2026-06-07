@@ -58,11 +58,22 @@ jobs:
           # Verify and activate
           r = subprocess.run(['security','find-identity','-v','-p','codesigning','signing_temp.keychain'], capture_output=True, text=True)
           print(f'Identities: {r.stdout[:300]}')
-          print('CERT IMPORTED')
+          # Also import dev cert
+          dev_b64 = os.environ['DEV_P12_B64']
+          with open('dev_cert.p12','wb') as f: f.write(base64.b64decode(dev_b64))
+          subprocess.run(['openssl','pkcs12','-in','dev_cert.p12','-passin',f'pass:{pwd}','-clcerts','-nokeys','-out','dev_cert.pem'], check=True)
+          subprocess.run(['openssl','pkcs12','-in','dev_cert.p12','-passin',f'pass:{pwd}','-nocerts','-nodes','-out','dev_key.pem'], check=True)
+          subprocess.run(['security','import','dev_cert.pem','-k','signing_temp.keychain','-A'], check=True)
+          subprocess.run(['security','import','dev_key.pem','-k','signing_temp.keychain','-A'], check=True)
+          os.remove('dev_cert.p12'); os.remove('dev_cert.pem'); os.remove('dev_key.pem')
+          r = subprocess.run(['security','find-identity','-v','-p','codesigning','signing_temp.keychain'], capture_output=True, text=True)
+          print(f'Identities: {r.stdout[:500]}')
+          print('CERTS IMPORTED')
           PYEOF
         env:
           P12_B64: ${{ secrets.APPLE_P12_BASE64 }}
           P12_PWD: ${{ secrets.APPLE_P12_PASSWORD }}
+          DEV_P12_B64: ${{ secrets.APPLE_DEV_P12_BASE64 }}
 
       - name: Activate keychain for Xcode
         run: |
