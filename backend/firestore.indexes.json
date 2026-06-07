@@ -13,7 +13,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {"fieldPath": "type", "order": "ASCENDING"},
-        {"fieldPath": "difficulty", "order": "ASCENDING"}
+        {"fieldPath": "difficulty_rating", "order": "ASCENDING"}
       ]
     }
   ]

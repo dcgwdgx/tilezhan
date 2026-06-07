@@ -11,11 +11,6 @@ void main() {
         TileSuit.wind: 0xFFF39C12,
         TileSuit.dragon: 0xFF9B59B6,
       };
-      final tile = TileModel.fromJson({
-        'id': 'p1', 'suit': 'pin', 'character': '一', 'seal': '筒',
-        'value': 1, 'label': '1-Pin',
-        'mnemonic': <String, dynamic>{}, 'confused_with': <String>[],
-      });
       for (final entry in colors.entries) {
         expect(
           TileModel.fromJson({
