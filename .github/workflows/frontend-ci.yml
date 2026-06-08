@@ -83,11 +83,6 @@ jobs:
           "
         env:
           PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
-      - name: Build IPA
-        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
-        env:
-          DEVELOPMENT_TEAM: "74797U8R45"
-
       - name: Create ExportOptions.plist
         run: |
           cat > ios/ExportOptions.plist << 'EOF'
@@ -97,12 +92,12 @@ jobs:
           <dict>
             <key>method</key>
             <string>app-store</string>
-            <key>teamID</key>
-            <string>74797U8R45</string>
           </dict>
           </plist>
           EOF
-          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+
+      - name: Build IPA
+        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
       - uses: apple-actions/upload-testflight-build@v1
         with:
           app-path: build/ios/ipa/*.ipa
