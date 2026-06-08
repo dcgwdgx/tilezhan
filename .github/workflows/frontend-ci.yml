@@ -96,7 +96,7 @@ jobs:
           echo "=== Profile dump ==="
           PROFILE=$(find ~/Library -name "tilezhan_appstore.mobileprovision" 2>/dev/null | head -1)
           if [ -n "$PROFILE" ]; then
-            security cms -D -i "$PROFILE" 2>/dev/null | grep -E "Name|UUID|application-identifier|ExpirationDate|TeamIdentifier" | head -10
+            security cms -D -i "$PROFILE" 2>/dev/null | grep -A1 -E "Name|UUID|application-identifier|ExpirationDate|TeamIdentifier|Cert" | head -30
           else
             echo "PROFILE NOT FOUND"
           fi
