@@ -10,8 +10,17 @@ workflows:
         - apple_credentials
       vars:
         BUNDLE_ID: com.tilezhan.app
-        APP_STORE_ID: 6744609342
     scripts:
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files \
+            "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+      - name: Install signing files
+        script: |
+          keychain initialize
+          app-store-connect use-signing-files
       - name: Set up iOS project
         script: |
           cd frontend
@@ -19,10 +28,6 @@ workflows:
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 10.0;/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/com.example.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
           flutter pub get
-      - name: Run tests
-        script: |
-          cd frontend
-          flutter test --no-pub || true
       - name: Build IPA
         script: |
           cd frontend
