@@ -96,10 +96,17 @@ jobs:
           echo "=== Profile dump ==="
           PROFILE=$(find ~/Library -name "tilezhan_appstore.mobileprovision" 2>/dev/null | head -1)
           if [ -n "$PROFILE" ]; then
-            security cms -D -i "$PROFILE" 2>/dev/null | grep -A1 -E "Name|UUID|application-identifier|ExpirationDate|TeamIdentifier|Cert" | head -30
+            security cms -D -i "$PROFILE" 2>/dev/null | grep -A1 -E "Name|application-identifier|Cert" | head -20
           else
             echo "PROFILE NOT FOUND"
           fi
+
+      - name: Check signing identities
+        run: |
+          echo "=== Signing Identities ==="
+          security find-identity -v -p codesigning
+          echo "=== Keychains ==="
+          security list-keychains
 
       - name: Create ExportOptions.plist
         run: |
