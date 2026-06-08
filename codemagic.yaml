@@ -1,0 +1,31 @@
+workflows:
+  ios-testflight:
+    name: iOS TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: 3.44.1
+      xcode: latest
+      groups:
+        - apple_credentials
+    scripts:
+      - name: Install dependencies
+        script: |
+          cd frontend
+          flutter pub get
+      - name: Run tests
+        script: |
+          cd frontend
+          flutter test
+      - name: Build IPA
+        script: |
+          cd frontend
+          flutter build ipa --release
+    artifacts:
+      - frontend/build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
