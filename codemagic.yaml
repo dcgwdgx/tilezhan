@@ -12,13 +12,12 @@ workflows:
         BUNDLE_ID: com.tilezhan.app
         APP_STORE_ID: 6744609342
     scripts:
-      - name: Set up code signing
-        script: |
-          echo "DEVELOPMENT_TEAM=74797U8R45" >> frontend/ios/Flutter/Release.xcconfig
-          echo "CODE_SIGN_STYLE=Manual" >> frontend/ios/Flutter/Release.xcconfig
-      - name: Install dependencies
+      - name: Set up iOS project
         script: |
           cd frontend
+          flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 10.0;/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/com.example.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
           flutter pub get
       - name: Run tests
         script: |
