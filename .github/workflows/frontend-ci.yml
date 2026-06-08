@@ -84,6 +84,14 @@ jobs:
           "
         env:
           PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+      - name: Verify profile
+        run: |
+          echo "=== Profile files ==="
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ 2>/dev/null || echo "MobileDevice dir not found"
+          ls -la ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/ 2>/dev/null || echo "Xcode dir not found"
+          echo "=== Profile content ==="
+          security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan_appstore.mobileprovision 2>/dev/null | grep -E "Name|UUID|application-identifier|ExpirationDate" | head -10 || echo "cannot read profile"
+
       - name: Create ExportOptions.plist
         run: |
           cat > ios/ExportOptions.plist << 'EOF'
