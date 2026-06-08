@@ -57,8 +57,13 @@ jobs:
           python3 -c "
           import base64, os
           b64 = os.environ['PROFILE_B64']
-          dest = os.path.expanduser('~/Library/Developer/Xcode/UserData/Provisioning Profiles')
-          os.makedirs(dest, exist_ok=True)
+          # Install to both locations
+          for dest_dir in ['~/Library/MobileDevice/Provisioning Profiles', '~/Library/Developer/Xcode/UserData/Provisioning Profiles']:
+              dest = os.path.expanduser(dest_dir)
+              os.makedirs(dest, exist_ok=True)
+              with open(os.path.join(dest, 'tilezhan_appstore.mobileprovision'), 'wb') as f:
+                  f.write(base64.b64decode(b64))
+          print('Profile installed to both paths')
           os.makedirs(dest, exist_ok=True)
           with open(os.path.join(dest, 'tilezhan_appstore.mobileprovision'), 'wb') as f:
               f.write(base64.b64decode(b64))
@@ -87,10 +92,14 @@ jobs:
       - name: Verify profile
         run: |
           echo "=== Profile files ==="
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ 2>/dev/null || echo "MobileDevice dir not found"
-          ls -la ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/ 2>/dev/null || echo "Xcode dir not found"
-          echo "=== Profile content ==="
-          security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan_appstore.mobileprovision 2>/dev/null | grep -E "Name|UUID|application-identifier|ExpirationDate" | head -10 || echo "cannot read profile"
+          find ~/Library -name "*.mobileprovision" -ls 2>/dev/null
+          echo "=== Profile dump ==="
+          PROFILE=$(find ~/Library -name "tilezhan_appstore.mobileprovision" 2>/dev/null | head -1)
+          if [ -n "$PROFILE" ]; then
+            security cms -D -i "$PROFILE" 2>/dev/null | grep -E "Name|UUID|application-identifier|ExpirationDate|TeamIdentifier" | head -10
+          else
+            echo "PROFILE NOT FOUND"
+          fi
 
       - name: Create ExportOptions.plist
         run: |
