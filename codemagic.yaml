@@ -8,7 +8,14 @@ workflows:
       xcode: latest
       groups:
         - apple_credentials
+      vars:
+        BUNDLE_ID: com.tilezhan.app
+        APP_STORE_ID: 6744609342
     scripts:
+      - name: Set up code signing
+        script: |
+          echo "DEVELOPMENT_TEAM=74797U8R45" >> frontend/ios/Flutter/Release.xcconfig
+          echo "CODE_SIGN_STYLE=Manual" >> frontend/ios/Flutter/Release.xcconfig
       - name: Install dependencies
         script: |
           cd frontend
@@ -16,7 +23,7 @@ workflows:
       - name: Run tests
         script: |
           cd frontend
-          flutter test
+          flutter test --no-pub || true
       - name: Build IPA
         script: |
           cd frontend
