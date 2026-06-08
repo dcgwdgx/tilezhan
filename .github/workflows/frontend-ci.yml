@@ -79,10 +79,10 @@ jobs:
         run: |
           echo "=== Profile files ==="
           find ~/Library -name "*.mobileprovision" -ls 2>/dev/null
-          echo "=== Profile dump ==="
-          PROFILE=$(find ~/Library -name "tilezhan_appstore.mobileprovision" 2>/dev/null | head -1)
+          echo "=== Full profile dump ==="
+          PROFILE=$(find ~/Library -name "df3f2c09*.mobileprovision" 2>/dev/null | head -1)
           if [ -n "$PROFILE" ]; then
-            security cms -D -i "$PROFILE" 2>/dev/null | grep -A1 -E "Name|application-identifier|Cert" | head -20
+            security cms -D -i "$PROFILE" 2>/dev/null
           else
             echo "PROFILE NOT FOUND"
           fi
