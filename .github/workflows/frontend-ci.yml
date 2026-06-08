@@ -55,15 +55,21 @@ jobs:
       - name: Install provisioning profile (Python)
         run: |
           python3 -c "
-          import base64, os
+          import base64, os, subprocess, re
           b64 = os.environ['PROFILE_B64']
-          # Install to both locations
+          data = base64.b64decode(b64)
+          # Decode profile to find UUID
+          r = subprocess.run(['security','cms','-D','-i','/dev/stdin'], input=data, capture_output=True, text=True)
+          uuid_match = re.search(r'<key>UUID</key>\s*<string>([^<]+)</string>', r.stdout)
+          uuid = uuid_match.group(1) if uuid_match else 'tilezhan_appstore'
+          print(f'Profile UUID: {uuid}')
+          # Install to both paths with UUID-based filename
           for dest_dir in ['~/Library/MobileDevice/Provisioning Profiles', '~/Library/Developer/Xcode/UserData/Provisioning Profiles']:
               dest = os.path.expanduser(dest_dir)
               os.makedirs(dest, exist_ok=True)
-              with open(os.path.join(dest, 'tilezhan_appstore.mobileprovision'), 'wb') as f:
-                  f.write(base64.b64decode(b64))
-          print('Profile installed to both paths')
+              with open(os.path.join(dest, f'{uuid}.mobileprovision'), 'wb') as f:
+                  f.write(data)
+          print('Profile installed')
           os.makedirs(dest, exist_ok=True)
           with open(os.path.join(dest, 'tilezhan_appstore.mobileprovision'), 'wb') as f:
               f.write(base64.b64decode(b64))
