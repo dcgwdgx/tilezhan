@@ -53,46 +53,26 @@ jobs:
           CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
           KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
       - name: Install provisioning profile (Python)
+        shell: python3 {0}
         run: |
-          python3 -c "
           import base64, os, subprocess, re
           b64 = os.environ['PROFILE_B64']
           data = base64.b64decode(b64)
-          # Decode profile to find UUID
-          r = subprocess.run(['security','cms','-D','-i','/dev/stdin'], input=data, capture_output=True, text=True)
+          # Write to temp file, then decode UUID
+          tmp = '/tmp/tmp_profile.mobileprovision'
+          with open(tmp, 'wb') as f: f.write(data)
+          r = subprocess.run(['security','cms','-D','-i',tmp], capture_output=True, text=True)
           uuid_match = re.search(r'<key>UUID</key>\s*<string>([^<]+)</string>', r.stdout)
           uuid = uuid_match.group(1) if uuid_match else 'tilezhan_appstore'
           print(f'Profile UUID: {uuid}')
-          # Install to both paths with UUID-based filename
+          # Install to both paths with UUID filename
           for dest_dir in ['~/Library/MobileDevice/Provisioning Profiles', '~/Library/Developer/Xcode/UserData/Provisioning Profiles']:
               dest = os.path.expanduser(dest_dir)
               os.makedirs(dest, exist_ok=True)
               with open(os.path.join(dest, f'{uuid}.mobileprovision'), 'wb') as f:
                   f.write(data)
-          print('Profile installed')
-          os.makedirs(dest, exist_ok=True)
-          with open(os.path.join(dest, 'tilezhan_appstore.mobileprovision'), 'wb') as f:
-              f.write(base64.b64decode(b64))
-          # Verify profile
-          import subprocess
-          r = subprocess.run(['security','cms','-D','-i', os.path.join(dest,'tilezhan_appstore.mobileprovision')], capture_output=True, text=True)
-          xml = r.stdout
-          # Extract key info
-          for tag in ['Name','UUID','TeamIdentifier','ApplicationIdentifierPrefix','TimeToLive','ExpirationDate']:
-              s = xml.find(f'<key>{tag}</key>')
-              if s >= 0:
-                  e = xml.find('</', s)
-                  val = xml[s+len(f'<key>{tag}</key>'):e].strip().replace('<string>','').replace('</string>','')
-                  print(f'{tag}: {val}')
-          # Check entitlements
-          ent_s = xml.find('<key>Entitlements</key>')
-          if ent_s >= 0:
-              bid = xml.find('application-identifier', ent_s)
-              if bid >= 0:
-                  bid_end = xml.find('</string>', bid)
-                  print(f'AppID: {xml[bid:bid_end]}')
-          print('Profile OK')
-          "
+          os.remove(tmp)
+          print('Profile installed with UUID filename')
         env:
           PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
       - name: Verify profile
