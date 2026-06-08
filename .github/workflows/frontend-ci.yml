@@ -57,7 +57,8 @@ jobs:
           python3 -c "
           import base64, os
           b64 = os.environ['PROFILE_B64']
-          dest = os.path.expanduser('~/Library/MobileDevice/Provisioning Profiles')
+          dest = os.path.expanduser('~/Library/Developer/Xcode/UserData/Provisioning Profiles')
+          os.makedirs(dest, exist_ok=True)
           os.makedirs(dest, exist_ok=True)
           with open(os.path.join(dest, 'tilezhan_appstore.mobileprovision'), 'wb') as f:
               f.write(base64.b64decode(b64))
