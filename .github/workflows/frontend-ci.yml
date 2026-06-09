@@ -27,88 +27,31 @@ jobs:
       - uses: subosito/flutter-action@v2
         with: { flutter-version: '3.44.1', channel: stable, cache: true }
       - run: flutter pub get
-      - name: Import signing cert + key (PEM)
-        run: |
-          python3 -c "
-          import base64, os, subprocess
-          # Decode cert and key from secrets
-          cert_b64 = os.environ['CERT_B64']
-          key_b64 = os.environ['KEY_B64']
-          with open('cert.pem','wb') as f: f.write(base64.b64decode(cert_b64))
-          with open('key.pem','wb') as f: f.write(base64.b64decode(key_b64))
-          # Create keychain and import
-          subprocess.run(['security','create-keychain','-p','temp123','signing_temp.keychain'],check=True)
-          subprocess.run(['security','unlock-keychain','-p','temp123','signing_temp.keychain'],check=True)
-          subprocess.run(['security','import','cert.pem','-k','signing_temp.keychain','-A','-T','/usr/bin/codesign'],check=True)
-          subprocess.run(['security','import','key.pem','-k','signing_temp.keychain','-A','-T','/usr/bin/codesign'],check=True)
-          subprocess.run(['security','set-key-partition-list','-S','apple-tool:,apple:','-k','temp123','signing_temp.keychain'],check=True)
-          subprocess.run(['security','list-keychains','-d','user','-s','signing_temp.keychain','login.keychain'],check=True)
-          os.remove('cert.pem'); os.remove('key.pem')
-          # Verify
-          r = subprocess.run(['security','find-identity','-v','-p','codesigning','signing_temp.keychain'], capture_output=True, text=True)
-          print(r.stdout[:300])
-          print('CERT OK')
-          "
+
+      - name: Install certificate
         env:
-          CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
-          KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
-      - name: Install provisioning profile (Python)
-        shell: python3 {0}
+          P12_B64: ${{ secrets.APPLE_P12_BASE64 }}
+          P12_PWD: ${{ secrets.APPLE_P12_PASSWORD }}
         run: |
-          import base64, os, subprocess, re
-          b64 = os.environ['PROFILE_B64']
-          data = base64.b64decode(b64)
-          # Write to temp file, then decode UUID
-          tmp = '/tmp/tmp_profile.mobileprovision'
-          with open(tmp, 'wb') as f: f.write(data)
-          r = subprocess.run(['security','cms','-D','-i',tmp], capture_output=True, text=True)
-          uuid_match = re.search(r'<key>UUID</key>\s*<string>([^<]+)</string>', r.stdout)
-          uuid = uuid_match.group(1) if uuid_match else 'tilezhan_appstore'
-          print(f'Profile UUID: {uuid}')
-          # Install to both paths with UUID filename
-          for dest_dir in ['~/Library/MobileDevice/Provisioning Profiles', '~/Library/Developer/Xcode/UserData/Provisioning Profiles']:
-              dest = os.path.expanduser(dest_dir)
-              os.makedirs(dest, exist_ok=True)
-              with open(os.path.join(dest, f'{uuid}.mobileprovision'), 'wb') as f:
-                  f.write(data)
-          os.remove(tmp)
-          print('Profile installed with UUID filename')
+          echo "$P12_B64" | base64 -d > signing.p12
+          security create-keychain -p temp123 build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p temp123 build.keychain
+          security import signing.p12 -k build.keychain -P "$P12_PWD" -A
+          security set-key-partition-list -S apple-tool:,apple: -s -k temp123 build.keychain
+          rm signing.p12
+          security find-identity -v -p codesigning
+
+      - name: Install profile
         env:
           PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
-      - name: Verify profile
         run: |
-          echo "=== Profile files ==="
-          find ~/Library -name "*.mobileprovision" -ls 2>/dev/null
-          echo "=== Full profile dump ==="
-          PROFILE=$(find ~/Library -name "df3f2c09*.mobileprovision" 2>/dev/null | head -1)
-          if [ -n "$PROFILE" ]; then
-            security cms -D -i "$PROFILE" 2>/dev/null
-          else
-            echo "PROFILE NOT FOUND"
-          fi
-
-      - name: Check signing identities
-        run: |
-          echo "=== Signing Identities ==="
-          security find-identity -v -p codesigning
-          echo "=== Keychains ==="
-          security list-keychains
-
-      - name: Create ExportOptions.plist
-        run: |
-          cat > ios/ExportOptions.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store</string>
-          </dict>
-          </plist>
-          EOF
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROFILE_B64" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
 
       - name: Build IPA
-        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+        run: flutter build ipa --release
+
       - uses: apple-actions/upload-testflight-build@v1
         with:
           app-path: build/ios/ipa/*.ipa
