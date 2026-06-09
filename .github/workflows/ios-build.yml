@@ -19,11 +19,12 @@ jobs:
 
       - name: Setup iOS project
         run: |
+          cp -r ios/fastlane /tmp/fastlane_backup 2>/dev/null || true
           rm -rf ios/
           flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
+          cp -r /tmp/fastlane_backup ios/fastlane 2>/dev/null || true
           sed -i '' 's/com.example.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
-          # Fix any lingering Windows paths
-          grep -rl "C:\\\\flutter" ios/ 2>/dev/null | xargs -r sed -i '' "s|C:\\\\\\\\flutter|$FLUTTER_ROOT|g" || true
+          grep -rl "C:\\\\flutter" ios/ 2>/dev/null | xargs -r sed -i '' "s|C:\\\\\\\\flutter|${FLUTTER_ROOT}|g" || true
 
       # 1. Import certificate (PEM format - no P12 password issues)
       - name: Import cert
