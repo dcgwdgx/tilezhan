@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/models/tile_model.dart';
 import '../domain/flashcard_provider.dart';
@@ -79,9 +80,10 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
     final state = ref.watch(flashcardQuizProvider);
     final tile = state.currentTile;
 
-    if (tile == null && state.totalCount == 0) {
+    if (tile == null || state.totalCount == 0) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        backgroundColor: AppColors.jadeDeep,
+        body: Center(child: CircularProgressIndicator(color: AppColors.neonGold)),
       );
     }
 
@@ -104,7 +106,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
                 const Spacer(),
                 _buildCountdownRing(),
                 const SizedBox(height: 16),
-                _buildTileDisplay(tile!),
+                _buildTileDisplay(tile),
                 const SizedBox(height: 24),
                 _buildOptions(tile, state),
                 const SizedBox(height: 8),
@@ -142,7 +144,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
+            onTap: () => context.pop(),
             child: Container(
               width: 36, height: 36,
               decoration: BoxDecoration(

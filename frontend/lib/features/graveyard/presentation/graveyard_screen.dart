@@ -13,6 +13,10 @@ class GraveyardScreen extends ConsumerWidget {
       backgroundColor: AppColors.jadeDeep,
       appBar: AppBar(
         backgroundColor: AppColors.jadeDeep,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.jadeWhiteDim),
+          onPressed: () => context.pop(),
+        ),
         title: const Row(
           children: [
             Text('Tile Graveyard', style: TextStyle(fontWeight: FontWeight.w700)),
@@ -45,7 +49,7 @@ class GraveyardScreen extends ConsumerWidget {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => context.go('/flashcard'),
+                onPressed: () => context.push('/flashcard'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.neonGold,
                   foregroundColor: Colors.black,

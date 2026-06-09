@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 
 class PremiumScreen extends ConsumerWidget {
@@ -19,7 +20,7 @@ class PremiumScreen extends ConsumerWidget {
                   alignment: Alignment.topRight,
                   child: IconButton(
                     icon: const Icon(Icons.close, color: AppColors.jadeWhiteDim),
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => context.pop(),
                   ),
                 ),
                 const Text('💎', style: TextStyle(fontSize: 56)),

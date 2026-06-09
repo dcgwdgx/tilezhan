@@ -184,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => context.go('/flashcard'),
+                onPressed: () => context.push('/flashcard'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.neonGold,
                   foregroundColor: Colors.black,
@@ -248,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.2,
         children: items.map((item) {
           return GestureDetector(
-            onTap: () => context.go(item.$3),
+            onTap: () => context.push(item.$3),
             child: Container(
               decoration: BoxDecoration(
                 color: AppColors.jadeCard,
@@ -288,7 +288,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: tabs.map((t) {
           final active = t.$3;
           return GestureDetector(
-            onTap: () => context.go(t.$4),
+            onTap: () => context.push(t.$4),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

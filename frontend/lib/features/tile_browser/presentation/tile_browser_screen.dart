@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/models/tile_model.dart';
 import '../../../core/providers/tile_data_provider.dart';
@@ -15,6 +16,10 @@ class TileBrowserScreen extends ConsumerWidget {
       backgroundColor: AppColors.jadeDeep,
       appBar: AppBar(
         backgroundColor: AppColors.jadeDeep,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.jadeWhiteDim),
+          onPressed: () => context.pop(),
+        ),
         title: const Text('Tile Browser', style: TextStyle(fontWeight: FontWeight.w700)),
         actions: [
           Text('🀄 34 Tiles', style: TextStyle(

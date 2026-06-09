@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 
 class CollectionScreen extends ConsumerWidget {
@@ -11,6 +12,10 @@ class CollectionScreen extends ConsumerWidget {
       backgroundColor: AppColors.jadeDeep,
       appBar: AppBar(
         backgroundColor: AppColors.jadeDeep,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.jadeWhiteDim),
+          onPressed: () => context.pop(),
+        ),
         title: const Text('Yaku Collection', style: TextStyle(fontWeight: FontWeight.w700)),
         actions: [
           Text('12/40', style: TextStyle(
