@@ -17,11 +17,28 @@ jobs:
 
       - run: flutter pub get
 
-      # 1. Import P12 certificate
-      - uses: apple-actions/import-codesign-certs@v3
-        with:
-          p12-file-base64: ${{ secrets.APPLE_P12_BASE64 }}
-          p12-password: ${{ secrets.APPLE_P12_PASSWORD }}
+      # 1. Import certificate (PEM format - no P12 password issues)
+      - name: Import cert
+        run: |
+          python3 -c "
+          import base64, os, subprocess
+          cert = base64.b64decode(os.environ['CERT_B64'])
+          key = base64.b64decode(os.environ['KEY_B64'])
+          with open('cert.pem','wb') as f: f.write(cert)
+          with open('key.pem','wb') as f: f.write(key)
+          subprocess.run(['security','create-keychain','-p','temp123','build.keychain'],check=True)
+          subprocess.run(['security','default-keychain','-s','build.keychain'],check=True)
+          subprocess.run(['security','unlock-keychain','-p','temp123','build.keychain'],check=True)
+          subprocess.run(['security','import','cert.pem','-k','build.keychain','-A'],check=True)
+          subprocess.run(['security','import','key.pem','-k','build.keychain','-A'],check=True)
+          subprocess.run(['security','set-key-partition-list','-S','apple-tool:,apple:','-s','-k','temp123','build.keychain'],check=True)
+          os.remove('cert.pem'); os.remove('key.pem')
+          subprocess.run(['security','find-identity','-v','-p','codesigning'])
+          print('CERT OK')
+          "
+        env:
+          CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
+          KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
 
       # 2. Install provisioning profile
       - name: Install profile
