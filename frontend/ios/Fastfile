@@ -20,7 +20,9 @@ platform :ios do
       scheme: "Runner",
       export_method: "app-store",
       configuration: "Release",
-      xcargs: "DEVELOPMENT_TEAM='74797U8R45' -allowProvisioningUpdates",
+      export_options: {
+        provisioningProfiles: { "com.tilezhan.app": "TileZhan App Store" }
+      },
     )
 
     upload_to_testflight(
