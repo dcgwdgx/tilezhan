@@ -10,10 +10,6 @@ workflows:
         - apple_credentials
       vars:
         BUNDLE_ID: com.tilezhan.app
-        APP_STORE_ID: 6744609342
-        XCODE_PROJECT: frontend/ios/Runner.xcodeproj
-        XCODE_SCHEME: Runner
-        XCODE_WORKSPACE: frontend/ios/Runner.xcworkspace
     scripts:
       - name: Setup
         script: |
@@ -21,29 +17,27 @@ workflows:
           flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
           sed -i '' 's/com.example.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
           flutter pub get
-      - name: Build iOS
+      - name: Create export options
+        script: |
+          cat > frontend/ios/ExportOptions.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+          </dict>
+          </plist>
+          EOF
+      - name: Build IPA
         script: |
           cd frontend
-          flutter build ios --release --no-codesign
-      - name: Code sign
-        script: |
-          cd frontend
-          codesign --sign "Apple Distribution" --force --deep --preserve-metadata \
-            build/ios/Release-iphoneos/Runner.app
-      - name: Create IPA
-        script: |
-          mkdir -p frontend/build/ios/ipa
-          cd frontend/build/ios
-          mkdir -p Payload
-          cp -R Release-iphoneos/Runner.app Payload/
-          zip -r ipa/Runner.ipa Payload
-          rm -rf Payload
-      - name: Publish to TestFlight
-        script: |
-          xcrun altool --upload-app \
-            -f frontend/build/ios/ipa/Runner.ipa \
-            -t ios \
-            --apiKey "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
     artifacts:
       - frontend/build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
