@@ -20,7 +20,6 @@
         "flame",
         "flutter",
         "flutter_riverpod",
-        "flutter_svg",
         "freezed_annotation",
         "go_router",
         "hive_flutter",
@@ -153,17 +152,6 @@
         "stream_channel",
         "test_api",
         "vector_math"
-      ]
-    },
-    {
-      "name": "flutter_svg",
-      "version": "2.3.0",
-      "dependencies": [
-        "flutter",
-        "http",
-        "vector_graphics",
-        "vector_graphics_codec",
-        "vector_graphics_compiler"
       ]
     },
     {
@@ -815,42 +803,6 @@
       ]
     },
     {
-      "name": "vector_graphics_compiler",
-      "version": "1.2.5",
-      "dependencies": [
-        "args",
-        "meta",
-        "path",
-        "path_parsing",
-        "vector_graphics_codec",
-        "xml"
-      ]
-    },
-    {
-      "name": "vector_graphics_codec",
-      "version": "1.1.13",
-      "dependencies": []
-    },
-    {
-      "name": "vector_graphics",
-      "version": "1.2.2",
-      "dependencies": [
-        "flutter",
-        "http",
-        "vector_graphics_codec"
-      ]
-    },
-    {
-      "name": "http",
-      "version": "1.6.0",
-      "dependencies": [
-        "async",
-        "http_parser",
-        "meta",
-        "web"
-      ]
-    },
-    {
       "name": "octo_image",
       "version": "2.1.0",
       "dependencies": [
@@ -924,6 +876,16 @@
       "version": "2.1.8",
       "dependencies": [
         "meta"
+      ]
+    },
+    {
+      "name": "http",
+      "version": "1.6.0",
+      "dependencies": [
+        "async",
+        "http_parser",
+        "meta",
+        "web"
       ]
     },
     {
@@ -1278,23 +1240,6 @@
       ]
     },
     {
-      "name": "xml",
-      "version": "6.6.1",
-      "dependencies": [
-        "collection",
-        "meta",
-        "petitparser"
-      ]
-    },
-    {
-      "name": "path_parsing",
-      "version": "1.1.0",
-      "dependencies": [
-        "meta",
-        "vector_math"
-      ]
-    },
-    {
       "name": "uuid",
       "version": "4.5.3",
       "dependencies": [
@@ -1401,14 +1346,6 @@
       "dependencies": []
     },
     {
-      "name": "petitparser",
-      "version": "7.0.2",
-      "dependencies": [
-        "collection",
-        "meta"
-      ]
-    },
-    {
       "name": "sqflite_common",
       "version": "2.5.9",
       "dependencies": [
@@ -1447,6 +1384,15 @@
         "path",
         "sqflite_common",
         "sqflite_platform_interface"
+      ]
+    },
+    {
+      "name": "xml",
+      "version": "6.6.1",
+      "dependencies": [
+        "collection",
+        "meta",
+        "petitparser"
       ]
     },
     {
@@ -1500,6 +1446,14 @@
       "name": "synchronized",
       "version": "3.4.1",
       "dependencies": []
+    },
+    {
+      "name": "petitparser",
+      "version": "7.0.2",
+      "dependencies": [
+        "collection",
+        "meta"
+      ]
     },
     {
       "name": "hooks",
