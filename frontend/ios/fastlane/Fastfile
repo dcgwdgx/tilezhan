@@ -20,7 +20,7 @@ platform :ios do
       scheme: "Runner",
       export_method: "app-store",
       configuration: "Release",
-      xcargs: "DEVELOPMENT_TEAM='74797U8R45'",
+      xcargs: "DEVELOPMENT_TEAM='74797U8R45' -allowProvisioningUpdates",
     )
 
     upload_to_testflight(
