@@ -17,6 +17,11 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Setup iOS project
+        run: |
+          flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
+          sed -i '' 's/com.example.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
+
       # 1. Import certificate (PEM format - no P12 password issues)
       - name: Import cert
         run: |
@@ -51,9 +56,7 @@ jobs:
         with: { ruby-version: '3.2' }
 
       - name: Install Fastlane
-        run: |
-          gem install fastlane -N
-          cd ios && pod install && cd ..
+        run: gem install fastlane -N
 
       # 4. Build & upload via Fastlane
       - name: Build and upload
