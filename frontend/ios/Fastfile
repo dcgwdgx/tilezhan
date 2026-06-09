@@ -3,7 +3,6 @@ default_platform(:ios)
 platform :ios do
   lane :beta do
     api_key = app_store_connect_api_key(
-    api_key = app_store_connect_api_key(
       key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
       issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
       key_content: ENV["APP_STORE_CONNECT_API_KEY"],
@@ -27,15 +26,10 @@ platform :ios do
       },
     )
 
-    # Use pilot/deliver instead of upload_to_testflight — avoids altool SDK check
-    deliver(
+    upload_to_testflight(
       api_key: api_key,
-      ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
-      skip_metadata: true,
-      skip_screenshots: true,
-      force: true,
-      precheck_include_in_app_purchases: false,
-      run_precheck_before_submit: false,
+      skip_waiting_for_build_processing: true,
+      use_legacy_upload: false,
     )
   end
 end
