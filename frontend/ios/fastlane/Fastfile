@@ -26,9 +26,15 @@ platform :ios do
       },
     )
 
-    upload_to_testflight(
+    # Use pilot/deliver instead of upload_to_testflight — avoids altool SDK check
+    deliver(
       api_key: api_key,
-      skip_waiting_for_build_processing: true,
+      ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
+      skip_metadata: true,
+      skip_screenshots: true,
+      force: true,
+      precheck_include_in_app_purchases: false,
+      run_precheck_before_submit: false,
     )
   end
 end
