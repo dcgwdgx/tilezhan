@@ -548,25 +548,3 @@ class _GlowRingPainter extends CustomPainter {
       old.progress != progress || old.urgent != urgent;
 }
 
-class _TileGlowPainter extends CustomPainter {
-  final Color color;
-  final double glowIntensity;
-
-  _TileGlowPainter({required this.color, required this.glowIntensity});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (glowIntensity <= 0) return;
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size, const Radius.circular(16),
-    );
-    final paint = Paint()
-      ..color = color.withOpacity(glowIntensity * 0.4)
-      ..maskFilter = MaskFilter.blur(BlurStyle.outer, 12 * glowIntensity);
-    canvas.drawRRect(rrect, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _TileGlowPainter old) =>
-      old.glowIntensity != glowIntensity;
-}
