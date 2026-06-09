@@ -6,6 +6,8 @@ workflows:
     environment:
       flutter: 3.44.1
       xcode: latest
+      groups:
+        - ios_signing
       vars:
         BUNDLE_ID: com.tilezhan.app
     scripts:
