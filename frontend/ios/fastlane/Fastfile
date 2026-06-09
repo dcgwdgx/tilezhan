@@ -1,0 +1,23 @@
+default_platform(:ios)
+
+platform :ios do
+  lane :beta do
+    # Auto-fetch provisioning profile using API key (like EAS does)
+    sigh(
+      app_identifier: "com.tilezhan.app",
+      username: "dcgwdgx@126.com",
+      team_id: "74797U8R45",
+      force: true,
+    )
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      export_method: "app-store",
+      configuration: "Release",
+      xcargs: "DEVELOPMENT_TEAM='74797U8R45'",
+    )
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+    )
+  end
+end
