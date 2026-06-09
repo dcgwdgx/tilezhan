@@ -6,8 +6,6 @@ workflows:
     environment:
       flutter: 3.44.1
       xcode: latest
-      groups:
-        - apple_credentials
       vars:
         BUNDLE_ID: com.tilezhan.app
     scripts:
@@ -17,22 +15,28 @@ workflows:
           flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
           sed -i '' 's/com.example.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
           flutter pub get
-      - name: Create export options
+
+      - name: Install certificate
         script: |
-          cat > frontend/ios/ExportOptions.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-          </dict>
-          </plist>
-          EOF
+          echo "$P12_BASE64" | base64 -d > signing.p12
+          security create-keychain -p temp123 build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p temp123 build.keychain
+          security import signing.p12 -k build.keychain -P "$P12_PASSWORD" -A
+          security set-key-partition-list -S apple-tool:,apple: -s -k temp123 build.keychain
+          rm signing.p12
+          echo "CERT OK"
+
+      - name: Install profile
+        script: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROFILE_BASE64" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
+          echo "PROFILE OK"
+
       - name: Build IPA
         script: |
           cd frontend
-          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+          flutter build ipa --release
     artifacts:
       - frontend/build/ios/ipa/*.ipa
     publishing:
