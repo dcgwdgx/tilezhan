@@ -12,10 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Find latest Xcode
+      - name: Install Xcode 26
         run: |
-          ls /Applications/ | grep Xcode
-          sudo xcode-select -s /Applications/Xcode_26.app 2>/dev/null || echo "Xcode 26 not found, using default"
+          brew install xcodesorg/made/xcodes
+          xcodes runtimes --install "iOS 26.0" 2>/dev/null || true
+          xcodes install 26.0 --select 2>/dev/null || xcodes install 26 --select 2>/dev/null || echo "Xcode 26 not available yet, trying latest..."
+          sudo xcode-select -p
 
       - uses: subosito/flutter-action@v2
         with: { flutter-version: '3.44.1', channel: stable, cache: true }
