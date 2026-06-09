@@ -26,7 +26,6 @@ jobs:
           sed -i '' 's/com.tilezhan.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
           grep -rl "C:\\\\flutter" ios/ 2>/dev/null | xargs -r sed -i '' "s|C:\\\\\\\\flutter|${FLUTTER_ROOT}|g" || true
 
-      # 1. Import certificate (PEM format - no P12 password issues)
       - name: Import cert
         run: |
           python3 -c "
@@ -35,13 +34,8 @@ jobs:
           key = base64.b64decode(os.environ['KEY_B64'])
           with open('cert.pem','wb') as f: f.write(cert)
           with open('key.pem','wb') as f: f.write(key)
-          subprocess.run(['security','delete-keychain','build.keychain'],capture_output=True)
-          subprocess.run(['security','create-keychain','-p','temp123','build.keychain'],check=True)
-          subprocess.run(['security','default-keychain','-s','build.keychain'],check=True)
-          subprocess.run(['security','unlock-keychain','-p','temp123','build.keychain'],check=True)
-          subprocess.run(['security','import','cert.pem','-k','build.keychain','-A'],check=True)
-          subprocess.run(['security','import','key.pem','-k','build.keychain','-A'],check=True)
-          subprocess.run(['security','set-key-partition-list','-S','apple-tool:,apple:','-s','-k','temp123','build.keychain'],check=True)
+          subprocess.run(['security','import','cert.pem','-k','login.keychain','-A'],check=True)
+          subprocess.run(['security','import','key.pem','-k','login.keychain','-A'],check=True)
           os.remove('cert.pem'); os.remove('key.pem')
           subprocess.run(['security','find-identity','-v','-p','codesigning'])
           print('CERT OK')
@@ -50,41 +44,16 @@ jobs:
           CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
           KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
 
-      # 2. Install provisioning profile
       - name: Install profile
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
 
-      # 3. Setup Fastlane
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: '3.2' }
 
       - name: Install Fastlane
         run: gem install fastlane -N
-
-      # 4. Build & upload via Fastlane
-      - name: Import certificate
-        run: |
-          python3 -c "
-          import base64, os, subprocess
-          cert = base64.b64decode(os.environ['CERT_B64'])
-          key = base64.b64decode(os.environ['KEY_B64'])
-          with open('cert.pem','wb') as f: f.write(cert)
-          with open('key.pem','wb') as f: f.write(key)
-          subprocess.run(['security','delete-keychain','build.keychain'],capture_output=True)
-          subprocess.run(['security','create-keychain','-p','temp123','build.keychain'],check=True)
-          subprocess.run(['security','default-keychain','-s','build.keychain'],check=True)
-          subprocess.run(['security','unlock-keychain','-p','temp123','build.keychain'],check=True)
-          subprocess.run(['security','import','cert.pem','-k','build.keychain','-A'],check=True)
-          subprocess.run(['security','import','key.pem','-k','build.keychain','-A'],check=True)
-          subprocess.run(['security','set-key-partition-list','-S','apple-tool:,apple:','-s','-k','temp123','build.keychain'],check=True)
-          subprocess.run(['security','find-identity','-v','-p','codesigning'])
-          print('CERT OK')
-          "
-        env:
-          CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
-          KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
 
       - name: Build and upload
         run: cd ios && fastlane ios beta
