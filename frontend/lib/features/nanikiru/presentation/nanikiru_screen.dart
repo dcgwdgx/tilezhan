@@ -265,7 +265,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _toolBtn('📐 Sort', () {}),
+          _toolBtn('📐 Sort', () => notifier.sortHand()),
           const SizedBox(width: 8),
           _toolBtn('💡 Hint', () {}),
           const SizedBox(width: 8),

@@ -40,9 +40,14 @@ class PremiumScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
                 _buildPricingCards(),
                 const SizedBox(height: 24),
-                const TzButton(
+                TzButton(
                   label: 'START FREE TRIAL',
                   style: TzButtonStyle.gold,
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('🚀 Premium coming soon — stay tuned!')),
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
                 Text('Restore Purchases  ·  Terms  ·  Privacy',

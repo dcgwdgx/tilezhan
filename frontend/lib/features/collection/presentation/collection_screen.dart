@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/srs/srs_provider.dart';
 
 class CollectionScreen extends ConsumerWidget {
   const CollectionScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final itemsAsync = ref.watch(srsItemsProvider);
+    final totalReviews = (itemsAsync.valueOrNull ?? {}).values
+        .fold(0, (sum, item) => sum + item.reps + 1);
+    final unlocked = (totalReviews ~/ 5).clamp(0, 7);
     return Scaffold(
       backgroundColor: AppColors.jadeDeep,
       appBar: AppBar(
@@ -18,7 +23,7 @@ class CollectionScreen extends ConsumerWidget {
         ),
         title: const Text('Yaku Collection', style: TextStyle(fontWeight: FontWeight.w700)),
         actions: [
-          Text('12/40', style: TextStyle(
+          Text('${unlocked + 1}/8', style: TextStyle(
             fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.neonGold,
           )),
           const SizedBox(width: 16),
@@ -28,7 +33,7 @@ class CollectionScreen extends ConsumerWidget {
         children: [
           _buildFilterBar(),
           const SizedBox(height: 8),
-          Expanded(child: _buildYakuGrid(context)),
+          Expanded(child: _buildYakuGrid(context, unlocked)),
         ],
       ),
     );
@@ -64,16 +69,16 @@ class CollectionScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildYakuGrid(BuildContext context) {
+  Widget _buildYakuGrid(BuildContext context, int unlocked) {
     final yakus = [
-      ('🥪', 'Tanyao', 'All Simples', true, 2),
-      ('🛗', 'Pinfu', 'Peace', true, 3),
-      ('🔫', 'Riichi', 'Ready Hand', true, 2),
-      ('🎨', 'Honitsu', 'Half Flush', false, 0),
-      ('🧹', 'Chinitsu', 'Full Flush', false, 0),
-      ('👯', 'Toitoi', 'All Triplets', false, 0),
-      ('🚢', 'Chiitoitsu', 'Seven Pairs', false, 0),
-      ('👑', 'Yakuhai', 'Value Honors', false, 0),
+      ('🥪', 'Tanyao', 'All Simples', 2),
+      ('🛗', 'Pinfu', 'Peace', 3),
+      ('🔫', 'Riichi', 'Ready Hand', 2),
+      ('🎨', 'Honitsu', 'Half Flush', 3),
+      ('🧹', 'Chinitsu', 'Full Flush', 5),
+      ('👯', 'Toitoi', 'All Triplets', 4),
+      ('🚢', 'Chiitoitsu', 'Seven Pairs', 4),
+      ('👑', 'Yakuhai', 'Value Honors', 3),
     ];
 
     return GridView.builder(
@@ -85,38 +90,39 @@ class CollectionScreen extends ConsumerWidget {
       itemCount: yakus.length,
       itemBuilder: (_, i) {
         final y = yakus[i];
+        final isUnlocked = i <= unlocked;
         return GestureDetector(
-          onTap: y.$4 ? () => _showYakuDetail(context, y.$2, y.$3, y.$5) : null,
+          onTap: isUnlocked ? () => _showYakuDetail(context, y.$2, y.$3, y.$4) : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
-              color: y.$4 ? AppColors.jadeCard : AppColors.jadeCard.withOpacity(0.4),
+              color: isUnlocked ? AppColors.jadeCard : AppColors.jadeCard.withOpacity(0.4),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: y.$4 ? AppColors.jadeHover : AppColors.jadeHover.withOpacity(0.3),
+                color: isUnlocked ? AppColors.jadeHover : AppColors.jadeHover.withOpacity(0.3),
               ),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(y.$1, style: TextStyle(
-                  fontSize: 32, color: y.$4 ? null : AppColors.jadeWhiteMuted.withOpacity(0.4),
+                  fontSize: 32, color: isUnlocked ? null : AppColors.jadeWhiteMuted.withOpacity(0.4),
                 )),
                 const SizedBox(height: 4),
                 Text(y.$2, style: TextStyle(
                   fontSize: 13, fontWeight: FontWeight.w700,
-                  color: y.$4 ? AppColors.jadeWhite : AppColors.jadeWhiteMuted,
+                  color: isUnlocked ? AppColors.jadeWhite : AppColors.jadeWhiteMuted,
                 )),
                 Text(y.$3, style: TextStyle(
                   fontSize: 10,
-                  color: y.$4 ? AppColors.jadeWhiteMuted : AppColors.jadeWhiteMuted.withOpacity(0.4),
+                  color: isUnlocked ? AppColors.jadeWhiteMuted : AppColors.jadeWhiteMuted.withOpacity(0.4),
                 )),
                 const SizedBox(height: 2),
-                if (y.$4)
+                if (isUnlocked)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(3, (s) => Icon(
-                      s < y.$5 ? Icons.star : Icons.star_border,
+                      s < y.$4 ? Icons.star : Icons.star_border,
                       color: AppColors.neonGold, size: 14,
                     )),
                   )

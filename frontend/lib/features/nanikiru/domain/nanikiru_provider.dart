@@ -80,6 +80,19 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
     );
   }
 
+  void sortHand() {
+    if (state.isFinished) return;
+    final sorted = List<TileModel>.from(state.handTiles)
+      ..sort((a, b) {
+        final suitOrder = a.suit.index.compareTo(b.suit.index);
+        if (suitOrder != 0) return suitOrder;
+        return a.value is int && b.value is int
+            ? (a.value as int).compareTo(b.value as int)
+            : a.id.compareTo(b.id);
+      });
+    state = state.copyWith(handTiles: sorted);
+  }
+
   void nextPuzzle() {
     initPuzzle();
   }
