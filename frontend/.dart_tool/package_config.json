@@ -75,9 +75,9 @@
     },
     {
       "name": "build",
-      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/build-2.4.2",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/build-2.5.4",
       "packageUri": "lib/",
-      "languageVersion": "3.6"
+      "languageVersion": "3.7"
     },
     {
       "name": "build_config",
@@ -93,21 +93,21 @@
     },
     {
       "name": "build_resolvers",
-      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/build_resolvers-2.4.4",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/build_resolvers-2.5.4",
       "packageUri": "lib/",
-      "languageVersion": "3.6"
+      "languageVersion": "3.7"
     },
     {
       "name": "build_runner",
-      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/build_runner-2.4.14",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/build_runner-2.5.4",
       "packageUri": "lib/",
-      "languageVersion": "3.6"
+      "languageVersion": "3.7"
     },
     {
       "name": "build_runner_core",
-      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/build_runner_core-8.0.0",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/build_runner_core-9.1.2",
       "packageUri": "lib/",
-      "languageVersion": "3.6"
+      "languageVersion": "3.7"
     },
     {
       "name": "built_collection",
@@ -339,9 +339,9 @@
     },
     {
       "name": "js",
-      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/js-0.6.7",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/js-0.7.2",
       "packageUri": "lib/",
-      "languageVersion": "2.19"
+      "languageVersion": "3.7"
     },
     {
       "name": "json_annotation",
@@ -531,9 +531,9 @@
     },
     {
       "name": "shelf_web_socket",
-      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/shelf_web_socket-2.0.1",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/shelf_web_socket-3.0.0",
       "packageUri": "lib/",
-      "languageVersion": "3.3"
+      "languageVersion": "3.5"
     },
     {
       "name": "sky_engine",
@@ -663,9 +663,9 @@
     },
     {
       "name": "web",
-      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/web-0.5.1",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/web-1.1.1",
       "packageUri": "lib/",
-      "languageVersion": "3.3"
+      "languageVersion": "3.4"
     },
     {
       "name": "web_socket",

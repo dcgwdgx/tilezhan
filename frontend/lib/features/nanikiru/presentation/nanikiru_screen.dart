@@ -24,6 +24,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     with SingleTickerProviderStateMixin {
   Timer? _timer;
   late AnimationController _slashCtrl;
+  int _sessionCount = 0;
 
   @override
   void initState() {
@@ -155,7 +156,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
               fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.jadeWhite,
             )),
           ),
-          const Text('⚔️2/3', style: TextStyle(
+          Text('⚔️${_sessionCount + 1}', style: TextStyle(
             fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.neonGold,
           )),
         ],
@@ -292,7 +293,18 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
         children: [
           _toolBtn('📐 Sort', () => notifier.sortHand()),
           const SizedBox(width: 8),
-          _toolBtn('💡 Hint', () {}),
+          _toolBtn('💡 Hint', () {
+            showDialog(
+              context: context,
+              builder: (_) => AlertDialog(
+                backgroundColor: AppColors.jadeCard,
+                title: const Text('💡 Hint', style: TextStyle(color: AppColors.neonGold)),
+                content: const Text('Look for sequences and triplets.\nDiscard isolated tiles that don\'t form any meld.\nThe correct answer maximizes tile acceptance (ukeire).',
+                    style: TextStyle(color: AppColors.jadeWhiteDim)),
+                actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it', style: TextStyle(color: AppColors.neonGold)))],
+              ),
+            );
+          }),
           const SizedBox(width: 8),
           _toolBtn('🏳️ Skip', () {
             AudioService.playSlash();
@@ -325,7 +337,11 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
   Widget _buildFeedbackSheet(NaniKiruState state, NanikiruNotifier notifier) {
     final isPerfect = state.isPerfect;
     return GestureDetector(
-      onTap: () { notifier.nextPuzzle(); _startCountdown(); },
+      onTap: () {
+        _sessionCount++;
+        notifier.nextPuzzle();
+        _startCountdown();
+      },
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
