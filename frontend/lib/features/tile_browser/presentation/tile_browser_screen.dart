@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/models/tile_model.dart';
+import '../../../shared/widgets/tz_tile.dart';
 import '../../../core/providers/tile_data_provider.dart';
 
 class TileBrowserScreen extends ConsumerWidget {
@@ -67,16 +68,7 @@ class TileBrowserScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(tile.mnemonic.emoji, style: const TextStyle(fontSize: 22)),
-                const SizedBox(height: 2),
-                Text(tile.character, style: const TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w900,
-                  fontFamily: 'Noto Serif SC', color: AppColors.jadeWhite,
-                )),
-                Text(tile.seal, style: TextStyle(
-                  fontSize: 10, fontWeight: FontWeight.w700,
-                  color: suitColors[tile.suit] ?? AppColors.jadeWhiteDim,
-                )),
+                TzTile(tile: tile, size: TileSize.sm),
                 const SizedBox(height: 2),
                 Text(tile.mnemonic.name, textAlign: TextAlign.center,
                   maxLines: 1, overflow: TextOverflow.ellipsis,

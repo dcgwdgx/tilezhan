@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/models/tile_model.dart';
@@ -248,17 +249,14 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   Widget _buildTileDisplay(TileModel tile) {
     final state = ref.read(flashcardQuizProvider);
     final isCorrect = state.lastCorrectId == tile.id;
+    final assetPath = 'assets/tiles/${tile.id}.svg';
     return GestureDetector(
       onTap: state.isAnswering ? _showMnemonic : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: 160, height: 200,
+        width: 150, height: 210,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft, end: Alignment.bottomRight,
-            colors: [AppColors.jadeCard, AppColors.jadeDeep],
-          ),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isCorrect
                 ? const Color(0xFF2CE574)
@@ -271,18 +269,11 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
             BoxShadow(color: Colors.black54, blurRadius: 12, offset: const Offset(0, 6)),
           ],
         ),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(tile.character, style: TextStyle(
-                fontSize: 56, fontWeight: FontWeight.w900,
-                color: AppColors.jadeWhite,
-                fontFamily: 'Noto Serif SC',
-                shadows: isCorrect ? [const Shadow(color: Color(0xFF2CE574), blurRadius: 12)] : null,
-              )),
-              Text(tile.seal, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: tile.suitColor)),
-            ],
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: SvgPicture.asset(
+            assetPath,
+            fit: BoxFit.contain,
           ),
         ),
       ),

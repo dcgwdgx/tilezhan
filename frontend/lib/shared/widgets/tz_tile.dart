@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import '../../core/constants/app_colors.dart';
 import '../models/tile_model.dart';
 
@@ -13,15 +14,9 @@ class TzTile extends StatelessWidget {
   final VoidCallback? onDoubleTap;
 
   static const _sizeMap = {
-    TileSize.sm: Size(36, 52),
+    TileSize.sm: Size(39, 54),
     TileSize.md: Size(52, 74),
     TileSize.lg: Size(64, 90),
-  };
-
-  static const _fontSizeMap = {
-    TileSize.sm: 16.0,
-    TileSize.md: 22.0,
-    TileSize.lg: 28.0,
   };
 
   const TzTile({
@@ -36,7 +31,9 @@ class TzTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tileSize = _sizeMap[size]!;
-    final fontSize = _fontSizeMap[size]!;
+    final isSelected = state == TileState.selected;
+    final isDimmed = state == TileState.dimmed;
+    final assetPath = 'assets/tiles/${tile.id}.svg';
 
     return GestureDetector(
       onTap: onTap,
@@ -47,70 +44,46 @@ class TzTile extends StatelessWidget {
         width: tileSize.width,
         height: tileSize.height,
         transform: Matrix4.translationValues(
-          0, state == TileState.selected ? -12.0 : 0, 0,
+          0, isSelected ? -12.0 : 0, 0,
         ),
         decoration: BoxDecoration(
-          color: state == TileState.dimmed
-              ? AppColors.jadeDeep.withOpacity(0.5)
-              : AppColors.jadeCard,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: state == TileState.selected
+            color: isSelected
                 ? AppColors.neonGold
-                : tile.suitColor.withOpacity(0.3),
-            width: state == TileState.selected ? 2.0 : 1.0,
+                : tile.suitColor.withOpacity(isDimmed ? 0.1 : 0.5),
+            width: isSelected ? 2.0 : 1.0,
           ),
-          boxShadow: state == TileState.selected
+          boxShadow: isSelected
               ? [
                   BoxShadow(
                     color: tile.suitColor.withOpacity(0.4),
-                    blurRadius: 16, spreadRadius: 2,
+                    blurRadius: 16,
+                    spreadRadius: 2,
                   ),
                   const BoxShadow(
-                    color: Colors.black54, blurRadius: 8,
+                    color: Colors.black54,
+                    blurRadius: 8,
                     offset: Offset(0, 4),
                   ),
                 ]
               : [
                   const BoxShadow(
-                    color: Colors.black54, blurRadius: 8,
+                    color: Colors.black54,
+                    blurRadius: 6,
                     offset: Offset(0, 2),
                   ),
                 ],
         ),
-        child: Stack(
-          children: [
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(tile.character,
-                    style: TextStyle(
-                      fontSize: fontSize, fontWeight: FontWeight.w900,
-                      color: AppColors.jadeWhite,
-                      fontFamily: 'Noto Serif SC',
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(tile.seal,
-                    style: TextStyle(
-                      fontSize: fontSize * 0.45, fontWeight: FontWeight.w700,
-                      color: tile.suitColor,
-                    ),
-                  ),
-                ],
-              ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(7),
+          child: Opacity(
+            opacity: isDimmed ? 0.4 : 1.0,
+            child: SvgPicture.asset(
+              assetPath,
+              fit: BoxFit.contain,
             ),
-            Positioned(
-              top: 4, right: 6,
-              child: Text(tile.label,
-                style: const TextStyle(
-                  fontSize: 10, fontWeight: FontWeight.w600,
-                  color: AppColors.celadonLight,
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

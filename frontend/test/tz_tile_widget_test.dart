@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:tilezhan/shared/models/tile_model.dart';
 import 'package:tilezhan/shared/widgets/tz_tile.dart';
 
-TileModel _makeTile(String id, TileSuit suit, String char, String seal, String label) {
+TileModel _makeTile(String id, TileSuit suit, String label) {
   return TileModel(
-    id: id, suit: suit, character: char, seal: seal,
+    id: id, suit: suit, character: 'x', seal: 'y',
     value: 1, label: label,
     mnemonic: const MnemonicData(emoji: '', name: '', slogan: '', desc: '', chinese: '', anchor: ''),
     confusedWith: const [],
@@ -14,72 +15,64 @@ TileModel _makeTile(String id, TileSuit suit, String char, String seal, String l
 
 void main() {
   group('TzTile widget', () {
-    testWidgets('renders character text', (tester) async {
-      final tile = _makeTile('m5', TileSuit.man, '五', '萬', '5m');
+    testWidgets('renders SvgPicture for tile asset', (tester) async {
+      final tile = _makeTile('m5', TileSuit.man, '5m');
       await tester.pumpWidget(
         MaterialApp(home: Scaffold(body: Center(child: TzTile(tile: tile)))),
       );
-      expect(find.text('五'), findsOneWidget);
-      expect(find.text('萬'), findsOneWidget);
+      // Should contain an SVG widget (renders placeholder in test env)
+      expect(find.byType(SvgPicture), findsOneWidget);
     });
 
-    testWidgets('renders corner label', (tester) async {
-      final tile = _makeTile('m5', TileSuit.man, '五', '萬', '5m');
-      await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: Center(child: TzTile(tile: tile)))),
-      );
-      expect(find.text('5m'), findsOneWidget);
-    });
-
-    testWidgets('md lg sizes render without error', (tester) async {
-      final tile = _makeTile('m5', TileSuit.man, '五', '萬', '5m');
+    testWidgets('md and lg sizes render without error', (tester) async {
+      final tile = _makeTile('m5', TileSuit.man, '5m');
       for (final size in [TileSize.md, TileSize.lg]) {
         await tester.pumpWidget(
           MaterialApp(home: Scaffold(body: Center(child: TzTile(tile: tile, size: size)))),
         );
-        expect(find.text('五'), findsOneWidget);
+        expect(tester.takeException(), isNull);
       }
     });
 
-    testWidgets('selected state applies transform', (tester) async {
-      final tile = _makeTile('m5', TileSuit.man, '五', '萬', '5m');
+    testWidgets('selected state renders without error', (tester) async {
+      final tile = _makeTile('m5', TileSuit.man, '5m');
       await tester.pumpWidget(
         MaterialApp(home: Scaffold(body: Center(
           child: TzTile(tile: tile, state: TileState.selected),
         ))),
       );
-      expect(find.text('五'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('dimmed state renders without error', (tester) async {
-      final tile = _makeTile('m5', TileSuit.man, '五', '萬', '5m');
+      final tile = _makeTile('m5', TileSuit.man, '5m');
       await tester.pumpWidget(
         MaterialApp(home: Scaffold(body: Center(
           child: TzTile(tile: tile, state: TileState.dimmed),
         ))),
       );
-      expect(find.text('五'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('onTap callback fires', (tester) async {
-      final tile = _makeTile('m5', TileSuit.man, '五', '萬', '5m');
+      final tile = _makeTile('m5', TileSuit.man, '5m');
       var tapped = false;
       await tester.pumpWidget(
         MaterialApp(home: Scaffold(body: Center(
           child: TzTile(tile: tile, onTap: () => tapped = true),
         ))),
       );
-      await tester.tap(find.text('五'));
+      await tester.tap(find.byType(TzTile));
       expect(tapped, true);
     });
 
-    testWidgets('each suit has different border color', (tester) async {
+    testWidgets('each suit renders without error', (tester) async {
       final suits = [
-        _makeTile('m5', TileSuit.man, '五', '萬', '5m'),
-        _makeTile('p5', TileSuit.pin, '五', '筒', '5p'),
-        _makeTile('s5', TileSuit.sou, '五', '条', '5s'),
-        _makeTile('z1', TileSuit.wind, '東', '風', 'East'),
-        _makeTile('z5', TileSuit.dragon, '中', '龍', 'Red'),
+        _makeTile('m5', TileSuit.man, '5m'),
+        _makeTile('p5', TileSuit.pin, '5p'),
+        _makeTile('s5', TileSuit.sou, '5s'),
+        _makeTile('z1', TileSuit.wind, 'East'),
+        _makeTile('z5', TileSuit.dragon, 'Red'),
       ];
       for (final tile in suits) {
         await tester.pumpWidget(
