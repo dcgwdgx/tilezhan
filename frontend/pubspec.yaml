@@ -31,6 +31,5 @@ flutter:
   assets:
     - assets/data/
     - assets/tiles/
-    - assets/mnemonic/
     - assets/mnemonic_png/
 
