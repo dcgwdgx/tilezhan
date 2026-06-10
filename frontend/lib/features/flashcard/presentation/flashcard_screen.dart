@@ -44,11 +44,13 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
     _countdownStarted = false;
   }
 
-  void _startCountdown() {
+  void _startCountdown({bool playVoice = false}) {
     _countdownTimer?.cancel();
     _countdownValue = _totalTime;
-    final tile = ref.read(flashcardQuizProvider).currentTile;
-    if (tile != null) AudioService.playVoice(tile.id);
+    if (playVoice) {
+      final tile = ref.read(flashcardQuizProvider).currentTile;
+      if (tile != null) AudioService.playVoice(tile.id);
+    }
     _countdownTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
       _countdownValue -= 0.05;
       if (_countdownValue <= 0) {
@@ -168,7 +170,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
     final state = ref.read(flashcardQuizProvider);
     if (!state.isAnswering && !_countdownStarted) {
       _countdownStarted = true;
-      _startCountdown();
+      _startCountdown(playVoice: true);
     }
     if (state.isAnswering) {
       _countdownStarted = false;

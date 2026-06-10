@@ -22,9 +22,11 @@ jobs:
       - name: Static Analysis
         run: flutter analyze --no-fatal-infos
 
-      - name: Run Tests
-        run: flutter test --reporter expanded
+      - name: Run Tests with Coverage
+        run: flutter test --coverage --reporter expanded
 
-      - name: Generate Coverage (optional)
-        run: flutter test --coverage
-        continue-on-error: true
+      - name: Upload Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: frontend/coverage/lcov.info

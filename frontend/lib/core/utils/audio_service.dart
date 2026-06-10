@@ -1,9 +1,9 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
 import 'haptic_service.dart';
 
-/// Audio + haptic feedback. Uses system sounds on iOS, haptic on all platforms.
-/// WAV files in assets/sounds/ are reserved for future custom audio engine.
 class AudioService {
+  static final _voicePlayer = AudioPlayer();
   static bool _enabled = true;
 
   static void setEnabled(bool v) => _enabled = v;
@@ -11,36 +11,39 @@ class AudioService {
 
   static void playTap() {
     if (!_enabled) return;
-    HapticService.lightTap();
-    SystemSound.play(SystemSoundType.click);
+    try { HapticService.lightTap(); } catch (_) {}
+    try { SystemSound.play(SystemSoundType.click); } catch (_) {}
   }
 
   static void playCorrect() {
     if (!_enabled) return;
-    HapticService.correctAnswer();
+    try { HapticService.correctAnswer(); } catch (_) {}
   }
 
   static void playWrong() {
     if (!_enabled) return;
-    HapticService.wrongAnswer();
-    SystemSound.play(SystemSoundType.alert);
+    try { HapticService.wrongAnswer(); } catch (_) {}
+    try { SystemSound.play(SystemSoundType.alert); } catch (_) {}
   }
 
   static void playComplete() {
     if (!_enabled) return;
-    HapticService.heavyTap();
+    try { HapticService.heavyTap(); } catch (_) {}
   }
 
   static void playSlash() {
     if (!_enabled) return;
-    HapticService.discardSlash();
+    try { HapticService.discardSlash(); } catch (_) {}
   }
 
   /// Play Chinese pronunciation of a tile (e.g., "五万", "八条")
   static Future<void> playVoice(String tileId) async {
     if (!_enabled) return;
     try {
-      SystemSound.play(SystemSoundType.click);
-    } catch (_) {}
+      await _voicePlayer.stop();
+      await _voicePlayer.play(AssetSource('sounds/voice/$tileId.wav'));
+    } catch (_) {
+      try { SystemSound.play(SystemSoundType.click); } catch (_) {}
+    }
   }
 }
