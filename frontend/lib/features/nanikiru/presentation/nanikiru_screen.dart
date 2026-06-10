@@ -7,6 +7,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/audio_service.dart';
 import '../../../core/srs/srs_provider.dart';
 import '../../../shared/widgets/tz_progress_bar.dart';
+import '../../../shared/widgets/tz_slash_painter.dart';
 import '../../../shared/widgets/tz_tile.dart';
 import '../../../core/providers/tile_data_provider.dart';
 import '../domain/nanikiru_provider.dart';
@@ -19,12 +20,15 @@ class NanikiruScreen extends ConsumerStatefulWidget {
   ConsumerState<NanikiruScreen> createState() => _NanikiruScreenState();
 }
 
-class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
+class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
+    with SingleTickerProviderStateMixin {
   Timer? _timer;
+  late AnimationController _slashCtrl;
 
   @override
   void initState() {
     super.initState();
+    _slashCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
     Future.microtask(() {
       ref.read(nanikiruProvider.notifier).initPuzzle();
       _startCountdown();
@@ -34,6 +38,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _slashCtrl.dispose();
     super.dispose();
   }
 
@@ -73,6 +78,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
       Future.microtask(() {
         final s = ref.read(nanikiruProvider);
         AudioService.playSlash();
+        _slashCtrl.forward(from: 0);
         AnalyticsService.answered('nanikiru', s.isPerfect);
         if (s.isPerfect) {
           ref.read(srsNotifierProvider.notifier).recordReview(
@@ -108,8 +114,27 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
                 _buildToolbar(state, notifier),
               ],
             ),
-            if (state.isFinished)
+            if (state.isFinished) ...[
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: TzSlashPainter(
+                      progress: _slashCtrl.value,
+                      color: state.isPerfect ? AppColors.neonGold : AppColors.vermillion,
+                    ),
+                  ),
+                ),
+              ),
+              if (state.isPerfect)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: TzParticlePainter(progress: _slashCtrl.value),
+                    ),
+                  ),
+                ),
               _buildFeedbackSheet(state, notifier),
+            ],
           ],
         ),
       ),
@@ -271,6 +296,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
           const SizedBox(width: 8),
           _toolBtn('🏳️ Skip', () {
             AudioService.playSlash();
+            _slashCtrl.forward(from: 0);
             AnalyticsService.answered('nanikiru', false);
             notifier.confirmDiscard(state.correctDiscardId);
             _recordSrs(false);

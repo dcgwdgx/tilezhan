@@ -10,6 +10,7 @@ import '../../../core/srs/srs_provider.dart';
 import '../../../shared/models/tile_model.dart';
 import '../../../shared/widgets/tz_countdown_ring.dart';
 import '../../../shared/widgets/tz_progress_bar.dart';
+import '../../../shared/widgets/tz_pulse_painter.dart';
 import '../domain/flashcard_provider.dart';
 
 class FlashcardScreen extends ConsumerStatefulWidget {
@@ -293,9 +294,15 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10),
-          child: SvgPicture.asset(
-            assetPath,
-            fit: BoxFit.contain,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              SvgPicture.asset(assetPath, fit: BoxFit.contain),
+              if (isCorrect && _feedbackCtrl.isAnimating)
+                CustomPaint(
+                  painter: TzPulsePainter(progress: _feedbackCtrl.value),
+                ),
+            ],
           ),
         ),
       ),
@@ -478,18 +485,23 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   Widget _buildSuccessBar(TileModel tile) {
     return Positioned(
       bottom: 0, left: 0, right: 0,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-        color: const Color(0xFF2CE574),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('✨', style: TextStyle(fontSize: 20)),
-            const SizedBox(width: 8),
-            Text('"${tile.mnemonic.slogan}"', style: const TextStyle(
-              fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white,
-            )),
-          ],
+      child: AnimatedSlide(
+        offset: Offset(0, _feedbackCtrl.isAnimating ? 0 : 1),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.elasticOut,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+          color: const Color(0xFF2CE574),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('✨', style: TextStyle(fontSize: 20)),
+              const SizedBox(width: 8),
+              Text('"${tile.mnemonic.slogan}"', style: const TextStyle(
+                fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white,
+              )),
+            ],
+          ),
         ),
       ),
     );
