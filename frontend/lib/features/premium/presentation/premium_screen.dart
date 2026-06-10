@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/widgets/tz_button.dart';
+import '../../../shared/widgets/tz_card.dart';
 
 class PremiumScreen extends ConsumerWidget {
   const PremiumScreen({super.key});
@@ -38,20 +40,9 @@ class PremiumScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
                 _buildPricingCards(),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.neonGold,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                    ),
-                    child: const Text('START FREE TRIAL', style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w800,
-                    )),
-                  ),
+                const TzButton(
+                  label: 'START FREE TRIAL',
+                  style: TzButtonStyle.gold,
                 ),
                 const SizedBox(height: 16),
                 Text('Restore Purchases  ·  Terms  ·  Privacy',
@@ -73,12 +64,8 @@ class PremiumScreen extends ConsumerWidget {
       '✅  Full Yaku Collection (40 Han)',
       '✅  Ad-Free Experience',
     ];
-    return Container(
+    return TzCard(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.jadeCard,
-        borderRadius: BorderRadius.circular(16),
-      ),
       child: Column(
         children: features.map((f) => Padding(
           padding: const EdgeInsets.only(bottom: 10),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/srs/srs_provider.dart';
+import '../../../shared/widgets/tz_progress_bar.dart';
 import '../../../shared/widgets/tz_tile.dart';
 import '../../../core/providers/tile_data_provider.dart';
 import '../domain/nanikiru_provider.dart';
@@ -209,14 +210,10 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
             ],
           ),
           const SizedBox(height: 4),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: AppColors.jadeHover,
-              color: isUrgent ? AppColors.vermillion : AppColors.neonGold,
-              minHeight: 6,
-            ),
+          TzProgressBar(
+            value: progress,
+            color: isUrgent ? AppColors.vermillion : AppColors.neonGold,
+            height: 6,
           ),
         ],
       ),

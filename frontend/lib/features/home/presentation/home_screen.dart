@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/widgets/tz_button.dart';
+import '../../../shared/widgets/tz_card.dart';
+import '../../../shared/widgets/tz_progress_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -181,20 +184,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             _questItem('👻', 'Tile Graveyard Review', '⚠ 12 due', 0.0, AppColors.vermillion),
             const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => context.push('/flashcard'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.neonGold,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                  shadowColor: AppColors.neonGold.withOpacity(0.4),
-                  elevation: 8,
-                ),
-                child: const Text('⚡ START DAILY QUEST', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-              ),
+            TzButton(
+              label: '⚡ START DAILY QUEST',
+              style: TzButtonStyle.gold,
+              onPressed: () => context.push('/flashcard'),
             ),
           ],
         ),
@@ -211,26 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(count, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.jadeWhiteDim)),
         ]),
         const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(3),
-          child: Container(
-            height: 6,
-            decoration: BoxDecoration(
-              color: AppColors.jadeHover,
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: progress,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [color, color.withOpacity(0.6)]),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-          ),
-        ),
+        TzProgressBar(value: progress, color: color),
       ],
     );
   }

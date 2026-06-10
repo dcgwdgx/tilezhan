@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/models/tile_model.dart';
+import '../../../shared/widgets/tz_card.dart';
 import '../domain/graveyard_provider.dart';
 
 class GraveyardScreen extends ConsumerWidget {
@@ -82,12 +83,8 @@ class GraveyardScreen extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.all(20),
-      child: Container(
+      child: TzCard(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.jadeCard,
-          borderRadius: BorderRadius.circular(16),
-        ),
         child: Column(
           children: [
             const Text('Weakness Radar', style: TextStyle(
@@ -131,36 +128,34 @@ class GraveyardScreen extends ConsumerWidget {
         final emoji = tile?.mnemonic.emoji ?? '🀄';
         final name = tile?.mnemonic.name ?? item.itemId;
         final daysAgo = ((DateTime.now().millisecondsSinceEpoch - item.nextReviewAt) / 86400000).round();
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.jadeCard,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.jadeHover),
-          ),
-          child: Row(
-            children: [
-              Text(emoji, style: const TextStyle(fontSize: 26)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('$name · ${item.type == 'flashcard' ? 'Flashcard' : 'Nani-Kiru'}', style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.jadeWhite,
-                    )),
-                    const SizedBox(height: 2),
-                    Text('${item.errors} errors · ${daysAgo}d overdue', style: const TextStyle(
-                      fontSize: 11, color: AppColors.jadeWhiteMuted,
-                    )),
-                  ],
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: TzCard(
+            padding: const EdgeInsets.all(14),
+            borderRadius: 12,
+            child: Row(
+              children: [
+                Text(emoji, style: const TextStyle(fontSize: 26)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('$name · ${item.type == 'flashcard' ? 'Flashcard' : 'Nani-Kiru'}', style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.jadeWhite,
+                      )),
+                      const SizedBox(height: 2),
+                      Text('${item.errors} errors · ${daysAgo}d overdue', style: const TextStyle(
+                        fontSize: 11, color: AppColors.jadeWhiteMuted,
+                      )),
+                    ],
+                  ),
                 ),
-              ),
-              const Text('Review →', style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.vermillion,
-              )),
-            ],
+                const Text('Review →', style: TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.vermillion,
+                )),
+              ],
+            ),
           ),
         );
       },

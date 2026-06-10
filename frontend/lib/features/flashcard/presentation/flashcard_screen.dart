@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
@@ -7,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/srs/srs_provider.dart';
 import '../../../shared/models/tile_model.dart';
+import '../../../shared/widgets/tz_countdown_ring.dart';
+import '../../../shared/widgets/tz_progress_bar.dart';
 import '../domain/flashcard_provider.dart';
 
 class FlashcardScreen extends ConsumerStatefulWidget {
@@ -172,15 +173,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
                         color: AppColors.jadeWhite)),
                 const SizedBox(height: 4),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: state.progress,
-                    backgroundColor: AppColors.jadeHover,
-                    color: AppColors.neonGold,
-                    minHeight: 4,
-                  ),
-                ),
+                TzProgressBar(value: state.progress),
               ],
             ),
           ),
@@ -233,25 +226,10 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   }
 
   Widget _buildCountdownRing() {
-    final progress = _countdownValue / _totalTime;
-    final urgent = _countdownValue < 2.0;
-    final color = urgent ? AppColors.vermillion : AppColors.neonGold;
-    return SizedBox(
-      width: 80, height: 80,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CustomPaint(
-            size: const Size(80, 80),
-            painter: _GlowRingPainter(progress: progress, color: color, urgent: urgent),
-          ),
-          Text(_countdownValue.toInt().toString(),
-              style: TextStyle(
-                fontSize: 28, fontWeight: FontWeight.w700,
-                color: color, fontFamily: 'JetBrains Mono',
-              )),
-        ],
-      ),
+    return TzCountdownRing(
+      progress: _countdownValue / _totalTime,
+      secondsLeft: _countdownValue.toInt(),
+      urgent: _countdownValue < 2.0,
     );
   }
 
@@ -506,56 +484,5 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
       ),
     );
   }
-}
-
-// ── Custom Painters ──
-
-class _GlowRingPainter extends CustomPainter {
-  final double progress;
-  final Color color;
-  final bool urgent;
-
-  _GlowRingPainter({required this.progress, required this.color, required this.urgent});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 4;
-
-    // Background ring
-    final bgPaint = Paint()
-      ..color = AppColors.jadeHover
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-    canvas.drawCircle(center, radius, bgPaint);
-
-    // Glow shadow (neon effect)
-    if (progress > 0) {
-      final glowPaint = Paint()
-        ..color = color.withOpacity(0.3)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 8
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -math.pi / 2, progress * 2 * math.pi, false, glowPaint,
-      );
-    }
-
-    // Progress arc
-    final arcPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2, progress * 2 * math.pi, false, arcPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _GlowRingPainter old) =>
-      old.progress != progress || old.urgent != urgent;
 }
 
