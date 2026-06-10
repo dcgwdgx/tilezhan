@@ -55,7 +55,7 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
     final newValue = (state.countdownValue - delta).clamp(0.0, 10.0);
     state = state.copyWith(countdownValue: newValue);
     if (newValue <= 0 && !state.isFinished) {
-      confirmDiscard(state.correctDiscardId);
+      confirmDiscard(state.selectedTileId ?? '');
     }
   }
 

@@ -48,7 +48,7 @@ class NaniKiruState {
       handTiles: handTiles ?? this.handTiles,
       drawnTileId: drawnTileId ?? this.drawnTileId,
       correctDiscardId: correctDiscardId ?? this.correctDiscardId,
-      selectedTileId: selectedTileId,
+      selectedTileId: selectedTileId ?? this.selectedTileId,
       phase: phase ?? this.phase,
       countdownValue: countdownValue ?? this.countdownValue,
       isPerfect: isPerfect ?? this.isPerfect,
