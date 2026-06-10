@@ -32,7 +32,7 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
 
     Timer(const Duration(milliseconds: 2400), () {
-      if (mounted) context.go('/');
+      if (mounted) context.go('/onboarding');
     });
   }
 
