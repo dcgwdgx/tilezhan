@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/utils/audio_service.dart';
 import '../../../shared/models/tile_model.dart';
 import '../../../shared/widgets/tz_tile.dart';
 import '../../../core/providers/tile_data_provider.dart';
@@ -56,7 +57,10 @@ class TileBrowserScreen extends ConsumerWidget {
       itemBuilder: (_, i) {
         final tile = tiles[i];
         return GestureDetector(
-          onTap: () => _showMnemonic(context, tile),
+          onTap: () {
+            AudioService.playVoice(tile.id);
+            _showMnemonic(context, tile);
+          },
           child: Container(
             decoration: BoxDecoration(
               color: AppColors.jadeCard,

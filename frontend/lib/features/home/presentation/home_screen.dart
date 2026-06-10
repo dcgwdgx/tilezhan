@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/storage_provider.dart';
 import '../../../core/storage/storage_service.dart';
+import '../../../core/utils/animation_utils.dart';
 import '../../../shared/widgets/tz_button.dart';
-import '../../../shared/widgets/tz_progress_bar.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -14,14 +15,30 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with SingleTickerProviderStateMixin {
   int _hearts = 3;
   int _streak = 0;
+
+  late AnimationController _shimmerCtrl;
+  int _breakingHeart = -1;
+  late AnimationController _heartCtrl;
+  int _activeTab = 0;
 
   @override
   void initState() {
     super.initState();
+    _shimmerCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
+    _heartCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+    if (!isTestEnvironment) _shimmerCtrl.repeat();
     _loadStats();
+  }
+
+  @override
+  void dispose() {
+    _shimmerCtrl.dispose();
+    _heartCtrl.dispose();
+    super.dispose();
   }
 
   void _loadStats() {
@@ -41,14 +58,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     storage.setInt(StorageService.kStreak, _streak);
   }
 
-  void _decreaseHeart() {
+  void _breakHeart(int i) {
+    if (_hearts <= 0) return;
     setState(() {
-      if (_hearts > 0) _hearts--;
+      _breakingHeart = i;
+      _hearts--;
+    });
+    _heartCtrl.forward(from: 0);
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) setState(() => _breakingHeart = -1);
     });
     _saveStats();
-    if (_hearts <= 0) {
-      _showPaywall();
-    }
+    if (_hearts <= 0) _showPaywall();
   }
 
   void _showPaywall() {
@@ -118,12 +139,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const Spacer(),
           Row(
             children: List.generate(3, (i) {
+              final breaking = _breakingHeart == i && _heartCtrl.isAnimating;
+              if (breaking) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: SizedBox(
+                    width: 22, height: 22,
+                    child: Stack(
+                      children: [
+                        Transform.translate(
+                          offset: Offset(-15 * _heartCtrl.value, -10 * _heartCtrl.value * _heartCtrl.value),
+                          child: Transform.rotate(
+                            angle: -0.5 * _heartCtrl.value,
+                            child: Opacity(opacity: 1 - _heartCtrl.value,
+                              child: SvgPicture.asset('assets/icons/heart_full.svg', width: 22, height: 22, colorFilter: const ColorFilter.mode(Color(0xFFFF3B30), BlendMode.srcIn))),
+                          ),
+                        ),
+                        Transform.translate(
+                          offset: Offset(15 * _heartCtrl.value, -10 * _heartCtrl.value * _heartCtrl.value),
+                          child: Transform.rotate(
+                            angle: 0.5 * _heartCtrl.value,
+                            child: Opacity(opacity: 1 - _heartCtrl.value,
+                              child: SvgPicture.asset('assets/icons/heart_full.svg', width: 22, height: 22, colorFilter: const ColorFilter.mode(Color(0xFFFF3B30), BlendMode.srcIn))),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
               return GestureDetector(
-                onTap: _decreaseHeart,
+                onTap: () => _breakHeart(i),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: Text(i < _hearts ? '❤️' : '🖤',
-                      style: const TextStyle(fontSize: 18)),
+                  child: Text(i < _hearts ? '❤️' : '🖤', style: const TextStyle(fontSize: 18)),
                 ),
               );
             }),
@@ -232,7 +281,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Text(count, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.jadeWhiteDim)),
         ]),
         const SizedBox(height: 8),
-        TzProgressBar(value: progress, color: color),
+        _ShimmerBar(progress: progress, color: color, ctrl: _shimmerCtrl),
       ],
     );
   }
@@ -274,10 +323,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildBottomTabBar() {
     final tabs = [
-      ('🏠', 'Home', true, '/'),
-      ('🀄', 'Tiles', false, '/tiles'),
-      ('📚', 'Yaku', false, '/collection'),
-      ('👻', 'Review', false, '/graveyard'),
+      ('🏠', 'Home', 0, '/'),
+      ('🀄', 'Tiles', 1, '/tiles'),
+      ('📚', 'Yaku', 2, '/collection'),
+      ('👻', 'Review', 3, '/graveyard'),
     ];
     return Container(
       height: 72,
@@ -290,27 +339,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: tabs.map((t) {
-          final active = t.$3;
+          final active = _activeTab == t.$3;
           return GestureDetector(
-            onTap: () => context.push(t.$4),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: active ? [BoxShadow(color: AppColors.neonGold.withOpacity(0.15), blurRadius: 8)] : null,
+            onTap: () {
+              setState(() => _activeTab = t.$3);
+              context.push(t.$4);
+            },
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 1.0, end: active ? 1.15 : 1.0),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.elasticOut,
+              builder: (_, s, __) => Transform.scale(
+                scale: s,
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(t.$1, style: TextStyle(fontSize: active ? 22 : 20)),
+                  const SizedBox(height: 2),
+                  Text(t.$2, style: TextStyle(
+                    fontSize: 10, fontWeight: FontWeight.w700,
+                    color: active ? AppColors.neonGold : AppColors.jadeWhiteMuted,
+                  )),
+                ]),
               ),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Text(t.$1, style: TextStyle(fontSize: active ? 22 : 20)),
-                const SizedBox(height: 2),
-                Text(t.$2, style: TextStyle(
-                  fontSize: 10, fontWeight: FontWeight.w700,
-                  color: active ? AppColors.neonGold : AppColors.jadeWhiteMuted,
-                )),
-              ]),
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+}
+
+class _ShimmerBar extends StatelessWidget {
+  final double progress;
+  final Color color;
+  final AnimationController ctrl;
+  const _ShimmerBar({required this.progress, required this.color, required this.ctrl});
+
+  @override
+  Widget build(BuildContext context) {
+    final grad = LinearGradient(
+      colors: [Colors.transparent, Colors.white.withOpacity(0.08), Colors.white.withOpacity(0.15), Colors.white.withOpacity(0.08), Colors.transparent],
+      stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
+      begin: Alignment(-1.0 + ctrl.value * 2, 0),
+      end: Alignment(1.0 + ctrl.value * 2, 0),
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(3),
+      child: Container(
+        height: 6,
+        color: AppColors.jadeHover,
+        child: FractionallySizedBox(
+          alignment: Alignment.centerLeft,
+          widthFactor: progress,
+          child: ShaderMask(
+            shaderCallback: (bounds) => grad.createShader(bounds),
+            blendMode: BlendMode.srcATop,
+            child: Container(color: color),
+          ),
+        ),
       ),
     );
   }

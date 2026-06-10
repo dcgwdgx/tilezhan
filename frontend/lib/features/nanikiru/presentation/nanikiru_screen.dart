@@ -310,8 +310,8 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
             AudioService.playSlash();
             _slashCtrl.forward(from: 0);
             AnalyticsService.answered('nanikiru', false);
-            notifier.confirmDiscard(state.correctDiscardId);
-            _recordSrs(false);
+            notifier.confirmDiscard(state.correctDiscardId, isSkip: true);
+            _recordSrs(true);
           }),
         ],
       ),

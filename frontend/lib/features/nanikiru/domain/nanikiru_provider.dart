@@ -72,8 +72,8 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
     }
   }
 
-  void confirmDiscard(String tileId) {
-    final isPerfect = tileId == state.correctDiscardId;
+  void confirmDiscard(String tileId, {bool isSkip = false}) {
+    final isPerfect = isSkip ? false : tileId == state.correctDiscardId;
     state = state.copyWith(
       phase: NaniKiruPhase.feedback,
       isPerfect: isPerfect,
