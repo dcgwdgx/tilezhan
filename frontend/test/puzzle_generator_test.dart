@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/features/nanikiru/domain/puzzle_generator.dart';
-import 'package:tilezhan/shared/models/puzzle_model.dart';
 
 void main() {
   group('PuzzleGenerator', () {
