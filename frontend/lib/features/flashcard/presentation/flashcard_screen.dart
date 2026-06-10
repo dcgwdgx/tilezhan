@@ -26,7 +26,6 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   Timer? _countdownTimer;
   double _countdownValue = 8.0;
   late AnimationController _feedbackCtrl;
-  bool _lastAnswerCorrect = false;
   static const _totalTime = 8.0;
 
   @override
@@ -80,7 +79,6 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
 
   void _handleAnswer(bool isCorrect) {
     AnalyticsService.answered('flashcard', isCorrect);
-    _lastAnswerCorrect = isCorrect;
     _feedbackCtrl.forward(from: 0);
     if (isCorrect) {
       AudioService.playCorrect();
