@@ -56,7 +56,10 @@ class SrsReviewNotifier extends Notifier<Map<String, SrsItem>> {
     final createdAt = existing?.createdAt ?? (quality < 3 ? now : 0);
 
     final (newEf, newReps, newInterval) = SrsEngine.calculate(ef, reps, interval, quality);
-    final nextReviewAt = now + Duration(days: newInterval).inMilliseconds;
+    // Wrong answers due immediately, correct answers follow SM-2 schedule
+    final nextReviewAt = quality < 3
+        ? now  // immediate review for wrong answers
+        : now + Duration(days: newInterval).inMilliseconds;
 
     state = {
       ...state,
