@@ -143,25 +143,23 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
       body: SafeArea(
         child: Stack(
           children: [
-            SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildTopBar(state),
-                  const SizedBox(height: 12),
-                  _buildSuitFilter(state),
-                  const SizedBox(height: 16),
-                  _buildCountdownRing(),
-                  const SizedBox(height: 16),
-                  _buildTileDisplay(tile),
-                  const SizedBox(height: 24),
-                  _buildOptions(tile, state),
-                  const SizedBox(height: 8),
-                  _buildProgressDots(state),
-                  const SizedBox(height: 8),
-                  _buildHint(state),
-                  const SizedBox(height: 16),
-                ],
-              ),
+            Column(
+              children: [
+                _buildTopBar(state),
+                const SizedBox(height: 8),
+                _buildSuitFilter(state),
+                const Spacer(),
+                _buildCountdownRing(),
+                const SizedBox(height: 16),
+                _buildTileDisplay(tile),
+                const SizedBox(height: 24),
+                _buildOptions(tile, state),
+                const SizedBox(height: 8),
+                _buildProgressDots(state),
+                const SizedBox(height: 8),
+                _buildHint(state),
+                const Spacer(),
+              ],
             ),
             if (state.isShowingMnemonic)
               _buildMnemonicOverlay(tile),
