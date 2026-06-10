@@ -10,6 +10,8 @@ class FlashcardQuizState {
   final String? lastCorrectId;
   final String? lastWrongId;
   final String suite;
+  /// Pre-shuffled options for the current card (4 items).
+  final List<TileModel> options;
 
   const FlashcardQuizState({
     this.queue = const [],
@@ -21,6 +23,7 @@ class FlashcardQuizState {
     this.lastCorrectId,
     this.lastWrongId,
     this.suite = 'all',
+    this.options = const [],
   });
 
   TileModel? get currentTile =>
@@ -40,6 +43,7 @@ class FlashcardQuizState {
     String? lastCorrectId,
     String? lastWrongId,
     String? suite,
+    List<TileModel>? options,
   }) {
     return FlashcardQuizState(
       queue: queue ?? this.queue,
@@ -51,6 +55,7 @@ class FlashcardQuizState {
       lastCorrectId: lastCorrectId,
       lastWrongId: lastWrongId,
       suite: suite ?? this.suite,
+      options: options ?? this.options,
     );
   }
 }

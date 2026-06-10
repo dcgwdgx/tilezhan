@@ -15,6 +15,13 @@ class FlashcardQuizNotifier extends StateNotifier<FlashcardQuizState> {
 
   FlashcardQuizNotifier(this._repo) : super(const FlashcardQuizState());
 
+  /// Pre-shuffle options for the given tile so they don't flicker on rebuild.
+  List<TileModel> _buildOptions(TileModel correct) {
+    final distractors = _repo.getDistractors(correct, _allTiles, 3);
+    final opts = [...distractors, correct]..shuffle();
+    return opts;
+  }
+
   Future<void> initQuiz({String suite = 'all', int count = 10}) async {
     _allTiles = await _repo.loadAllTiles();
     final filtered = suite == 'all'
@@ -28,10 +35,13 @@ class FlashcardQuizNotifier extends StateNotifier<FlashcardQuizState> {
     final shuffled = List<TileModel>.from(filtered)..shuffle();
     final queue = shuffled.take(min(count, shuffled.length)).toList();
 
+    final options = queue.isNotEmpty ? _buildOptions(queue[0]) : <TileModel>[];
+
     state = FlashcardQuizState(
       queue: queue,
       currentIndex: 0,
       suite: suite,
+      options: options,
     );
   }
 
@@ -60,24 +70,30 @@ class FlashcardQuizNotifier extends StateNotifier<FlashcardQuizState> {
   }
 
   void nextCard() {
-    if (state.currentIndex + 1 >= state.totalCount) {
-      state = state.copyWith(currentIndex: state.currentIndex + 1);
+    final nextIdx = state.currentIndex + 1;
+    if (nextIdx >= state.totalCount) {
+      state = state.copyWith(currentIndex: nextIdx);
     } else {
+      final nextOptions = _buildOptions(state.queue[nextIdx]);
       state = state.copyWith(
-        currentIndex: state.currentIndex + 1,
+        currentIndex: nextIdx,
         isAnswering: false,
         isShowingMnemonic: false,
         lastCorrectId: null,
         lastWrongId: null,
+        options: nextOptions,
       );
     }
   }
 
   void restart() {
     final shuffled = List<TileModel>.from(state.queue)..shuffle();
+    final options =
+        shuffled.isNotEmpty ? _buildOptions(shuffled[0]) : <TileModel>[];
     state = FlashcardQuizState(
       queue: shuffled,
       suite: state.suite,
+      options: options,
     );
   }
 }

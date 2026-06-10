@@ -290,8 +290,17 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   }
 
   Widget _buildOptions(TileModel tile, state) {
-    final distractors = ref.read(flashcardQuizProvider.notifier).getDistractors(tile);
-    final options = [...distractors, tile]..shuffle();
+    final options = state.options;
+    if (options.length != 4) {
+      // Fallback: should never happen with precomputed options
+      final distractors = ref.read(flashcardQuizProvider.notifier).getDistractors(tile);
+      final fallback = [...distractors, tile]..shuffle();
+      return _buildOptionList(tile, state, fallback);
+    }
+    return _buildOptionList(tile, state, options);
+  }
+
+  Widget _buildOptionList(TileModel tile, state, List<TileModel> options) {
     final letters = ['A', 'B', 'C', 'D'];
 
     return Padding(
