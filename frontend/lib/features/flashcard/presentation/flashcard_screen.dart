@@ -391,10 +391,10 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   Widget _buildHint(state) {
     if (state.isAnswering && state.lastWrongId != null) {
       return const Text('📖 Study the mnemonic to remember this tile',
-          style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted));
+          style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim));
     }
-    return const Text('💡 Tap the tile to reveal its mnemonic story',
-        style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted));
+    // Animated hint — pulsing arrow pointing at the tile
+    return const _PulsingHint();
   }
 
   Widget _buildMnemonicOverlay(TileModel tile) {
@@ -506,6 +506,62 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Pulsing hint widget ──
+
+class _PulsingHint extends StatefulWidget {
+  const _PulsingHint();
+  @override
+  State<_PulsingHint> createState() => _PulsingHintState();
+}
+
+class _PulsingHintState extends State<_PulsingHint>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, child) => Opacity(
+        opacity: 0.6 + _ctrl.value * 0.4,
+        child: child,
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.neonGold.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.neonGold.withOpacity(0.25)),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('👆', style: TextStyle(fontSize: 16)),
+            SizedBox(width: 6),
+            Text('Tap tile to see mnemonic',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.neonGold)),
+          ],
         ),
       ),
     );
