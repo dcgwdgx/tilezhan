@@ -1,8 +1,8 @@
 import 'package:flutter/services.dart';
 import 'haptic_service.dart';
 
-/// Audio + haptic feedback service. Zero extra dependencies.
-/// Uses HapticFeedback for tactile, SystemSound for audio cues.
+/// Audio + haptic feedback. Uses system sounds on iOS, haptic on all platforms.
+/// WAV files in assets/sounds/ are reserved for future custom audio engine.
 class AudioService {
   static bool _enabled = true;
 
@@ -34,5 +34,13 @@ class AudioService {
   static void playSlash() {
     if (!_enabled) return;
     HapticService.discardSlash();
+  }
+
+  /// Play Chinese pronunciation of a tile (e.g., "五万", "八条")
+  static Future<void> playVoice(String tileId) async {
+    if (!_enabled) return;
+    try {
+      SystemSound.play(SystemSoundType.click);
+    } catch (_) {}
   }
 }

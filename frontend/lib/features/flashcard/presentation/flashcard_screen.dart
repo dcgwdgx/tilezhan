@@ -47,6 +47,8 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   void _startCountdown() {
     _countdownTimer?.cancel();
     _countdownValue = _totalTime;
+    final tile = ref.read(flashcardQuizProvider).currentTile;
+    if (tile != null) AudioService.playVoice(tile.id);
     _countdownTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
       _countdownValue -= 0.05;
       if (_countdownValue <= 0) {

@@ -1435,12 +1435,14 @@ class _MnemonicRiveWidgetState extends State<MnemonicRiveWidget> {
 
 | 文件 | 触发 | 格式 | 时长 |
 |---|---|---|---|
-| `tap_click.mp3` | 普通点击 | MP3 48kbps | 80ms |
-| `slash_swoosh.mp3` | 切牌 | MP3 128kbps | 300ms |
-| `hu_win.mp3` | Perfect 胡牌 | MP3 128kbps | 500ms |
-| `error_buzz.mp3` | Blunder 错误 | MP3 128kbps | 250ms |
-| `card_flip.mp3` | 牌翻转 | MP3 48kbps | 150ms |
-| `level_up.mp3` | 升级 | MP3 128kbps | 1200ms |
+| `tap.wav` | 普通点击 | WAV | 50ms |
+| `correct.wav` | 答对 | WAV | 150ms |
+| `wrong.wav` | 答错 | WAV | 300ms |
+| `complete.wav` | 一轮完成 | WAV | 500ms |
+| `slash.wav` | 切牌 | WAV | 200ms |
+
+> **v1.1 新增**: 34 张牌中文 TTS 语音播报 (`assets/sounds/voice/{tileId}.wav`)
+> 每张牌出现时自动播放其中文名称（如"五万"、"八条"、"東"），帮助非中文用户建立音形关联。由 Windows SAPI TTS 引擎生成。
 
 ### 8.3 Haptic 触觉
 

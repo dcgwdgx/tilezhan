@@ -196,7 +196,7 @@ tilezhan/
 │   ├── tiles/                           # 34张牌 SVG 矢量
 │   ├── mnemonic/                         # 34张助记插画 (PNG/WebP)
 │   ├── animations/                       # Rive 动效文件 (.riv)
-│   ├── sounds/                           # 音效 (slash.mp3, correct.mp3, error.mp3)
+│   ├── sounds/                           # 音效 WAV + 34张牌中文TTS语音 (voice/)
 │   └── fonts/                            # Poppins + JetBrains Mono
 │
 ├── test/                                 # 单元测试 + Widget 测试
