@@ -17,8 +17,8 @@ class FlashcardScreen extends ConsumerStatefulWidget {
 
 class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   Timer? _countdownTimer;
-  double _countdownValue = 1.5;
-  static const _totalTime = 1.5;
+  double _countdownValue = 8.0;
+  static const _totalTime = 8.0;
 
   @override
   void initState() {
@@ -224,7 +224,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
 
   Widget _buildCountdownRing() {
     final progress = _countdownValue / _totalTime;
-    final urgent = _countdownValue < 0.3;
+    final urgent = _countdownValue < 2.0;
     final color = urgent ? AppColors.vermillion : AppColors.neonGold;
     return SizedBox(
       width: 80, height: 80,
@@ -235,9 +235,9 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
             size: const Size(80, 80),
             painter: _GlowRingPainter(progress: progress, color: color, urgent: urgent),
           ),
-          Text(_countdownValue.toStringAsFixed(1),
+          Text(_countdownValue.toInt().toString(),
               style: TextStyle(
-                fontSize: 24, fontWeight: FontWeight.w700,
+                fontSize: 28, fontWeight: FontWeight.w700,
                 color: color, fontFamily: 'JetBrains Mono',
               )),
         ],
