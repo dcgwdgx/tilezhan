@@ -1,25 +1,81 @@
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart';
 
+/// Pure-Dart file-based persistence. No SPM/CocoaPods risk.
+/// Uses path_provider for app directory access.
 class StorageService {
-  final SharedPreferences _prefs;
-  StorageService._(this._prefs);
+  late final Directory _dir;
+  bool _init = false;
+
+  StorageService._();
 
   static Future<StorageService> init() async {
-    return StorageService._(await SharedPreferences.getInstance());
+    final s = StorageService._();
+    if (!kIsWeb) {
+      s._dir = await getApplicationDocumentsDirectory();
+    }
+    s._init = true;
+    return s;
   }
 
-  int getInt(String k) => _prefs.getInt(k) ?? 0;
-  Future<bool> setInt(String k, int v) => _prefs.setInt(k, v);
+  File _file(String key) => File('${_dir.path}/$key.json');
 
-  Map<String, dynamic> getJson(String k) {
-    final s = _prefs.getString(k);
-    if (s == null || s.isEmpty) return {};
-    try { return jsonDecode(s); } catch (_) { return {}; }
+  // ── Simple values (stored in a single prefs.json) ──
+
+  int getInt(String key) {
+    final all = _readJson('prefs');
+    return all[key] as int? ?? 0;
   }
 
-  Future<bool> setJson(String k, Map<String, dynamic> v) =>
-      _prefs.setString(k, jsonEncode(v));
+  Future<void> setInt(String key, int value) async {
+    final all = _readJson('prefs');
+    all[key] = value;
+    await _writeJson('prefs', all);
+  }
+
+  String getString(String key) {
+    final all = _readJson('prefs');
+    return all[key] as String? ?? '';
+  }
+
+  Future<void> setString(String key, String value) async {
+    final all = _readJson('prefs');
+    all[key] = value;
+    await _writeJson('prefs', all);
+  }
+
+  // ── JSON map ──
+
+  Map<String, dynamic> getJson(String key) {
+    return _readJson(key);
+  }
+
+  Future<void> setJson(String key, Map<String, dynamic> value) async {
+    await _writeJson(key, value);
+  }
+
+  // ── Internals ──
+
+  Map<String, dynamic> _readJson(String key) {
+    if (!_init) return {};
+    try {
+      final f = _file(key);
+      if (!f.existsSync()) return {};
+      return jsonDecode(f.readAsStringSync()) as Map<String, dynamic>;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> _writeJson(String key, Map<String, dynamic> value) async {
+    if (!_init) return;
+    try {
+      final f = _file(key);
+      await f.writeAsString(jsonEncode(value));
+    } catch (_) {}
+  }
 
   static const kSrsItems = 'srs_items';
   static const kHearts = 'hearts';
