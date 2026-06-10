@@ -66,7 +66,14 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
     ref.read(flashcardQuizProvider.notifier).submitAnswer(isCorrect);
     _recordSrs(isCorrect ? 4 : 1);
     _countdownTimer?.cancel();
-    if (!isCorrect) _showMnemonic();
+    if (isCorrect) {
+      // Auto-advance after brief celebration
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) _hideMnemonic();
+      });
+    } else {
+      _showMnemonic();
+    }
     setState(() {});
   }
 
@@ -135,9 +142,6 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
               _buildMnemonicOverlay(tile),
             if (state.isAnswering && state.lastCorrectId != null)
               _buildSuccessBar(tile),
-            // Quick skip button — visible after answering
-            if (state.isAnswering && !state.isShowingMnemonic)
-              _buildNextButton(tile),
           ],
         ),
       ),
@@ -384,31 +388,6 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
     );
   }
 
-  Widget _buildNextButton(TileModel tile) {
-    return Positioned(
-      bottom: 80, right: 20,
-      child: GestureDetector(
-        onTap: _hideMnemonic,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.neonGold,
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: [BoxShadow(color: AppColors.neonGold.withOpacity(0.3), blurRadius: 12)],
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Next', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black)),
-              SizedBox(width: 4),
-              Icon(Icons.arrow_forward, size: 16, color: Colors.black),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildHint(state) {
     if (state.isAnswering && state.lastWrongId != null) {
       return const Text('📖 Study the mnemonic to remember this tile',
@@ -451,8 +430,19 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
                   fontSize: 12, color: AppColors.jadeWhiteMuted, fontStyle: FontStyle.italic,
                 )),
                 const SizedBox(height: 16),
-                const Text('Tap anywhere to close',
-                    style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteMuted)),
+                GestureDetector(
+                  onTap: _hideMnemonic,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.neonGold,
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: const Text('Got it ✓', style: TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black,
+                    )),
+                  ),
+                ),
               ],
             ),
           ),
