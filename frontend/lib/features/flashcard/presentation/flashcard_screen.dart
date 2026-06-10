@@ -57,14 +57,16 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
 
   void _handleTimeout() {
     ref.read(flashcardQuizProvider.notifier).submitAnswer(false);
-    _recordSrs(0); // timeout = quality 0
+    _recordSrs(0);
+    _showMnemonic();
   }
 
   void _handleAnswer(bool isCorrect) {
     AnalyticsService.answered('flashcard', isCorrect);
     ref.read(flashcardQuizProvider.notifier).submitAnswer(isCorrect);
-    _recordSrs(isCorrect ? 4 : 1); // correct=4, wrong=1
+    _recordSrs(isCorrect ? 4 : 1);
     _countdownTimer?.cancel();
+    if (!isCorrect) _showMnemonic();
     setState(() {});
   }
 
@@ -125,7 +127,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
                 const SizedBox(height: 8),
                 _buildProgressDots(state),
                 const SizedBox(height: 8),
-                _buildHint(),
+                _buildHint(state),
                 const Spacer(),
               ],
             ),
@@ -379,7 +381,11 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
     );
   }
 
-  Widget _buildHint() {
+  Widget _buildHint(state) {
+    if (state.isAnswering && state.lastWrongId != null) {
+      return const Text('📖 Study the mnemonic to remember this tile',
+          style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted));
+    }
     return const Text('💡 Tap the tile to reveal its mnemonic story',
         style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted));
   }
