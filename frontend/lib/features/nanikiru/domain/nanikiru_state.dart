@@ -13,6 +13,7 @@ class NaniKiruState {
   final int? ukeireCount;
   final int? ukeireTypes;
   final List<String>? ukeireTiles;
+  final String puzzleId; // for SRS tracking
 
   const NaniKiruState({
     this.handTiles = const [],
@@ -25,6 +26,7 @@ class NaniKiruState {
     this.ukeireCount,
     this.ukeireTypes,
     this.ukeireTiles,
+    this.puzzleId = '',
   });
 
   bool get isFinished => phase == NaniKiruPhase.feedback;
@@ -40,6 +42,7 @@ class NaniKiruState {
     int? ukeireCount,
     int? ukeireTypes,
     List<String>? ukeireTiles,
+    String? puzzleId,
   }) {
     return NaniKiruState(
       handTiles: handTiles ?? this.handTiles,
@@ -52,6 +55,7 @@ class NaniKiruState {
       ukeireCount: ukeireCount ?? this.ukeireCount,
       ukeireTypes: ukeireTypes ?? this.ukeireTypes,
       ukeireTiles: ukeireTiles ?? this.ukeireTiles,
+      puzzleId: puzzleId ?? this.puzzleId,
     );
   }
 }

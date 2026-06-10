@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/models/tile_model.dart';
+import '../domain/graveyard_provider.dart';
 
 class GraveyardScreen extends ConsumerWidget {
   const GraveyardScreen({super.key});
@@ -27,47 +29,57 @@ class GraveyardScreen extends ConsumerWidget {
           ],
         ),
       ),
-      body: Column(
-        children: [
-          _buildRadarCard(),
-          const SizedBox(height: 16),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text("TODAY'S REVIEW · 12 DUE", style: TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5,
-                color: AppColors.jadeWhiteMuted,
-              )),
-            ),
-          ),
-          const SizedBox(height: 8),
-          _buildReviewList(context),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => context.push('/flashcard'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.neonGold,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      body: Consumer(
+        builder: (context, ref, _) {
+          final dueItems = ref.watch(graveyardDueProvider);
+          final suitRates = ref.watch(suitErrorRatesProvider);
+          return Column(
+            children: [
+              _buildRadarCard(suitRates),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text("TODAY'S REVIEW · ${dueItems.length} DUE", style: const TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5,
+                    color: AppColors.jadeWhiteMuted,
+                  )),
                 ),
-                child: const Text('⚡ Review All (12)', style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w800,
-                )),
               ),
-            ),
-          ),
-        ],
+              const SizedBox(height: 8),
+              Expanded(child: _buildReviewList(context, dueItems)),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: dueItems.isEmpty ? null : () => context.push('/flashcard'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.neonGold,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    child: Text('⚡ Review All (${dueItems.length})', style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w800,
+                    )),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildRadarCard() {
+  Widget _buildRadarCard(Map<String, double> suitRates) {
+    final suits = ['man', 'pin', 'sou', 'wind', 'dragon'];
+    final labels = ['Man', 'Pin', 'Sou', 'Wind', 'Dgn'];
+    final worst = suits.reduce((a, b) => (suitRates[a] ?? 0) > (suitRates[b] ?? 0) ? a : b);
+
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Container(
@@ -84,14 +96,12 @@ class GraveyardScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             SizedBox(
               width: 140, height: 140,
-              child: RepaintBoundary(
-                child: CustomPaint(
-                  painter: _RadarPainter(),
-                ),
+              child: CustomPaint(
+                painter: _RadarPainter(data: suits.map((s) => suitRates[s] ?? 0).toList()),
               ),
             ),
             const SizedBox(height: 8),
-            const Text('⚠ Weakest: Manzu (42% error rate)', style: TextStyle(
+            Text('⚠ Weakest: ${labels[suits.indexOf(worst)]} (${((suitRates[worst] ?? 0) * 100).round()}% error rate)', style: const TextStyle(
               fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.vermillionHover,
             )),
           ],
@@ -100,57 +110,68 @@ class GraveyardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildReviewList(BuildContext context) {
-    final items = [
-      ('🀋', '5-Man · Mistook for 6-Man', '5 errors · 3 days ago'),
-      ('⚔️', 'Nani-Kiru · Discarded 7-Man instead of 4-Man', '3 errors · Yesterday'),
-      ('🀝', '5-Pin · Mistook for 4-Pin', '2 errors · 5 days ago'),
-    ];
-    return Expanded(
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: items.length,
-        itemBuilder: (_, i) {
-          final item = items[i];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.jadeCard,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.jadeHover),
-            ),
-            child: Row(
-              children: [
-                Text(item.$1, style: const TextStyle(fontSize: 26)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(item.$2, style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.jadeWhite,
-                      )),
-                      const SizedBox(height: 2),
-                      Text(item.$3, style: const TextStyle(
-                        fontSize: 11, color: AppColors.jadeWhiteMuted,
-                      )),
-                    ],
-                  ),
+  Widget _buildReviewList(BuildContext context, List<(dynamic, TileModel?)> dueItems) {
+    if (dueItems.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('🎉', style: TextStyle(fontSize: 40)),
+            SizedBox(height: 8),
+            Text('Nothing due!\nAll caught up.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.jadeWhiteDim)),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      itemCount: dueItems.length,
+      itemBuilder: (_, i) {
+        final (item, tile) = dueItems[i];
+        final emoji = tile?.mnemonic.emoji ?? '🀄';
+        final name = tile?.mnemonic.name ?? item.itemId;
+        final daysAgo = ((DateTime.now().millisecondsSinceEpoch - item.nextReviewAt) / 86400000).round();
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.jadeCard,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.jadeHover),
+          ),
+          child: Row(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 26)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('$name · ${item.type == 'flashcard' ? 'Flashcard' : 'Nani-Kiru'}', style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.jadeWhite,
+                    )),
+                    const SizedBox(height: 2),
+                    Text('${item.errors} errors · ${daysAgo}d overdue', style: const TextStyle(
+                      fontSize: 11, color: AppColors.jadeWhiteMuted,
+                    )),
+                  ],
                 ),
-                const Text('Review →', style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.vermillion,
-                )),
-              ],
-            ),
-          );
-        },
-      ),
+              ),
+              const Text('Review →', style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.vermillion,
+              )),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
 class _RadarPainter extends CustomPainter {
+  final List<double> data;
+  const _RadarPainter({required this.data});
+
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
@@ -174,12 +195,11 @@ class _RadarPainter extends CustomPainter {
       ), paint);
     }
 
-    // Data (Manzu=0.42, Pinzu=0.20, Souzu=0.30, Honor=0.15, Nani=0.25)
-    final data = [0.42, 0.20, 0.30, 0.15, 0.25];
+    // Data polygon
     final path = Path();
     for (int i = 0; i < 5; i++) {
       final angle = -3.14159 / 2 + i * 2 * 3.14159 / 5;
-      final r = radius * data[i];
+      final r = radius * (data.length > i ? data[i].clamp(0.0, 1.0) : 0.0);
       final point = Offset(center.dx + r * cos(angle), center.dy + r * sin(angle));
       if (i == 0) path.moveTo(point.dx, point.dy);
       else path.lineTo(point.dx, point.dy);
@@ -191,9 +211,6 @@ class _RadarPainter extends CustomPainter {
     paint.color = AppColors.vermillion.withOpacity(0.15);
     paint.style = PaintingStyle.fill;
     canvas.drawPath(path, paint);
-
-    // Labels
-    // ... skip for brevity
   }
 
   void _drawPentagon(Canvas canvas, Offset center, double r, Paint paint) {

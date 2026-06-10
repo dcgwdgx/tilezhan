@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/srs/srs_provider.dart';
 import '../../../shared/widgets/tz_tile.dart';
-import '../../../shared/widgets/tz_slash_painter.dart';
 import '../../../core/providers/tile_data_provider.dart';
 import '../domain/nanikiru_provider.dart';
 import '../domain/nanikiru_state.dart';
@@ -16,18 +16,12 @@ class NanikiruScreen extends ConsumerStatefulWidget {
   ConsumerState<NanikiruScreen> createState() => _NanikiruScreenState();
 }
 
-class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
-    with SingleTickerProviderStateMixin {
+class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
   Timer? _timer;
-  late AnimationController _slashController;
 
   @override
   void initState() {
     super.initState();
-    _slashController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
     Future.microtask(() {
       ref.read(nanikiruProvider.notifier).initPuzzle();
       _startCountdown();
@@ -37,7 +31,6 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
   @override
   void dispose() {
     _timer?.cancel();
-    _slashController.dispose();
     super.dispose();
   }
 
@@ -54,9 +47,14 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     });
   }
 
-  void _onConfirmDiscard(String tileId) {
-    ref.read(nanikiruProvider.notifier).confirmDiscard(tileId);
-    _slashController.forward(from: 0);
+  // Watch for feedback phase to record SRS (catches both skip and manual discard)
+  bool _wasFinished = false;
+
+  void _recordSrs(bool isSkip) {
+    final state = ref.read(nanikiruProvider);
+    final quality = state.isPerfect ? 5 : (isSkip ? 2 : 1);
+    ref.read(srsItemsProvider.notifier).recordReview(
+      'nanikiru_${state.correctDiscardId}', 'nanikiru', quality);
   }
 
   @override
@@ -64,10 +62,26 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     final state = ref.watch(nanikiruProvider);
     final notifier = ref.read(nanikiruProvider.notifier);
 
+    // Catch manual discard confirm (onTileTapped → confirmDiscard)
+    if (state.isFinished && !_wasFinished) {
+      _wasFinished = true;
+      // Only record if not already recorded by Skip button (quality already set)
+      // For manual, we record here
+      Future.microtask(() {
+        final s = ref.read(nanikiruProvider);
+        if (s.isPerfect) {
+          ref.read(srsItemsProvider.notifier).recordReview(
+            'nanikiru_${s.correctDiscardId}', 'nanikiru', 5);
+        }
+      });
+    }
+    if (!state.isFinished) {
+      _wasFinished = false;
+    }
+
     if (state.handTiles.isEmpty) {
       return const Scaffold(
-        backgroundColor: AppColors.jadeDeep,
-        body: Center(child: CircularProgressIndicator(color: AppColors.neonGold)),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -89,32 +103,8 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                 _buildToolbar(state, notifier),
               ],
             ),
-            // Slash overlay on discard
             if (state.isFinished)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    size: Size.infinite,
-                    painter: TzSlashPainter(
-                      progress: _slashController.value,
-                      color: state.isPerfect ? AppColors.neonGold : AppColors.vermillion,
-                    ),
-                  ),
-                ),
-              ),
-            // Particle burst on perfect
-            if (state.isFinished && state.isPerfect)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    size: Size.infinite,
-                    painter: TzParticlePainter(
-                      progress: _slashController.value,
-                    ),
-                  ),
-                ),
-              ),
-            if (state.isFinished) _buildFeedbackSheet(state, notifier),
+              _buildFeedbackSheet(state, notifier),
           ],
         ),
       ),
@@ -175,7 +165,11 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    TzTile(tile: drawnTile, size: TileSize.sm),
+                    Text(drawnTile.character, style: const TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.w900,
+                      color: AppColors.jadeWhite,
+                      fontFamily: 'Noto Serif SC',
+                    )),
                     const SizedBox(width: 6),
                     Text('${drawnTile.label} ← NEW!', style: const TextStyle(
                       fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.neonGold,
@@ -247,6 +241,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                 children: state.handTiles.asMap().entries.map((entry) {
                   final tile = entry.value;
                   final isSelected = state.selectedTileId == tile.id;
+
                   return TzTile(
                     tile: tile,
                     size: TileSize.md,
@@ -274,7 +269,8 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
           _toolBtn('💡 Hint', () {}),
           const SizedBox(width: 8),
           _toolBtn('🏳️ Skip', () {
-            _onConfirmDiscard(state.correctDiscardId);
+            notifier.confirmDiscard(state.correctDiscardId);
+            _recordSrs(false);
           }),
         ],
       ),
@@ -300,11 +296,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
   Widget _buildFeedbackSheet(NaniKiruState state, NanikiruNotifier notifier) {
     final isPerfect = state.isPerfect;
     return GestureDetector(
-      onTap: () {
-        _slashController.reset();
-        notifier.nextPuzzle();
-        _startCountdown();
-      },
+      onTap: () { notifier.nextPuzzle(); _startCountdown(); },
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -315,9 +307,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.elasticOut,
+            Container(
               width: double.infinity,
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(

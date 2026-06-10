@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/srs/srs_provider.dart';
 import '../../../shared/models/tile_model.dart';
-import '../../../shared/widgets/tz_pulse_painter.dart';
 import '../domain/flashcard_provider.dart';
 
 class FlashcardScreen extends ConsumerStatefulWidget {
@@ -17,23 +17,14 @@ class FlashcardScreen extends ConsumerStatefulWidget {
   ConsumerState<FlashcardScreen> createState() => _FlashcardScreenState();
 }
 
-class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
-    with SingleTickerProviderStateMixin {
+class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   Timer? _countdownTimer;
   double _countdownValue = 8.0;
   static const _totalTime = 8.0;
 
-  // Answer feedback animations
-  late AnimationController _feedbackController;
-  bool _lastAnswerCorrect = false;
-
   @override
   void initState() {
     super.initState();
-    _feedbackController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
     Future.microtask(() {
       ref.read(flashcardQuizProvider.notifier).initQuiz(suite: widget.suite);
     });
@@ -42,7 +33,6 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   @override
   void dispose() {
     _countdownTimer?.cancel();
-    _feedbackController.dispose();
     super.dispose();
   }
 
@@ -64,17 +54,21 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   }
 
   void _handleTimeout() {
-    _lastAnswerCorrect = false;
-    _feedbackController.forward(from: 0);
     ref.read(flashcardQuizProvider.notifier).submitAnswer(false);
+    _recordSrs(0); // timeout = quality 0
   }
 
   void _handleAnswer(bool isCorrect) {
-    _lastAnswerCorrect = isCorrect;
-    _feedbackController.forward(from: 0);
     ref.read(flashcardQuizProvider.notifier).submitAnswer(isCorrect);
+    _recordSrs(isCorrect ? 4 : 1); // correct=4, wrong=1
     _countdownTimer?.cancel();
     setState(() {});
+  }
+
+  void _recordSrs(int quality) {
+    final tile = ref.read(flashcardQuizProvider).currentTile;
+    if (tile == null) return;
+    ref.read(srsItemsProvider.notifier).recordReview(tile.id, 'flashcard', quality);
   }
 
   void _showMnemonic() {
@@ -84,7 +78,6 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
 
   void _hideMnemonic() {
     ref.read(flashcardQuizProvider.notifier).hideMnemonic();
-    _feedbackController.reset();
     _startCountdown();
     Future.delayed(const Duration(milliseconds: 300), () {
       ref.read(flashcardQuizProvider.notifier).nextCard();
@@ -118,22 +111,23 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
             Column(
               children: [
                 _buildTopBar(state),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 _buildSuitFilter(state),
                 const Spacer(),
                 _buildCountdownRing(),
-                const SizedBox(height: 20),
-                _buildTileDisplay(tile, state),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
+                _buildTileDisplay(tile),
+                const SizedBox(height: 24),
                 _buildOptions(tile, state),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 _buildProgressDots(state),
                 const SizedBox(height: 8),
                 _buildHint(),
                 const Spacer(),
               ],
             ),
-            if (state.isShowingMnemonic) _buildMnemonicOverlay(tile),
+            if (state.isShowingMnemonic)
+              _buildMnemonicOverlay(tile),
             if (state.isAnswering && state.lastCorrectId != null)
               _buildSuccessBar(tile),
           ],
@@ -171,26 +165,29 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: LinearProgressIndicator(
-                      value: state.progress,
-                      backgroundColor: AppColors.jadeHover,
-                      color: AppColors.neonGold,
-                      minHeight: 4,
-                    ),
+                Text(state.suite == 'all' ? 'All Tiles' : '${state.suite.toUpperCase()} Flashcards',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                        color: AppColors.jadeWhite)),
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(
+                    value: state.progress,
+                    backgroundColor: AppColors.jadeHover,
+                    color: AppColors.neonGold,
+                    minHeight: 4,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Text('⚡${state.currentIndex + 1}/${state.totalCount}',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
-                        color: AppColors.neonGold)),
               ],
             ),
           ),
+          const SizedBox(width: 12),
+          Text('⚡${state.currentIndex + 1}/${state.totalCount}',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
+                  color: AppColors.neonGold)),
         ],
       ),
     );
@@ -240,17 +237,17 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     final urgent = _countdownValue < 2.0;
     final color = urgent ? AppColors.vermillion : AppColors.neonGold;
     return SizedBox(
-      width: 100, height: 100,
+      width: 80, height: 80,
       child: Stack(
         alignment: Alignment.center,
         children: [
           CustomPaint(
-            size: const Size(100, 100),
+            size: const Size(80, 80),
             painter: _GlowRingPainter(progress: progress, color: color, urgent: urgent),
           ),
           Text(_countdownValue.toInt().toString(),
               style: TextStyle(
-                fontSize: 32, fontWeight: FontWeight.w700,
+                fontSize: 28, fontWeight: FontWeight.w700,
                 color: color, fontFamily: 'JetBrains Mono',
               )),
         ],
@@ -258,30 +255,21 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     );
   }
 
-  Widget _buildTileDisplay(TileModel tile, state) {
+  Widget _buildTileDisplay(TileModel tile) {
+    final state = ref.read(flashcardQuizProvider);
     final isCorrect = state.lastCorrectId == tile.id;
-    final isWrong = state.lastWrongId != null && !isCorrect && state.isAnswering;
     final assetPath = 'assets/tiles/${tile.id}.svg';
-
-    // Shake offset for wrong answer
-    final shakeOffset = _lastAnswerCorrect
-        ? 0.0
-        : math.sin(_feedbackController.value * math.pi * 6) *
-            (1 - _feedbackController.value) * 8.0;
-
     return GestureDetector(
       onTap: state.isAnswering ? _showMnemonic : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: 160, height: 224,
+        width: 150, height: 210,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isCorrect
                 ? const Color(0xFF2CE574)
-                : isWrong
-                    ? AppColors.vermillion.withOpacity(0.5)
-                    : tile.suitColor.withOpacity(0.5),
+                : tile.suitColor.withOpacity(0.5),
             width: 2,
           ),
           boxShadow: [
@@ -290,31 +278,12 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
             BoxShadow(color: Colors.black54, blurRadius: 12, offset: const Offset(0, 6)),
           ],
         ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Transform.translate(
-                offset: Offset(shakeOffset, 0),
-                child: SvgPicture.asset(assetPath, fit: BoxFit.contain),
-              ),
-            ),
-            // Pulse ring on correct
-            if (isCorrect && _feedbackController.isAnimating)
-              Positioned.fill(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: CustomPaint(
-                    painter: TzPulsePainter(
-                      progress: _feedbackController.value,
-                      color: const Color(0xFF2CE574),
-                      maxRadius: 130,
-                    ),
-                  ),
-                ),
-              ),
-          ],
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: SvgPicture.asset(
+            assetPath,
+            fit: BoxFit.contain,
+          ),
         ),
       ),
     );
@@ -323,6 +292,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   Widget _buildOptions(TileModel tile, state) {
     final options = state.options;
     if (options.length != 4) {
+      // Fallback: should never happen with precomputed options
       final distractors = ref.read(flashcardQuizProvider.notifier).getDistractors(tile);
       final fallback = [...distractors, tile]..shuffle();
       return _buildOptionList(tile, state, fallback);
@@ -332,7 +302,6 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
 
   Widget _buildOptionList(TileModel tile, state, List<TileModel> options) {
     final letters = ['A', 'B', 'C', 'D'];
-    final isWrong = !_lastAnswerCorrect && state.isAnswering;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -349,62 +318,52 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
             bgColor = AppColors.vermillion.withOpacity(0.12);
           }
 
-          // Shake wrong options
-          final shakeOffset =
-              isWrong && state.lastWrongId == opt.id
-                  ? math.sin(_feedbackController.value * math.pi * 6) *
-                      (1 - _feedbackController.value) * 6.0
-                  : 0.0;
-
           return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Transform.translate(
-              offset: Offset(shakeOffset, 0),
-              child: GestureDetector(
-                onTap: state.isAnswering ? null : () => _handleAnswer(isCorrect),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: bgColor ?? AppColors.jadeCard,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: bgColor != null
-                          ? (isCorrect ? const Color(0xFF2CE574) : AppColors.vermillion)
-                          : AppColors.jadeHover,
-                    ),
+            padding: const EdgeInsets.only(bottom: 8),
+            child: GestureDetector(
+              onTap: state.isAnswering ? null : () => _handleAnswer(isCorrect),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                decoration: BoxDecoration(
+                  color: bgColor ?? AppColors.jadeCard,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: bgColor != null
+                        ? (isCorrect ? const Color(0xFF2CE574) : AppColors.vermillion)
+                        : AppColors.jadeHover,
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 26, height: 26,
-                        decoration: BoxDecoration(
-                          color: bgColor != null
-                              ? (isCorrect ? const Color(0xFF2CE574) : AppColors.vermillion)
-                              : AppColors.jadeHover,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(letters[i], style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w700,
-                            color: bgColor != null ? Colors.white : AppColors.jadeWhite,
-                          )),
-                        ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 26, height: 26,
+                      decoration: BoxDecoration(
+                        color: bgColor != null
+                            ? (isCorrect ? const Color(0xFF2CE574) : AppColors.vermillion)
+                            : AppColors.jadeHover,
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(width: 12),
-                      Text(opt.mnemonic.emoji, style: const TextStyle(fontSize: 20)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(opt.mnemonic.name, style: TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w600,
+                      child: Center(
+                        child: Text(letters[i], style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w700,
                           color: bgColor != null ? Colors.white : AppColors.jadeWhite,
                         )),
                       ),
-                      Text(opt.label, style: TextStyle(
-                        fontSize: 11, color: AppColors.jadeWhiteMuted,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(opt.mnemonic.emoji, style: const TextStyle(fontSize: 20)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(opt.mnemonic.name, style: TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600,
+                        color: bgColor != null ? Colors.white : AppColors.jadeWhite,
                       )),
-                    ],
-                  ),
+                    ),
+                    Text(opt.label, style: TextStyle(
+                      fontSize: 11, color: AppColors.jadeWhiteMuted,
+                    )),
+                  ],
                 ),
               ),
             ),
@@ -491,23 +450,18 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   Widget _buildSuccessBar(TileModel tile) {
     return Positioned(
       bottom: 0, left: 0, right: 0,
-      child: AnimatedSlide(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.elasticOut,
-        offset: const Offset(0, 0),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-          color: const Color(0xFF2CE574),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('✨', style: TextStyle(fontSize: 20)),
-              const SizedBox(width: 8),
-              Text('"${tile.mnemonic.slogan}"', style: const TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white,
-              )),
-            ],
-          ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+        color: const Color(0xFF2CE574),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('✨', style: TextStyle(fontSize: 20)),
+            const SizedBox(width: 8),
+            Text('"${tile.mnemonic.slogan}"', style: const TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white,
+            )),
+          ],
         ),
       ),
     );
@@ -568,12 +522,14 @@ class _GlowRingPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2 - 4;
 
+    // Background ring
     final bgPaint = Paint()
       ..color = AppColors.jadeHover
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
     canvas.drawCircle(center, radius, bgPaint);
 
+    // Glow shadow (neon effect)
     if (progress > 0) {
       final glowPaint = Paint()
         ..color = color.withOpacity(0.3)
@@ -586,6 +542,7 @@ class _GlowRingPainter extends CustomPainter {
       );
     }
 
+    // Progress arc
     final arcPaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
@@ -601,3 +558,4 @@ class _GlowRingPainter extends CustomPainter {
   bool shouldRepaint(covariant _GlowRingPainter old) =>
       old.progress != progress || old.urgent != urgent;
 }
+

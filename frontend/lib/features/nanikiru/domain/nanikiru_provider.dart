@@ -3,6 +3,7 @@ import '../../../shared/models/tile_model.dart';
 import '../../../shared/data/tile_repository.dart';
 import '../../../core/providers/tile_data_provider.dart';
 import 'nanikiru_state.dart';
+import 'puzzle_generator.dart';
 
 final nanikiruProvider =
     StateNotifierProvider.autoDispose<NanikiruNotifier, NaniKiruState>(
@@ -11,31 +12,34 @@ final nanikiruProvider =
 class NanikiruNotifier extends StateNotifier<NaniKiruState> {
   final TileRepository _repo;
   List<TileModel> _allTiles = [];
+  int _puzzleCounter = 0;
 
   NanikiruNotifier(this._repo) : super(const NaniKiruState());
 
-  // Hardcoded demo hand for MVP: 13 Manzu + 1 drawn Souzu
-  static const _demoHandIds = [
-    'm1', 'm1', 'm2', 'm3', 'm3', 'm4', 'm5', 'm5',
-    'm6', 'm7', 'm8', 'm8', 'm9',
-  ];
-  static const _demoDrawnId = 's7';
-  static const _demoCorrectId = 'm4';
-
   Future<void> initPuzzle() async {
     _allTiles = await _repo.loadAllTiles();
-    final handTiles = _demoHandIds
+
+    // Generate random puzzle
+    final puzzle = PuzzleGenerator.generate();
+    final handTiles = puzzle.hand13Ids
         .map((id) => _repo.getById(id, _allTiles))
         .whereType<TileModel>()
         .toList();
-    final drawnTile = _repo.getById(_demoDrawnId, _allTiles);
+    final drawnTile = _repo.getById(puzzle.drawnTileId, _allTiles);
+
+    _puzzleCounter++;
+    final puzzleId = 'nanikiru_$_puzzleCounter';
 
     state = NaniKiruState(
       handTiles: [...handTiles, if (drawnTile != null) drawnTile],
-      drawnTileId: _demoDrawnId,
-      correctDiscardId: _demoCorrectId,
+      drawnTileId: puzzle.drawnTileId,
+      correctDiscardId: puzzle.correctDiscardId,
       phase: NaniKiruPhase.ready,
       countdownValue: 10.0,
+      ukeireCount: puzzle.ukeireCount,
+      ukeireTypes: puzzle.ukeireTypes,
+      ukeireTiles: puzzle.ukeireTileIds,
+      puzzleId: puzzleId,
     );
   }
 
@@ -52,10 +56,8 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
     if (state.phase != NaniKiruPhase.ready && state.phase != NaniKiruPhase.selecting) return;
 
     if (state.selectedTileId == tileId) {
-      // Second tap — confirm discard
       confirmDiscard(tileId);
     } else {
-      // First tap — select
       state = state.copyWith(
         selectedTileId: tileId,
         phase: NaniKiruPhase.selecting,
@@ -68,9 +70,6 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
     state = state.copyWith(
       phase: NaniKiruPhase.feedback,
       isPerfect: isPerfect,
-      ukeireCount: isPerfect ? 11 : 4,
-      ukeireTypes: isPerfect ? 3 : 1,
-      ukeireTiles: isPerfect ? ['2p', '5p', '8p'] : ['4p'],
     );
   }
 
