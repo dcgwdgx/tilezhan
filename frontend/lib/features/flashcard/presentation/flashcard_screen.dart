@@ -20,14 +20,18 @@ class FlashcardScreen extends ConsumerStatefulWidget {
   ConsumerState<FlashcardScreen> createState() => _FlashcardScreenState();
 }
 
-class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
+class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
+    with SingleTickerProviderStateMixin {
   Timer? _countdownTimer;
   double _countdownValue = 8.0;
+  late AnimationController _feedbackCtrl;
+  bool _lastAnswerCorrect = false;
   static const _totalTime = 8.0;
 
   @override
   void initState() {
     super.initState();
+    _feedbackCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
     Future.microtask(() {
       ref.read(flashcardQuizProvider.notifier).initQuiz(suite: widget.suite);
     });
@@ -36,6 +40,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _feedbackCtrl.dispose();
     super.dispose();
   }
 
@@ -74,6 +79,8 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
 
   void _handleAnswer(bool isCorrect) {
     AnalyticsService.answered('flashcard', isCorrect);
+    _lastAnswerCorrect = isCorrect;
+    _feedbackCtrl.forward(from: 0);
     if (isCorrect) {
       AudioService.playCorrect();
     } else {

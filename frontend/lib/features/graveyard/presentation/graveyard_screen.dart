@@ -157,9 +157,10 @@ class GraveyardScreen extends ConsumerWidget {
                     ),
                   ),
                   const Text('Review →', style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.vermillion,
-                )),
-              ],
+                    fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.vermillion,
+                  )),
+                ],
+              ),
             ),
           ),
         );
