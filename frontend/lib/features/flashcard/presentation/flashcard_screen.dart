@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/analytics/analytics_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/srs/srs_provider.dart';
 import '../../../shared/models/tile_model.dart';
@@ -60,6 +61,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   }
 
   void _handleAnswer(bool isCorrect) {
+    AnalyticsService.answered('flashcard', isCorrect);
     ref.read(flashcardQuizProvider.notifier).submitAnswer(isCorrect);
     _recordSrs(isCorrect ? 4 : 1); // correct=4, wrong=1
     _countdownTimer?.cancel();

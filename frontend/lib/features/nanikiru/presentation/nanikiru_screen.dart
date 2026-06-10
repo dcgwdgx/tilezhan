@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/analytics/analytics_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/srs/srs_provider.dart';
 import '../../../shared/widgets/tz_progress_bar.dart';
@@ -70,6 +71,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
       // For manual, we record here
       Future.microtask(() {
         final s = ref.read(nanikiruProvider);
+        AnalyticsService.answered('nanikiru', s.isPerfect);
         if (s.isPerfect) {
           ref.read(srsNotifierProvider.notifier).recordReview(
             'nanikiru_${s.correctDiscardId}', 'nanikiru', 5);
@@ -266,6 +268,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
           _toolBtn('💡 Hint', () {}),
           const SizedBox(width: 8),
           _toolBtn('🏳️ Skip', () {
+            AnalyticsService.answered('nanikiru', false);
             notifier.confirmDiscard(state.correctDiscardId);
             _recordSrs(false);
           }),

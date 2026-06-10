@@ -2,25 +2,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/models/tile_model.dart';
 import '../../../shared/data/tile_repository.dart';
 import '../../../core/providers/tile_data_provider.dart';
+import '../../../core/providers/storage_provider.dart';
+import '../../../core/storage/storage_service.dart';
 import 'nanikiru_state.dart';
 import 'puzzle_generator.dart';
+import 'difficulty_scorer.dart';
 
 final nanikiruProvider =
     StateNotifierProvider.autoDispose<NanikiruNotifier, NaniKiruState>(
-        (ref) => NanikiruNotifier(ref.read(tileRepositoryProvider)));
+        (ref) => NanikiruNotifier(ref.read(tileRepositoryProvider), ref));
 
 class NanikiruNotifier extends StateNotifier<NaniKiruState> {
   final TileRepository _repo;
+  final Ref _ref;
   List<TileModel> _allTiles = [];
   int _puzzleCounter = 0;
 
-  NanikiruNotifier(this._repo) : super(const NaniKiruState());
+  NanikiruNotifier(this._repo, this._ref) : super(const NaniKiruState());
 
   Future<void> initPuzzle() async {
     _allTiles = await _repo.loadAllTiles();
 
-    // Generate random puzzle
-    final puzzle = PuzzleGenerator.generate();
+    // Generate puzzle matching user ELO difficulty
+    final storage = _ref.read(storageServiceProvider).valueOrNull;
+    final userElo = storage?.getInt(StorageService.kElo) ?? 1000;
+    final target = DifficultyScorer.targetRange(userElo);
+    final puzzle = PuzzleGenerator.generate(targetDifficulty: target);
     final handTiles = puzzle.hand13Ids
         .map((id) => _repo.getById(id, _allTiles))
         .whereType<TileModel>()

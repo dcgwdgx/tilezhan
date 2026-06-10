@@ -1,24 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/providers/storage_provider.dart';
+import '../../../core/storage/storage_service.dart';
 import '../../../shared/widgets/tz_button.dart';
 import '../../../shared/widgets/tz_progress_bar.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _hearts = 3;
-  int _streak = 14;
+  int _streak = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  void _loadStats() {
+    final storage = ref.read(storageServiceProvider).valueOrNull;
+    if (storage == null) return;
+    setState(() {
+      _hearts = storage.getInt(StorageService.kHearts);
+      if (_hearts == 0) _hearts = 3; // default
+      _streak = storage.getInt(StorageService.kStreak);
+    });
+  }
+
+  void _saveStats() {
+    final storage = ref.read(storageServiceProvider).valueOrNull;
+    if (storage == null) return;
+    storage.setInt(StorageService.kHearts, _hearts);
+    storage.setInt(StorageService.kStreak, _streak);
+  }
 
   void _decreaseHeart() {
     setState(() {
       if (_hearts > 0) _hearts--;
     });
+    _saveStats();
     if (_hearts <= 0) {
       _showPaywall();
     }
@@ -211,8 +238,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildQuickGrid() {
     final items = [
       ('🃏', 'Flashcards', '/flashcard'), ('⚔️', 'Nani-Kiru', '/nanikiru'),
-      ('🔍', 'Tile Browser', '/tiles'), ('📚', 'Yaku Guide', '/collection'),
-      ('👻', 'Graveyard', '/graveyard'), ('⚙️', 'Settings', '/'),
+      ('🔬', 'Scanner', '/scanner'),       ('📚', 'Yaku Guide', '/collection'),
+      ('👻', 'Graveyard', '/graveyard'),   ('🔍', 'Tile Browser', '/tiles'),
+      ('👤', 'Profile', '/profile'),       ('💎', 'Premium', '/premium'),
+      ('⚙️', 'Settings', '/profile'),
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),

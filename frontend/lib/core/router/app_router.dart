@@ -8,6 +8,8 @@ import '../../features/tile_browser/presentation/tile_browser_screen.dart';
 import '../../features/collection/presentation/collection_screen.dart';
 import '../../features/graveyard/presentation/graveyard_screen.dart';
 import '../../features/premium/presentation/premium_screen.dart';
+import '../../features/scanner/presentation/scanner_screen.dart';
+import '../../features/profile/presentation/profile_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
@@ -23,5 +25,7 @@ final appRouter = GoRouter(
     GoRoute(path: '/collection', builder: (_, __) => const CollectionScreen()),
     GoRoute(path: '/graveyard', builder: (_, __) => const GraveyardScreen()),
     GoRoute(path: '/premium', builder: (_, __) => const PremiumScreen()),
+    GoRoute(path: '/scanner', builder: (_, __) => const ScannerScreen()),
+    GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
   ],
 );
