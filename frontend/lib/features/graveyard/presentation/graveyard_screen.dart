@@ -128,30 +128,35 @@ class GraveyardScreen extends ConsumerWidget {
         final emoji = tile?.mnemonic.emoji ?? '🀄';
         final name = tile?.mnemonic.name ?? item.itemId;
         final daysAgo = ((DateTime.now().millisecondsSinceEpoch - item.nextReviewAt) / 86400000).round();
+        final route = item.type == 'nanikiru'
+            ? '/nanikiru'
+            : '/flashcard?suite=${tile?.suit.name ?? 'all'}';
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: TzCard(
-            padding: const EdgeInsets.all(14),
-            borderRadius: 12,
-            child: Row(
-              children: [
-                Text(emoji, style: const TextStyle(fontSize: 26)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('$name · ${item.type == 'flashcard' ? 'Flashcard' : 'Nani-Kiru'}', style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.jadeWhite,
-                      )),
-                      const SizedBox(height: 2),
-                      Text('${item.errors} errors · ${daysAgo}d overdue', style: const TextStyle(
-                        fontSize: 11, color: AppColors.jadeWhiteMuted,
-                      )),
-                    ],
+          child: GestureDetector(
+            onTap: () => context.push(route),
+            child: TzCard(
+              padding: const EdgeInsets.all(14),
+              borderRadius: 12,
+              child: Row(
+                children: [
+                  Text(emoji, style: const TextStyle(fontSize: 26)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('$name · ${item.type == 'flashcard' ? 'Flashcard' : 'Nani-Kiru'}', style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.jadeWhite,
+                        )),
+                        const SizedBox(height: 2),
+                        Text('${item.errors} errors · ${daysAgo}d overdue', style: const TextStyle(
+                          fontSize: 11, color: AppColors.jadeWhiteMuted,
+                        )),
+                      ],
+                    ),
                   ),
-                ),
-                const Text('Review →', style: TextStyle(
+                  const Text('Review →', style: TextStyle(
                   fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.vermillion,
                 )),
               ],
