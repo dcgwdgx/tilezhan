@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/features/flashcard/domain/flashcard_provider.dart';
-import 'package:tilezhan/features/flashcard/domain/flashcard_state.dart';
 import 'package:tilezhan/core/providers/tile_data_provider.dart';
 import 'package:tilezhan/shared/data/tile_repository.dart';
 import 'package:tilezhan/shared/models/tile_model.dart';
