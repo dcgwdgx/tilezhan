@@ -1,9 +1,10 @@
-# TileZhan (麻雀斩) — CTO 架构设计文档 v1.0
+# TileZhan (麻雀斩) — CTO 架构设计文档 v1.1
 
 > 作者: CTO
 > 日期: 2026-06-06
+> 修订: 2026-06-10 — CI 实测后更新 ADR 状态
 > 基线版本: v0.6 (赛博国风原型)
-> 状态: MVP 前架构评审
+> 状态: Sprint 1+2 完成，CI 构建通过
 
 ---
 
@@ -42,7 +43,7 @@
 │  │               └──────┬──────┘                       │ │
 │  │         ┌────────────┼────────────┐                 │ │
 │  │    ┌────┴────┐  ┌────┴────┐  ┌───┴────┐            │ │
-│  │    │ Isar DB │  │  Hive   │  │Shanten │            │ │
+│  │    │File JSON│  │  Hive   │  │Shanten │            │ │
 │  │    │(Struct) │  │(Cache)  │  │ Calc   │            │ │
 │  │    └─────────┘  └─────────┘  └────────┘            │ │
 │  └─────────────────────────────────────────────────────┘ │
@@ -80,16 +81,16 @@
 
 ### 1.2 核心架构决策 (ADR)
 
-| # | 决策 | 选择 | 理由 |
+| # | 决策 | 选择 | CI 实测 |
 |---|---|---|---|
-| ADR-1 | 客户端框架 | Flutter ≥3.24 | Impeller 60fps + Flame 游戏特效 + 单码双端 |
-| ADR-2 | 后端计算层 | Python FastAPI | Mahjong 库生态 (C++ binding) + 题库预计算 |
-| ADR-3 | BaaS 数据层 | Firebase | 海外标配, 离线持久化, 零运维 MVP |
-| ADR-4 | 算番策略 | 95%预计算 + 5%端侧 | <1ms 查表延迟, 离线可用, 服务端降级 |
-| ADR-5 | SRS 算法 | SM-2 (MVP) → FSRS (V2) | SM-2 零冷启动, 积累数据后迁移 FSRS +10% 留存 |
-| ADR-6 | 规则体系 | 日麻 Riichi (MVP) | 1000万+全球迷, 规则标准化, TikTok 热度最高 |
-| ADR-7 | 支付 | RevenueCat | 跨平台 IAP 抽象, Webhook 服务端验证, 免费额度 |
-| ADR-8 | 动效 | Flame (斩击) + Rive (微动效) + 原生 Animation | 分层: 游戏级→复杂动效→微交互 |
+| ADR-1 | 客户端框架 | Flutter ≥3.24 | ✅ |
+| ADR-2 | 后端计算层 | Python FastAPI | ✅ 代码完成，未部署 |
+| ADR-3 | BaaS 数据层 | Firebase ❌→ REST API | ❌ CocoaPods 冲突，改用纯 Dart 文件存储 |
+| ADR-4 | 算番策略 | 95%预计算 + 5%端侧 | ✅ Dart ShantenCalculator |
+| ADR-5 | SRS 算法 | SM-2 (MVP) → FSRS (V2) | ✅ SM-2 已实现并测试 |
+| ADR-6 | 规则体系 | 日麻 Riichi (MVP) | ✅ |
+| ADR-7 | 支付 | RevenueCat | ⚠️ Sprint 3，待 CI 验证 |
+| ADR-8 | 动效 | ~~Flame+Rive~~ → 原生 Animation + CustomPainter | ❌ Flame/Rive CI 失败，已替换 |
 
 ---
 
@@ -229,13 +230,14 @@ tilezhan/
 │  └─ 音效文件                             │
 │                                          │
 │  Layer 2: 题库缓存 (Hive)                │
-│  ├─ 每日卡包 → 凌晨 Background Fetch     │
+│  ├─ 每日卡包 → 本地缓存                  │
 │  ├─ 预计算结果 (14种打法的进张数)         │
 │  └─ TTL 24h, 联网静默刷新                │
 │                                          │
-│  Layer 3: 用户数据 (Isar ↔ Firestore)    │
-│  ├─ Isar: 本地权威 (写入即时生效)         │
-│  ├─ Firestore: 远程同步 (Offline Persist) │
+│  Layer 3: 用户数据 (File JSON / Hive)    │
+│  ├─ File JSON: SRS 条目 + 进度 (dart:io) │
+│  ├─ Hive: KV 缓存 (设置 / 题库)          │
+│  ├─ Isar: 待 CI 验证后接入 (结构化数据)   │
 │  └─ 冲突: Last-Write-Wins (进度数据)      │
 │                                          │
 │  Layer 4: 离线降级                        │

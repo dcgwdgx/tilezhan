@@ -1,8 +1,9 @@
-# TileZhan (麻雀斩) — 前端详细设计文档 v1.0
+# TileZhan (麻雀斩) — 前端详细设计文档 v1.1
 
 > 目标读者: Flutter 开发工程师
 > 前置阅读: `tilezhan-architecture.md` (CTO 架构), `tilezhan-design-spec.md` (UI/UX 规范), `tilezhan-prototype.html` (v0.6 原型)
 > 日期: 2026-06-06
+> 修订: 2026-06-10 — CI 实测后更新依赖状态
 
 ---
 
@@ -27,7 +28,7 @@
 ### 1.1 环境要求
 
 ```yaml
-# pubspec.yaml
+# pubspec.yaml — CI 实测后更新 (2026-06-10)
 name: tilezhan
 description: Master Mahjong, One Tile at a Time.
 version: 1.0.0+1
@@ -41,47 +42,38 @@ dependencies:
     sdk: flutter
 
   # ── 状态管理 ──
-  flutter_riverpod: ^2.5.1
-  riverpod_annotation: ^2.3.5
+  flutter_riverpod: ^2.5.1      # ✅ CI 通过
 
   # ── 路由 ──
-  go_router: ^14.2.0
+  go_router: ^14.2.0             # ✅ CI 通过
 
   # ── 本地存储 ──
-  isar: ^3.1.0+1
-  isar_flutter_libs: ^3.1.0+1
-  hive_flutter: ^1.1.0
+  hive: ^2.2.3                   # ✅ CI 通过 (CocoaPods)
+  hive_flutter: ^1.1.0           # ✅ CI 通过 (CocoaPods)
+  path_provider: ^2.1.0          # ✅ CI 通过 (CocoaPods) — 替代 shared_preferences
+  # ⚠️ isar: 未在 CI 验证，待 Sprint 3 单独测试
+  # ❌ shared_preferences: v2.3+ 使用 SPM，与手动 provisioning 冲突，已替换
 
   # ── 网络 ──
-  dio: ^5.4.3+1
-  connectivity_plus: ^6.0.3
+  dio: ^5.4.3+1                  # ✅ CI 通过 (纯 Dart)
+  # ⚠️ connectivity_plus: 未验证，按需添加
 
   # ── Firebase ──
-  firebase_core: ^2.31.0
-  firebase_auth: ^4.19.5
-  cloud_firestore: ^4.17.3
-  firebase_analytics: ^10.10.5
-  firebase_crashlytics: ^3.5.5
-  firebase_performance: ^0.9.4+5
-  firebase_remote_config: ^4.4.5
+  # ❌ 全家桶: CocoaPods 版本冲突，CI 验证失败
+  #    等 Apple SPM 生态成熟后再尝试，或使用 REST API
 
   # ── 支付 ──
-  purchases_flutter: ^6.30.0       # RevenueCat
+  # ⚠️ purchases_flutter: Sprint 3 接入，待 CI 验证
 
   # ── 动效 ──
-  flame: ^1.17.0                   # 游戏引擎 (斩击 + 粒子)
-  rive: ^0.13.0                    # 助记微动效
-  lottie: ^3.1.2                   # Confetti / 庆祝
-  confetti_widget: ^0.3.0          # 撒花
+  flutter_svg: ^2.0.10+1         # ✅ CI 通过 (纯 Dart) — 牌面 SVG 渲染
+  # ❌ flame: CocoaPods 原生依赖重，已移除，改用 CustomPainter
+  # ❌ rive: 原生渲染引擎，已移除，改用 AnimationController
+  # ⚠️ lottie / confetti: 按需添加
 
   # ── 工具 ──
-  freezed_annotation: ^2.4.1
-  json_annotation: ^4.9.0
-  ntp: ^2.0.0                      # 时间同步
-  encrypt: ^5.0.3                  # 题库加密
-  cached_network_image: ^3.3.1     # CDN 图片缓存
-  haptic_feedback: ^0.4.2          # 触觉反馈
-  audioplayers: ^6.0.0             # 音效
+  # ⚠️ 以下未在 CI 验证，按需添加:
+  # ntp, encrypt, cached_network_image, haptic_feedback, audioplayers
 
 dev_dependencies:
   flutter_test:
@@ -89,10 +81,21 @@ dev_dependencies:
   build_runner: ^2.4.9
   freezed: ^2.5.2
   json_serializable: ^6.8.0
-  isar_generator: ^3.1.0+1
-  mockito: ^5.4.4
+  mockito: ^5.4.4                # ✅ CI 通过 (纯 Dart)
   flutter_lints: ^4.0.0
 ```
+
+### 1.1.1 依赖 CI 兼容性规则
+
+> **策略**: 优先纯 Dart → 其次 CocoaPods → 避免 SPM（Swift Package Manager）
+
+| 规则 | 原因 |
+|------|------|
+| 纯 Dart 包 | 零原生代码，永远不会破坏 iOS 构建 |
+| CocoaPods 插件 | 成熟稳定，CI 已验证通过（hive, path_provider） |
+| SPM 包 | 与 xcargs 手动 provisioning 冲突，构建失败 |
+| Firebase | CocoaPods 版本冲突，待 SPM 生态稳定后重试 |
+| Flame/Rive | 包体积大、CI 构建时间长，MVP 阶段用 CustomPainter 替代 |
 
 ### 1.2 入口文件
 
