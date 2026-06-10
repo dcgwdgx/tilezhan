@@ -84,7 +84,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   void _hideMnemonic() {
     ref.read(flashcardQuizProvider.notifier).hideMnemonic();
     _startCountdown();
-    Future.delayed(const Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: 150), () {
       ref.read(flashcardQuizProvider.notifier).nextCard();
       _startCountdown();
     });
@@ -135,6 +135,9 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
               _buildMnemonicOverlay(tile),
             if (state.isAnswering && state.lastCorrectId != null)
               _buildSuccessBar(tile),
+            // Quick skip button — visible after answering
+            if (state.isAnswering && !state.isShowingMnemonic)
+              _buildNextButton(tile),
           ],
         ),
       ),
@@ -378,6 +381,31 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
           ),
         );
       }),
+    );
+  }
+
+  Widget _buildNextButton(TileModel tile) {
+    return Positioned(
+      bottom: 80, right: 20,
+      child: GestureDetector(
+        onTap: _hideMnemonic,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.neonGold,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [BoxShadow(color: AppColors.neonGold.withOpacity(0.3), blurRadius: 12)],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Next', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black)),
+              SizedBox(width: 4),
+              Icon(Icons.arrow_forward, size: 16, color: Colors.black),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
