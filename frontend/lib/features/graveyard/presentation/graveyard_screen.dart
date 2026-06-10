@@ -84,8 +84,10 @@ class GraveyardScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             SizedBox(
               width: 140, height: 140,
-              child: CustomPaint(
-                painter: _RadarPainter(),
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _RadarPainter(),
+                ),
               ),
             ),
             const SizedBox(height: 8),

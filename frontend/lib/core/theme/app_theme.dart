@@ -2,6 +2,21 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
 class AppTheme {
+  static TextTheme get _textTheme {
+    return const TextTheme(
+      displayLarge: TextStyle(fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: 4, color: AppColors.jadeWhite),
+      headlineMedium: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.neonGold),
+      titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.jadeWhite),
+      titleMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.jadeWhite),
+      bodyLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.jadeWhite),
+      bodyMedium: TextStyle(fontSize: 13, color: AppColors.jadeWhiteDim),
+      bodySmall: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted),
+      labelLarge: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.neonGold),
+      labelMedium: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5, color: AppColors.jadeWhiteMuted),
+      labelSmall: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.jadeWhiteMuted),
+    );
+  }
+
   static ThemeData get dark {
     return ThemeData(
       brightness: Brightness.dark,
@@ -16,6 +31,7 @@ class AppTheme {
         onSurface: AppColors.jadeWhite,
       ),
       fontFamily: 'Poppins',
+      textTheme: _textTheme,
 
       // AppBar - match prototype dark header
       appBarTheme: const AppBarTheme(
@@ -28,12 +44,13 @@ class AppTheme {
         ),
       ),
 
-      // Cards
+      // Cards — elevated with gold accent border
       cardTheme: CardThemeData(
         color: AppColors.jadeCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(16)),
+          side: const BorderSide(color: AppColors.jadeHover, width: 1),
         ),
       ),
 

@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/utils/animation_utils.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -9,13 +13,53 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   int _hearts = 3;
   int _streak = 14;
 
-  void _decreaseHeart() {
+  // 碎心 animation
+  late AnimationController _heartBreakController;
+  int _breakingHeartIndex = -1;
+
+  // Shimmer for progress bar
+  late AnimationController _shimmerController;
+
+  // Tab bounce
+  int _activeTabIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _heartBreakController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    if (!isTestEnvironment) {
+      _shimmerController.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _heartBreakController.dispose();
+    _shimmerController.dispose();
+    super.dispose();
+  }
+
+  void _onHeartTap(int index) {
+    if (_hearts <= 0) return;
     setState(() {
-      if (_hearts > 0) _hearts--;
+      _breakingHeartIndex = index;
+      _hearts--;
+    });
+    _heartBreakController.forward(from: 0);
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) setState(() => _breakingHeartIndex = -1);
     });
     if (_hearts <= 0) {
       _showPaywall();
@@ -87,31 +131,75 @@ class _HomeScreenState extends State<HomeScreen> {
           const Spacer(),
           Row(
             children: List.generate(3, (i) {
+              final isBreaking = _breakingHeartIndex == i && _heartBreakController.isAnimating;
+              final showEmpty = i >= _hearts && !isBreaking;
+
+              if (isBreaking) {
+                return _buildBreakingHeart();
+              }
+
               return GestureDetector(
-                onTap: _decreaseHeart,
+                onTap: () => _onHeartTap(i),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: Text(i < _hearts ? '❤️' : '🖤',
+                  child: Text(showEmpty ? '🖤' : '❤️',
                       style: const TextStyle(fontSize: 18)),
                 ),
               );
             }),
           ),
           const Spacer(),
-          GestureDetector(
-            onTap: _showPaywall,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.demonPurple.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(20),
+          _buildProButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBreakingHeart() {
+    final t = _heartBreakController.value;
+    return SizedBox(
+      width: 24, height: 24,
+      child: Stack(
+        children: [
+          // Left half flies left
+          Transform.translate(
+            offset: Offset(-20 * t, -15 * t * t),
+            child: Transform.rotate(
+              angle: -0.5 * t,
+              child: Opacity(
+                opacity: 1 - t,
+                child: SvgPicture.asset('assets/icons/heart_left.svg', width: 18, height: 18),
               ),
-              child: const Text('👑 PRO', style: TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.demonPurple,
-              )),
+            ),
+          ),
+          // Right half flies right
+          Transform.translate(
+            offset: Offset(20 * t, -15 * t * t),
+            child: Transform.rotate(
+              angle: 0.5 * t,
+              child: Opacity(
+                opacity: 1 - t,
+                child: SvgPicture.asset('assets/icons/heart_right.svg', width: 18, height: 18),
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProButton() {
+    return GestureDetector(
+      onTap: _showPaywall,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.demonPurple.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Text('👑 PRO', style: TextStyle(
+          fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.demonPurple,
+        )),
       ),
     );
   }
@@ -211,35 +299,66 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(count, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.jadeWhiteDim)),
         ]),
         const SizedBox(height: 8),
-        ClipRRect(
+        _buildShimmerBar(progress, color),
+      ],
+    );
+  }
+
+  /// ShaderMask shimmer progress bar
+  Widget _buildShimmerBar(double progress, Color color) {
+    final shimmerGradient = LinearGradient(
+      colors: [
+        Colors.transparent,
+        Colors.white.withOpacity(0.15),
+        Colors.white.withOpacity(0.25),
+        Colors.white.withOpacity(0.15),
+        Colors.transparent,
+      ],
+      stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
+      begin: Alignment(
+        -1.0 + _shimmerController.value * 2,
+        0,
+      ),
+      end: Alignment(
+        1.0 + _shimmerController.value * 2,
+        0,
+      ),
+    );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(3),
+      child: Container(
+        height: 6,
+        decoration: BoxDecoration(
+          color: AppColors.jadeHover,
           borderRadius: BorderRadius.circular(3),
-          child: Container(
-            height: 6,
-            decoration: BoxDecoration(
-              color: AppColors.jadeHover,
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: progress,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [color, color.withOpacity(0.6)]),
-                  borderRadius: BorderRadius.circular(3),
-                ),
+        ),
+        child: FractionallySizedBox(
+          alignment: Alignment.centerLeft,
+          widthFactor: progress,
+          child: ShaderMask(
+            shaderCallback: (bounds) => shimmerGradient.createShader(bounds),
+            blendMode: BlendMode.srcATop,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [color, color.withOpacity(0.6)]),
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildQuickGrid() {
     final items = [
-      ('🃏', 'Flashcards', '/flashcard'), ('⚔️', 'Nani-Kiru', '/nanikiru'),
-      ('🔍', 'Tile Browser', '/tiles'), ('📚', 'Yaku Guide', '/collection'),
-      ('👻', 'Graveyard', '/graveyard'), ('⚙️', 'Settings', '/'),
+      ('🃏', 'Flashcards', '/flashcard'),
+      ('⚔️', 'Nani-Kiru', '/nanikiru'),
+      ('🔍', 'Tile Browser', '/tiles'),
+      ('📚', 'Yaku Guide', '/collection'),
+      ('👻', 'Graveyard', '/graveyard'),
+      ('⚙️', 'Settings', '/settings'),
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -247,21 +366,10 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
         crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.2,
         children: items.map((item) {
-          return GestureDetector(
+          return _GridButton(
+            emoji: item.$1,
+            label: item.$2,
             onTap: () => context.push(item.$3),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.jadeCard,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.jadeHover.withOpacity(0.5)),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2))],
-              ),
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Text(item.$1, style: const TextStyle(fontSize: 30)),
-                const SizedBox(height: 4),
-                Text(item.$2, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.jadeWhite)),
-              ]),
-            ),
           );
         }).toList(),
       ),
@@ -270,10 +378,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBottomTabBar() {
     final tabs = [
-      ('🏠', 'Home', true, '/'),
-      ('🀄', 'Tiles', false, '/tiles'),
-      ('📚', 'Yaku', false, '/collection'),
-      ('👻', 'Review', false, '/graveyard'),
+      ('🏠', 'Home', 0, '/'),
+      ('🀄', 'Tiles', 1, '/tiles'),
+      ('📚', 'Yaku', 2, '/collection'),
+      ('👻', 'Review', 3, '/graveyard'),
     ];
     return Container(
       height: 72,
@@ -286,27 +394,95 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: tabs.map((t) {
-          final active = t.$3;
+          final active = _activeTabIndex == t.$3;
           return GestureDetector(
-            onTap: () => context.push(t.$4),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: active ? [BoxShadow(color: AppColors.neonGold.withOpacity(0.15), blurRadius: 8)] : null,
+            onTap: () {
+              setState(() => _activeTabIndex = t.$3);
+              context.push(t.$4);
+            },
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 1.0, end: active ? 1.15 : 1.0),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.elasticOut,
+              builder: (_, scale, __) => Transform.scale(
+                scale: scale,
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(t.$1, style: TextStyle(fontSize: active ? 22 : 20)),
+                  const SizedBox(height: 2),
+                  Text(t.$2, style: TextStyle(
+                    fontSize: 10, fontWeight: FontWeight.w700,
+                    color: active ? AppColors.neonGold : AppColors.jadeWhiteMuted,
+                  )),
+                ]),
               ),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Text(t.$1, style: TextStyle(fontSize: active ? 22 : 20)),
-                const SizedBox(height: 2),
-                Text(t.$2, style: TextStyle(
-                  fontSize: 10, fontWeight: FontWeight.w700,
-                  color: active ? AppColors.neonGold : AppColors.jadeWhiteMuted,
-                )),
-              ]),
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+}
+
+/// Tappable grid item with press-scale feedback.
+class _GridButton extends StatefulWidget {
+  final String emoji;
+  final String label;
+  final VoidCallback onTap;
+
+  const _GridButton({required this.emoji, required this.label, required this.onTap});
+
+  @override
+  State<_GridButton> createState() => _GridButtonState();
+}
+
+class _GridButtonState extends State<_GridButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pressController;
+  double _scale = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    )..addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _pressController.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(_) => _pressController.forward();
+  void _onTapUp(_) => _pressController.reverse();
+  void _onTapCancel() => _pressController.reverse();
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = 1.0 - _pressController.value * 0.08;
+
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      onTap: widget.onTap,
+      child: Transform.scale(
+        scale: scale,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.jadeCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.jadeHover.withOpacity(0.5)),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2))],
+          ),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Text(widget.emoji, style: const TextStyle(fontSize: 30)),
+            const SizedBox(height: 4),
+            Text(widget.label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.jadeWhite)),
+          ]),
+        ),
       ),
     );
   }
