@@ -1,0 +1,30 @@
+name: Flutter Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: frontend } }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '3.44.1', channel: stable, cache: true }
+
+      - run: flutter pub get
+
+      - name: Static Analysis
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run Tests
+        run: flutter test --reporter expanded
+
+      - name: Generate Coverage (optional)
+        run: flutter test --coverage
+        continue-on-error: true
