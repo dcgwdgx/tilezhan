@@ -5,6 +5,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/analytics/analytics_service.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/utils/audio_service.dart';
 import '../../../core/srs/srs_provider.dart';
 import '../../../shared/models/tile_model.dart';
 import '../../../shared/widgets/tz_countdown_ring.dart';
@@ -56,6 +57,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   }
 
   void _handleTimeout() {
+    AudioService.playWrong();
     ref.read(flashcardQuizProvider.notifier).submitAnswer(false);
     _recordSrs(0);
     _showMnemonic();
@@ -63,11 +65,15 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
 
   void _handleAnswer(bool isCorrect) {
     AnalyticsService.answered('flashcard', isCorrect);
+    if (isCorrect) {
+      AudioService.playCorrect();
+    } else {
+      AudioService.playWrong();
+    }
     ref.read(flashcardQuizProvider.notifier).submitAnswer(isCorrect);
     _recordSrs(isCorrect ? 4 : 1);
     _countdownTimer?.cancel();
     if (isCorrect) {
-      // Auto-advance after brief celebration
       Future.delayed(const Duration(milliseconds: 800), () {
         if (mounted) _hideMnemonic();
       });
@@ -120,23 +126,25 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            Column(
-              children: [
-                _buildTopBar(state),
-                const SizedBox(height: 12),
-                _buildSuitFilter(state),
-                const Spacer(),
-                _buildCountdownRing(),
-                const SizedBox(height: 16),
-                _buildTileDisplay(tile),
-                const SizedBox(height: 24),
-                _buildOptions(tile, state),
-                const SizedBox(height: 8),
-                _buildProgressDots(state),
-                const SizedBox(height: 8),
-                _buildHint(state),
-                const Spacer(),
-              ],
+            SingleChildScrollView(
+              child: Column(
+                children: [
+                  _buildTopBar(state),
+                  const SizedBox(height: 12),
+                  _buildSuitFilter(state),
+                  const SizedBox(height: 16),
+                  _buildCountdownRing(),
+                  const SizedBox(height: 16),
+                  _buildTileDisplay(tile),
+                  const SizedBox(height: 24),
+                  _buildOptions(tile, state),
+                  const SizedBox(height: 8),
+                  _buildProgressDots(state),
+                  const SizedBox(height: 8),
+                  _buildHint(state),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
             if (state.isShowingMnemonic)
               _buildMnemonicOverlay(tile),

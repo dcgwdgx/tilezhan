@@ -77,31 +77,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.jadeDeep,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildTopBar(),
-            const SizedBox(height: 12),
-            _buildBadgeCard(),
-            const SizedBox(height: 16),
-            _buildQuestCard(),
-            const SizedBox(height: 16),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text('QUICK ACCESS', style: TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5,
-                  color: AppColors.jadeWhiteMuted,
-                )),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              _buildTopBar(),
+              const SizedBox(height: 12),
+              _buildBadgeCard(),
+              const SizedBox(height: 16),
+              _buildQuestCard(),
+              const SizedBox(height: 16),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('QUICK ACCESS', style: TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5,
+                    color: AppColors.jadeWhiteMuted,
+                  )),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            _buildQuickGrid(),
-            const Spacer(),
-            _buildBottomTabBar(),
-          ],
+              const SizedBox(height: 8),
+              _buildQuickGrid(),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
+      bottomNavigationBar: _buildBottomTabBar(),
     );
   }
 

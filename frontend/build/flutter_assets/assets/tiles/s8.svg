@@ -1,16 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" width="200" height="280">
-<rect x="3" y="3" width="194" height="274" rx="12" fill="#F8F0E0"/>
-<rect x="6" y="6" width="188" height="268" rx="10" fill="#FDF8F0" stroke="#D4C8B0" stroke-width="1.5"/>
-<rect x="16" y="16" width="168" height="248" rx="6" fill="none" stroke="#E8DCC8" stroke-width="0.8"/>
-<line x1="65" y1="90" x2="65" y2="170" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
-<line x1="85" y1="90" x2="85" y2="170" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
-<line x1="105" y1="90" x2="105" y2="170" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
-<line x1="65" y1="175" x2="65" y2="200" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
-<line x1="85" y1="175" x2="85" y2="200" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
-<line x1="105" y1="175" x2="105" y2="200" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
-<line x1="125" y1="175" x2="125" y2="200" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
-<line x1="125" y1="90" x2="125" y2="170" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
-<text x="100" y="255" text-anchor="middle" font-family="serif" font-size="14" fill="#999">条</text>
-<text x="190" y="22" text-anchor="end" font-family="sans-serif" font-size="10" font-weight="600" fill="#999">8s</text>
-<text x="14" y="268" text-anchor="start" font-family="sans-serif" font-size="9" fill="#CCC">8s</text>
+  <rect x="3" y="3" width="194" height="274" rx="12" fill="#F8F0E0"/>
+  <rect x="6" y="6" width="188" height="268" rx="10" fill="#FDF8F0" stroke="#D4C8B0" stroke-width="1.5"/>
+  <rect x="16" y="16" width="168" height="248" rx="6" fill="none" stroke="#E8DCC8" stroke-width="0.8"/>
+  <!-- 8-sou: iconic M+W crossed bamboo pattern -->
+  <!-- Top M-pattern: 4 sticks — outer straight, inner crossed -->
+  <line x1="60" y1="90" x2="60" y2="155" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
+  <line x1="140" y1="90" x2="140" y2="155" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
+  <!-- M cross: two inner sticks angled inward -->
+  <line x1="85" y1="95" x2="85" y2="155" stroke="#1E8449" stroke-width="8" stroke-linecap="round" transform="rotate(-12,85,125)"/>
+  <line x1="115" y1="95" x2="115" y2="155" stroke="#1E8449" stroke-width="8" stroke-linecap="round" transform="rotate(12,115,125)"/>
+  <!-- Bottom W-pattern: 4 sticks — outer straight, inner crossed outward -->
+  <line x1="60" y1="162" x2="60" y2="227" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
+  <line x1="140" y1="162" x2="140" y2="227" stroke="#1E8449" stroke-width="8" stroke-linecap="round"/>
+  <!-- W cross: two inner sticks angled outward -->
+  <line x1="85" y1="162" x2="85" y2="227" stroke="#1E8449" stroke-width="8" stroke-linecap="round" transform="rotate(12,85,194)"/>
+  <line x1="115" y1="162" x2="115" y2="227" stroke="#1E8449" stroke-width="8" stroke-linecap="round" transform="rotate(-12,115,194)"/>
+  <text x="100" y="255" text-anchor="middle" font-family="serif" font-size="14" fill="#999">条</text>
+  <text x="190" y="22" text-anchor="end" font-family="sans-serif" font-size="10" font-weight="600" fill="#999">8s</text>
+  <text x="14" y="268" text-anchor="start" font-family="sans-serif" font-size="9" fill="#CCC">8s</text>
 </svg>
