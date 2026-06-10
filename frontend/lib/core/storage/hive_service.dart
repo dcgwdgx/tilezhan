@@ -1,27 +1,28 @@
-/// Hive key-value cache service.
-///
-/// Boxes:
-///   - 'puzzles': cached daily quest JSON (TTL 24h)
-///   - 'settings': user preferences (language, sound, haptic)
-///   - 'auth': cached Firebase token
-///   - 'ntp': cached NTP offset
+import 'package:hive_flutter/hive_flutter.dart';
 
+/// Hive KV storage — puzzle cache, settings, user preferences.
+/// Per design spec §2.3 Layer 2: 题库缓存 uses Hive.
 class HiveService {
   static HiveService? _instance;
   static HiveService get instance =>
       _instance ?? (throw StateError('HiveService not initialized'));
 
-  static Future<void> initialize() async {
+  static Future<void> init() async {
+    await Hive.initFlutter();
+    await Hive.openBox('cache');
+    await Hive.openBox('settings');
     _instance = HiveService();
   }
 
-  // Puzzle cache
-  Future<Map<String, dynamic>?> getCachedQuest() async => null;
-  Future<void> cacheQuest(Map<String, dynamic> quest) async {}
+  Box get cacheBox => Hive.box('cache');
+  Box get settingsBox => Hive.box('settings');
 
-  // Settings
-  Future<String> getLanguage() async => 'en';
-  Future<bool> getSoundEnabled() async => true;
-  Future<void> setLanguage(String lang) async {}
-  Future<void> setSoundEnabled(bool enabled) async {}
+  T? get<T>(String key, {T? defaultValue}) =>
+      settingsBox.get(key, defaultValue: defaultValue);
+  Future<void> set(String key, dynamic value) =>
+      settingsBox.put(key, value);
+
+  dynamic getCached(String key) => cacheBox.get(key);
+  Future<void> cache(String key, dynamic value) => cacheBox.put(key, value);
+  Future<void> clearCache() => cacheBox.clear();
 }

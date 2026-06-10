@@ -53,7 +53,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
   void _recordSrs(bool isSkip) {
     final state = ref.read(nanikiruProvider);
     final quality = state.isPerfect ? 5 : (isSkip ? 2 : 1);
-    ref.read(srsItemsProvider.notifier).recordReview(
+    ref.read(srsNotifierProvider.notifier).recordReview(
       'nanikiru_${state.correctDiscardId}', 'nanikiru', quality);
   }
 
@@ -70,7 +70,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen> {
       Future.microtask(() {
         final s = ref.read(nanikiruProvider);
         if (s.isPerfect) {
-          ref.read(srsItemsProvider.notifier).recordReview(
+          ref.read(srsNotifierProvider.notifier).recordReview(
             'nanikiru_${s.correctDiscardId}', 'nanikiru', 5);
         }
       });

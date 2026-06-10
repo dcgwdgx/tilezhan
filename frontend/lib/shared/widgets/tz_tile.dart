@@ -10,6 +10,9 @@ class TzTile extends StatelessWidget {
   final TileModel tile;
   final TileSize size;
   final TileState state;
+  final bool showMnemonic;
+  final double mnemonicOpacity;
+  final bool isNewDraw;
   final VoidCallback? onTap;
   final VoidCallback? onDoubleTap;
 
@@ -24,6 +27,9 @@ class TzTile extends StatelessWidget {
     required this.tile,
     this.size = TileSize.md,
     this.state = TileState.normal,
+    this.showMnemonic = false,
+    this.mnemonicOpacity = 1.0,
+    this.isNewDraw = false,
     this.onTap,
     this.onDoubleTap,
   });
@@ -48,41 +54,44 @@ class TzTile extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.neonGold
-                : tile.suitColor.withOpacity(isDimmed ? 0.1 : 0.5),
-            width: isSelected ? 2.0 : 1.0,
-          ),
+          border: isNewDraw
+              ? Border.all(color: AppColors.neonGold.withOpacity(0.6), width: 1.5)
+              : Border.all(
+                  color: isSelected
+                      ? AppColors.neonGold
+                      : tile.suitColor.withOpacity(isDimmed ? 0.1 : 0.5),
+                  width: isSelected ? 2.0 : 1.0,
+                ),
           boxShadow: isSelected
               ? [
-                  BoxShadow(
-                    color: tile.suitColor.withOpacity(0.4),
-                    blurRadius: 16,
-                    spreadRadius: 2,
-                  ),
-                  const BoxShadow(
-                    color: Colors.black54,
-                    blurRadius: 8,
-                    offset: Offset(0, 4),
-                  ),
+                  BoxShadow(color: tile.suitColor.withOpacity(0.4), blurRadius: 16, spreadRadius: 2),
+                  const BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 4)),
                 ]
               : [
-                  const BoxShadow(
-                    color: Colors.black54,
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
+                  const BoxShadow(color: Colors.black54, blurRadius: 6, offset: Offset(0, 2)),
                 ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(7),
-          child: Opacity(
-            opacity: isDimmed ? 0.4 : 1.0,
-            child: SvgPicture.asset(
-              assetPath,
-              fit: BoxFit.contain,
-            ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Opacity(
+                opacity: isDimmed ? 0.4 : 1.0,
+                child: SvgPicture.asset(assetPath, fit: BoxFit.contain),
+              ),
+              // Mnemonic corner label (fades with user level)
+              if (showMnemonic && mnemonicOpacity > 0)
+                Positioned(
+                  top: 2, right: 4,
+                  child: Opacity(
+                    opacity: mnemonicOpacity,
+                    child: Text(tile.label, style: const TextStyle(
+                      fontSize: 8, fontWeight: FontWeight.w600, color: AppColors.celadonLight,
+                    )),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

@@ -68,7 +68,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
   void _recordSrs(int quality) {
     final tile = ref.read(flashcardQuizProvider).currentTile;
     if (tile == null) return;
-    ref.read(srsItemsProvider.notifier).recordReview(tile.id, 'flashcard', quality);
+    ref.read(srsNotifierProvider.notifier).recordReview(tile.id, 'flashcard', quality);
   }
 
   void _showMnemonic() {
