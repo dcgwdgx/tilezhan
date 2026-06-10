@@ -39,6 +39,11 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
     super.dispose();
   }
 
+  void _cancelTimer() {
+    _countdownTimer?.cancel();
+    _countdownStarted = false;
+  }
+
   void _startCountdown() {
     _countdownTimer?.cancel();
     _countdownValue = _totalTime;
@@ -108,15 +113,15 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
     final state = ref.watch(flashcardQuizProvider);
     final tile = state.currentTile;
 
+    if (state.isFinished) {
+      return _buildFinishedScreen(state);
+    }
+
     if (tile == null || state.totalCount == 0) {
       return const Scaffold(
         backgroundColor: AppColors.jadeDeep,
         body: Center(child: CircularProgressIndicator(color: AppColors.neonGold)),
       );
-    }
-
-    if (state.isFinished) {
-      return _buildFinishedScreen(state);
     }
 
     _startCountdownIfNeeded();
@@ -503,7 +508,10 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen> {
                   style: const TextStyle(fontSize: 13, color: AppColors.jadeWhiteMuted)),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: () => ref.read(flashcardQuizProvider.notifier).restart(),
+                onPressed: () {
+                  _cancelTimer();
+                  ref.read(flashcardQuizProvider.notifier).restart();
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.neonGold,
                   foregroundColor: Colors.black,
