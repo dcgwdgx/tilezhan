@@ -18,22 +18,29 @@ class AudioService {
   static void playCorrect() {
     if (!_enabled) return;
     try { HapticService.correctAnswer(); } catch (_) {}
+    try { HapticFeedback.heavyImpact(); } catch (_) {}
   }
 
   static void playWrong() {
     if (!_enabled) return;
     try { HapticService.wrongAnswer(); } catch (_) {}
+    try { HapticFeedback.heavyImpact(); } catch (_) {}
+    Future.delayed(const Duration(milliseconds: 80), () {
+      try { HapticFeedback.heavyImpact(); } catch (_) {}
+    });
     try { SystemSound.play(SystemSoundType.alert); } catch (_) {}
   }
 
   static void playComplete() {
     if (!_enabled) return;
     try { HapticService.heavyTap(); } catch (_) {}
+    try { HapticFeedback.heavyImpact(); } catch (_) {}
   }
 
   static void playSlash() {
     if (!_enabled) return;
     try { HapticService.discardSlash(); } catch (_) {}
+    try { HapticFeedback.mediumImpact(); } catch (_) {}
   }
 
   /// Play Chinese pronunciation of a tile (e.g., "五万", "八条")

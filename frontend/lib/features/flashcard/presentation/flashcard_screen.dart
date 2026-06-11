@@ -31,7 +31,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   @override
   void initState() {
     super.initState();
-    _feedbackCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _feedbackCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
     Future.microtask(() {
       ref.read(flashcardQuizProvider.notifier).initQuiz(suite: widget.suite);
     });

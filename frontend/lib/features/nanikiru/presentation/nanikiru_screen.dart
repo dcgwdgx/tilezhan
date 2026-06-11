@@ -29,7 +29,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
   @override
   void initState() {
     super.initState();
-    _slashCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _slashCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
     Future.microtask(() {
       ref.read(nanikiruProvider.notifier).initPuzzle();
       _startCountdown();
