@@ -1,9 +1,7 @@
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
 import 'haptic_service.dart';
 
 class AudioService {
-  static final _voicePlayer = AudioPlayer();
   static bool _enabled = true;
 
   static void setEnabled(bool v) => _enabled = v;
@@ -43,14 +41,10 @@ class AudioService {
     try { HapticFeedback.mediumImpact(); } catch (_) {}
   }
 
-  /// Play Chinese pronunciation of a tile (e.g., "五万", "八条")
+  /// Voice files exist in assets/sounds/voice/ but require audioplayers.
+  /// Will be enabled when SPM conflict is resolved.
   static Future<void> playVoice(String tileId) async {
     if (!_enabled) return;
-    try {
-      await _voicePlayer.stop();
-      await _voicePlayer.play(AssetSource('sounds/voice/$tileId.wav'));
-    } catch (_) {
-      try { SystemSound.play(SystemSoundType.click); } catch (_) {}
-    }
+    try { SystemSound.play(SystemSoundType.click); } catch (_) {}
   }
 }
