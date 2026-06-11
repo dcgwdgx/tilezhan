@@ -269,11 +269,16 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     final state = ref.read(flashcardQuizProvider);
     final isCorrect = state.lastCorrectId == tile.id;
     final assetPath = 'assets/tiles/${tile.id}.svg';
+    final scale = isCorrect && _feedbackCtrl.isAnimating
+        ? 1.0 + (_feedbackCtrl.value < 0.3 ? _feedbackCtrl.value * 0.3 : (1 - _feedbackCtrl.value) * 0.15)
+        : 1.0;
     return GestureDetector(
       onTap: state.isAnswering ? _showMnemonic : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 150, height: 210,
+      child: Transform.scale(
+        scale: scale,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 150, height: 210,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
@@ -474,6 +479,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
             ),
           ),
         ),
+      ),
       ),
     );
   }
