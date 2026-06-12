@@ -15,7 +15,6 @@ platform :ios do
       api_key: api_key,
     )
 
-    # Use GitHub run number as build number (always unique, always increasing)
     increment_build_number(
       build_number: ENV["GITHUB_RUN_NUMBER"] || Time.now.to_i,
       xcodeproj: "Runner.xcodeproj",
@@ -27,7 +26,6 @@ platform :ios do
       export_method: "app-store",
       configuration: "Release",
       allowProvisioningUpdates: true,
-      xcargs: "DEVELOPMENT_TEAM=74797U8R45 CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' PROVISIONING_PROFILE_SPECIFIER='TileZhan App Store'",
       export_options: {
         provisioningProfiles: { "com.tilezhan.app": "TileZhan App Store" }
       },
