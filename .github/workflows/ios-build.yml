@@ -21,9 +21,6 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Install CocoaPods
-        run: cd ios && pod install
-
       - name: Setup iOS project
         run: |
           cp -r ios/fastlane /tmp/fastlane_backup 2>/dev/null || true
