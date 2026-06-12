@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/revenuecat/revenuecat_provider.dart';
 import '../../../core/revenuecat/revenuecat_service.dart';
@@ -84,33 +84,30 @@ class PremiumScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPricingCards(BuildContext context, WidgetRef ref, AsyncValue<List<Package>> offerings) {
-    final packages = offerings.valueOrNull ?? [];
-    if (packages.isEmpty) {
+  Widget _buildPricingCards(BuildContext context, WidgetRef ref, AsyncValue<List<ProductDetails>> offerings) {
+    final products = offerings.valueOrNull ?? [];
+    if (products.isEmpty) {
       return TzButton(label: 'START FREE TRIAL', style: TzButtonStyle.gold, onPressed: () {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('🚀 Premium coming soon!')));
       });
     }
     return Column(
       children: [
-        ...packages.map((pkg) => _pricingCard(context, ref, pkg)),
+        ...products.map((p) => _pricingCard(context, ref, p)),
         const SizedBox(height: 10),
       ],
     );
   }
 
-  Widget _pricingCard(BuildContext context, WidgetRef ref, Package pkg) {
-    final price = pkg.storeProduct.priceString;
-    final name = pkg.storeProduct.title;
-    final period = pkg.packageType.name;
-    final isPopular = pkg.packageType == PackageType.annual;
+  Widget _pricingCard(BuildContext context, WidgetRef ref, ProductDetails product) {
+    final isPopular = product.id.contains('yearly');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: GestureDetector(
         onTap: () async {
           try {
-            await ref.read(purchaseProvider(pkg).future);
+            await RevenueCatService.purchase(product);
             ref.invalidate(isProProvider);
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('🎉 Welcome to Pro!')));
@@ -141,8 +138,8 @@ class PremiumScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.jadeWhite)),
-                    Text('$price / $period', style: const TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)),
+                    Text(product.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.jadeWhite)),
+                    Text(product.price, style: const TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)),
                   ],
                 ),
               ),
