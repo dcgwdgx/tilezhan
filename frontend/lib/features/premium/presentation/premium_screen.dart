@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/revenuecat/revenuecat_provider.dart';
-import '../../../core/revenuecat/revenuecat_service.dart';
 import '../../../shared/widgets/tz_button.dart';
 import '../../../shared/widgets/tz_card.dart';
 
@@ -13,9 +10,6 @@ class PremiumScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final offerings = ref.watch(offeringsProvider);
-    final isPro = ref.watch(isProProvider);
-
     return Scaffold(
       backgroundColor: AppColors.jadeDeep,
       appBar: AppBar(
@@ -38,22 +32,19 @@ class PremiumScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               _buildFeatureList(),
               const SizedBox(height: 24),
-              isPro.when(
-                data: (pro) => pro
-                    ? const TzCard(padding: EdgeInsets.all(20), child: Text('✅ You are a Pro member!', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.neonGold)))
-                    : _buildPricing(context, ref, offerings),
-                loading: () => const Center(child: CircularProgressIndicator(color: AppColors.neonGold)),
-                error: (_, __) => _buildPricing(context, ref, offerings),
+              _buildPricingCard('🌟 MOST POPULAR', 'YEARLY', '\$29.99 / year', '\$2.50 / month', '50% OFF', true),
+              const SizedBox(height: 10),
+              _buildPricingCard(null, 'MONTHLY', '\$4.99 / month', null, null, false),
+              const SizedBox(height: 10),
+              _buildPricingCard(null, 'WEEKLY', '\$1.49 / week', null, null, false),
+              const SizedBox(height: 24),
+              TzButton(
+                label: 'START FREE TRIAL',
+                style: TzButtonStyle.gold,
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('🚀 Premium coming soon!'))),
               ),
               const SizedBox(height: 16),
-              TextButton(
-                onPressed: () async {
-                  await RevenueCatService.restore();
-                  ref.invalidate(isProProvider);
-                },
-                child: const Text('Restore Purchases', style: TextStyle(color: AppColors.jadeWhiteMuted)),
-              ),
-              Text('Terms  ·  Privacy', style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted.withOpacity(0.6))),
+              Text('Restore Purchases  ·  Terms  ·  Privacy', style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted.withOpacity(0.6))),
               const SizedBox(height: 40),
             ],
           ),
@@ -70,55 +61,30 @@ class PremiumScreen extends ConsumerWidget {
       '✅  Full Yaku Collection (40 Han)',
       '✅  Ad-Free Experience',
     ];
-    return TzCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: features.map((f) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Text(f, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.jadeWhite, height: 1.5)),
-        )).toList(),
-      ),
-    );
+    return TzCard(padding: const EdgeInsets.all(20), child: Column(
+      children: features.map((f) => Padding(padding: const EdgeInsets.only(bottom: 10),
+        child: Text(f, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.jadeWhite, height: 1.5)),
+      )).toList(),
+    ));
   }
 
-  Widget _buildPricing(BuildContext context, WidgetRef ref, AsyncValue<Offerings?> offerings) {
-    final packages = offerings.valueOrNull?.current?.availablePackages ?? [];
-    if (packages.isEmpty) {
-      return TzButton(
-        label: 'START FREE TRIAL',
-        style: TzButtonStyle.gold,
-        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('🚀 Premium coming soon!'))),
-      );
-    }
-    return Column(
-      children: packages.map((pkg) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: GestureDetector(
-          onTap: () async {
-            try {
-              await RevenueCatService.purchase(pkg);
-              ref.invalidate(isProProvider);
-              if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('🎉 Welcome to Pro!')));
-            } catch (_) {
-              if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Purchase cancelled')));
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: pkg.packageType == PackageType.annual ? AppColors.neonGold.withOpacity(0.08) : AppColors.jadeCard,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: pkg.packageType == PackageType.annual ? AppColors.neonGold : AppColors.jadeHover, width: 2),
-            ),
-            child: Row(
-              children: [
-                Expanded(child: Text(pkg.storeProduct.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.jadeWhite))),
-                Text(pkg.storeProduct.priceString, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.neonGold)),
-              ],
-            ),
-          ),
-        ),
-      )).toList(),
+  Widget _buildPricingCard(String? badge, String label, String price, String? subPrice, String? discount, bool isPopular) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isPopular ? AppColors.neonGold.withOpacity(0.08) : AppColors.jadeCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isPopular ? AppColors.neonGold : AppColors.jadeHover, width: isPopular ? 2 : 1),
+      ),
+      child: Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (badge != null) Text(badge, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.neonGold)),
+          Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: isPopular ? AppColors.neonGold : AppColors.jadeWhite)),
+          Text(price, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.jadeWhite)),
+          if (subPrice != null) Text(subPrice, style: const TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)),
+        ])),
+        if (discount != null) Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: AppColors.neonGold, borderRadius: BorderRadius.circular(12)), child: Text(discount, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.black))),
+      ]),
     );
   }
 }
