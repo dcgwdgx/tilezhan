@@ -1,13 +1,12 @@
-# Uncomment the next line to define a global platform for your project
 platform :ios, '13.0'
 
-# Required for purchases_flutter v5
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), File.dirname(File.realpath(__FILE__)))
+
 use_frameworks!
 
 target 'Runner' do
   use_frameworks!
   use_modular_headers!
-
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
@@ -15,7 +14,6 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
-      # Disable SPM, force CocoaPods only
       config.build_settings['SWIFT_PACKAGE_MANAGER'] = 'NO'
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
     end
