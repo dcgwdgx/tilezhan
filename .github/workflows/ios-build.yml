@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-latest
     defaults: { run: { working-directory: frontend } }
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +31,6 @@ jobs:
           cp /tmp/Info.plist.backup ios/Runner/Info.plist 2>/dev/null || true
           sed -i '' 's/com.tilezhan.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
           grep -rl "C:\\\\flutter" ios/ 2>/dev/null | xargs -r sed -i '' "s|C:\\\\\\\\flutter|${FLUTTER_ROOT}|g" || true
-          xcodebuild -resolvePackageDependencies -workspace ios/Runner.xcworkspace -scheme Runner 2>/dev/null || true
 
       - name: Import cert
         run: |

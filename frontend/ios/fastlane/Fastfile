@@ -15,6 +15,7 @@ platform :ios do
       api_key: api_key,
     )
 
+    # Use GitHub run number as build number (always unique, always increasing)
     increment_build_number(
       build_number: ENV["GITHUB_RUN_NUMBER"] || Time.now.to_i,
       xcodeproj: "Runner.xcodeproj",
