@@ -9,10 +9,11 @@ platform :ios do
     )
 
     sigh(
-      app_identifier: "com.tilezhan.app",
-      username: "dcgwdgx@126.com",
-      team_id: "74797U8R45",
       api_key: api_key,
+      platform: "ios",
+      adhoc: false,
+      app_store: true,
+      readonly: true,
     )
 
     increment_build_number(
@@ -23,12 +24,10 @@ platform :ios do
     build_app(
       workspace: "Runner.xcworkspace",
       scheme: "Runner",
-      export_method: "app-store",
       configuration: "Release",
-      xcargs: "DEVELOPMENT_TEAM=74797U8R45 CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' PROVISIONING_PROFILE_SPECIFIER='TileZhan App Store'",
-      export_options: {
-        provisioningProfiles: { "com.tilezhan.app": "TileZhan App Store" }
-      },
+      export_method: "app-store",
+      export_options: "ExportOptions.plist",
+      clean: true,
     )
 
     upload_to_testflight(

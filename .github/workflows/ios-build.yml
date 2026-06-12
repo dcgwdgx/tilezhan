@@ -7,11 +7,10 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-15
     defaults: { run: { working-directory: frontend } }
     steps:
       - uses: actions/checkout@v4
-
 
       - name: Select Xcode 26
         run: sudo xcode-select -s /Applications/Xcode_26.3.app
@@ -21,16 +20,21 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Setup iOS project
+      - name: Store Podfile
+        run: cp -r ios/fastlane /tmp/fastlane_backup 2>/dev/null || true; cp ios/Runner/Info.plist /tmp/Info.plist.backup 2>/dev/null || true; cp ios/Podfile /tmp/Podfile.backup 2>/dev/null || true
+
+      - name: Recreate iOS project
         run: |
-          cp -r ios/fastlane /tmp/fastlane_backup 2>/dev/null || true
-          cp ios/Runner/Info.plist /tmp/Info.plist.backup 2>/dev/null || true
           rm -rf ios/
           flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
           cp -r /tmp/fastlane_backup ios/fastlane 2>/dev/null || true
           cp /tmp/Info.plist.backup ios/Runner/Info.plist 2>/dev/null || true
+          cp /tmp/Podfile.backup ios/Podfile 2>/dev/null || true
           sed -i '' 's/com.tilezhan.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
           grep -rl "C:\\\\flutter" ios/ 2>/dev/null | xargs -r sed -i '' "s|C:\\\\\\\\flutter|${FLUTTER_ROOT}|g" || true
+
+      - name: Install CocoaPods
+        run: cd ios && pod install --repo-update
 
       - name: Import cert
         run: |
@@ -61,7 +65,7 @@ jobs:
           echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
 
       - uses: ruby/setup-ruby@v1
-        with: { ruby-version: '3.2' }
+        with: { ruby-version: '3.3' }
 
       - name: Install Fastlane
         run: gem install fastlane -N

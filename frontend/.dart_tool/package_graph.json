@@ -15,7 +15,8 @@
         "go_router",
         "hive",
         "hive_flutter",
-        "path_provider"
+        "path_provider",
+        "purchases_flutter"
       ],
       "devDependencies": [
         "build_runner",
@@ -1137,6 +1138,15 @@
         "collection",
         "meta",
         "pub_semver"
+      ]
+    },
+    {
+      "name": "purchases_flutter",
+      "version": "5.8.2",
+      "dependencies": [
+        "flutter",
+        "freezed_annotation",
+        "json_annotation"
       ]
     }
   ],
