@@ -6,7 +6,7 @@ class TzPulsePainter extends CustomPainter {
   final Color color;
   final double maxRadius;
 
-  TzPulsePainter({required this.progress, this.color = Colors.white, this.maxRadius = 150});
+  TzPulsePainter({required this.progress, this.color = const Color(0xFFFFD700), this.maxRadius = 180});
 
   @override
   void paint(Canvas canvas, Size size) {
