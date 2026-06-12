@@ -25,7 +25,10 @@ platform :ios do
       scheme: "Runner",
       export_method: "app-store",
       configuration: "Release",
-      skip_codesigning: true,
+      xcargs: "DEVELOPMENT_TEAM=74797U8R45 CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' PROVISIONING_PROFILE_SPECIFIER='TileZhan App Store'",
+      export_options: {
+        provisioningProfiles: { "com.tilezhan.app": "TileZhan App Store" }
+      },
     )
 
     upload_to_testflight(
