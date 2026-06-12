@@ -512,6 +512,12 @@
       "languageVersion": "3.6"
     },
     {
+      "name": "purchases_flutter",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/purchases_flutter-8.11.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.18"
+    },
+    {
       "name": "record_use",
       "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/record_use-0.6.0",
       "packageUri": "lib/",
