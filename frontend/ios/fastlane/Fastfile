@@ -8,6 +8,13 @@ platform :ios do
       key_content: ENV["APP_STORE_CONNECT_API_KEY"],
     )
 
+    sigh(
+      app_identifier: "com.tilezhan.app",
+      username: "dcgwdgx@126.com",
+      team_id: "74797U8R45",
+      api_key: api_key,
+    )
+
     increment_build_number(
       build_number: ENV["GITHUB_RUN_NUMBER"] || Time.now.to_i,
       xcodeproj: "Runner.xcodeproj",
@@ -18,8 +25,10 @@ platform :ios do
       scheme: "Runner",
       export_method: "app-store",
       configuration: "Release",
-      automatic_code_signing: true,
-      xcargs: "DEVELOPMENT_TEAM=74797U8R45",
+      xcargs: "DEVELOPMENT_TEAM=74797U8R45 CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' PROVISIONING_PROFILE_SPECIFIER='TileZhan App Store'",
+      export_options: {
+        provisioningProfiles: { "com.tilezhan.app": "TileZhan App Store" }
+      },
     )
 
     upload_to_testflight(
