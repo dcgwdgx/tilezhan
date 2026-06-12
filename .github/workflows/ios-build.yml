@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-15-arm64
     defaults: { run: { working-directory: frontend } }
     steps:
       - uses: actions/checkout@v4
