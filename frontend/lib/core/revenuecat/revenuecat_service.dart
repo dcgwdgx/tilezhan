@@ -1,42 +1,40 @@
-import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
-/// IAP service using Flutter's official in_app_purchase plugin.
-/// Handles Apple App Store + Google Play purchases.
 class RevenueCatService {
-  static final InAppPurchase _iap = InAppPurchase.instance;
   static bool _initialized = false;
-  static List<ProductDetails> _products = [];
 
   static Future<void> init() async {
     if (_initialized) return;
-    _initialized = true;
-    await _iap.restorePurchases();
+    try {
+      await Purchases.configure(PurchasesConfiguration('REPLACE_WITH_RC_KEY'));
+      _initialized = true;
+    } catch (_) {}
   }
 
-  static Future<List<ProductDetails>> getOfferings() async {
-    if (_products.isNotEmpty) return _products;
-    const ids = {
-      'tilezhan_premium_monthly',
-      'tilezhan_premium_yearly',
-    };
-    final response = await _iap.queryProductDetails(ids);
-    _products = response.productDetails;
-    return _products;
+  static Future<Offerings?> getOfferings() async {
+    if (!_initialized) return null;
+    try {
+      return await Purchases.getOfferings();
+    } catch (_) {
+      return null;
+    }
   }
 
-  static Future<bool> purchase(ProductDetails product) async {
-    final param = PurchaseParam(productDetails: product);
-    await _iap.buyNonConsumable(purchaseParam: param);
-    return true;
+  static Future<CustomerInfo> purchase(Package pkg) async {
+    return Purchases.purchasePackage(pkg);
   }
 
-  static Future<void> restore() async {
-    await _iap.restorePurchases();
+  static Future<CustomerInfo> restore() async {
+    return Purchases.restorePurchases();
   }
 
   static Future<bool> isPro() async {
-    await _iap.restorePurchases();
-    // Check if any purchase was restored (simplified)
-    return false; // Full implementation needs purchase stream
+    if (!_initialized) return false;
+    try {
+      final info = await Purchases.getCustomerInfo();
+      return info.entitlements.active.containsKey('pro');
+    } catch (_) {
+      return false;
+    }
   }
 }

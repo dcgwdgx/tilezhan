@@ -15,8 +15,8 @@
         "go_router",
         "hive",
         "hive_flutter",
-        "in_app_purchase",
-        "path_provider"
+        "path_provider",
+        "purchases_flutter"
       ],
       "devDependencies": [
         "build_runner",
@@ -1141,40 +1141,11 @@
       ]
     },
     {
-      "name": "in_app_purchase",
-      "version": "3.3.0",
+      "name": "purchases_flutter",
+      "version": "5.8.2",
       "dependencies": [
         "flutter",
-        "in_app_purchase_android",
-        "in_app_purchase_platform_interface",
-        "in_app_purchase_storekit"
-      ]
-    },
-    {
-      "name": "in_app_purchase_platform_interface",
-      "version": "1.4.1",
-      "dependencies": [
-        "flutter",
-        "plugin_platform_interface"
-      ]
-    },
-    {
-      "name": "in_app_purchase_android",
-      "version": "0.5.0+2",
-      "dependencies": [
-        "collection",
-        "flutter",
-        "in_app_purchase_platform_interface",
-        "meta"
-      ]
-    },
-    {
-      "name": "in_app_purchase_storekit",
-      "version": "0.4.10",
-      "dependencies": [
-        "collection",
-        "flutter",
-        "in_app_purchase_platform_interface",
+        "freezed_annotation",
         "json_annotation"
       ]
     }
