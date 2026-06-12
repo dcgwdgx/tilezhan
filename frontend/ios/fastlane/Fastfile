@@ -19,6 +19,7 @@ platform :ios do
       export_method: "app-store",
       configuration: "Release",
       automatic_code_signing: true,
+      xcargs: "DEVELOPMENT_TEAM=74797U8R45",
     )
 
     upload_to_testflight(
