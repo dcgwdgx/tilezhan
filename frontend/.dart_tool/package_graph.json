@@ -12,6 +12,8 @@
         "flutter_riverpod",
         "flutter_svg",
         "go_router",
+        "hive",
+        "hive_flutter",
         "path_provider"
       ],
       "devDependencies": [
@@ -151,6 +153,24 @@
         "meta",
         "mime",
         "path"
+      ]
+    },
+    {
+      "name": "hive_flutter",
+      "version": "1.1.0",
+      "dependencies": [
+        "flutter",
+        "hive",
+        "path",
+        "path_provider"
+      ]
+    },
+    {
+      "name": "hive",
+      "version": "2.2.3",
+      "dependencies": [
+        "crypto",
+        "meta"
       ]
     },
     {

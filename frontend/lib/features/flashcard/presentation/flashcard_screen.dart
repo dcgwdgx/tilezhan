@@ -307,6 +307,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -479,7 +480,6 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
             ),
           ),
         ),
-      ),
       ),
     );
   }
