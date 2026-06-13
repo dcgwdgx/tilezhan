@@ -50,10 +50,6 @@ jobs:
           "
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "$PROFILE_B64" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
-        env:
-          CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
-          KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
-          PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
 
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: '3.3' }
