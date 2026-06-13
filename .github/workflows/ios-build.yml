@@ -65,7 +65,10 @@ jobs:
           echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
 
       - uses: ruby/setup-ruby@v1
-        with: { ruby-version: '3.3' }
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: frontend/ios
 
       - name: Build and upload
         run: cd ios && bundle exec fastlane beta
