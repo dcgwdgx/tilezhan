@@ -20,9 +20,10 @@ workflows:
         script: flutter pub get
       - name: iOS code signing
         script: |
-          xcode-project use-profiles
-        env:
-          APP_STORE_CONNECT_TEAM_ID: "74797U8R45"
+          xcode-project use-profiles \
+            --api-key="$APP_STORE_CONNECT_API_KEY" \
+            --api-key-id="$APP_STORE_CONNECT_KEY_ID" \
+            --api-issuer-id="$APP_STORE_CONNECT_ISSUER_ID"
       - name: Build iOS
         script: flutter build ipa --release
     artifacts:
