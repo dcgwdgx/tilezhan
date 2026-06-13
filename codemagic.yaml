@@ -18,11 +18,30 @@ workflows:
     scripts:
       - name: Install dependencies
         script: flutter pub get
-      - name: Set up iOS signing
+      - name: Import certs (PEM)
         script: |
-          export APP_STORE_CONNECT_PRIVATE_KEY="$APP_STORE_CONNECT_API_KEY"
-          export APP_STORE_CONNECT_KEY_IDENTIFIER="$APP_STORE_CONNECT_KEY_ID"
-          xcode-project use-profiles
+          python3 -c "
+          import base64, os, subprocess
+          cert = base64.b64decode(os.environ['CERT_B64'])
+          key = base64.b64decode(os.environ['KEY_B64'])
+          profile = base64.b64decode(os.environ['PROFILE_B64'])
+          with open('cert.pem','wb') as f: f.write(cert)
+          with open('key.pem','wb') as f: f.write(key)
+          with open('profile.mobileprovision','wb') as f: f.write(profile)
+          subprocess.run(['security','delete-keychain','ci.keychain'],capture_output=True)
+          subprocess.run(['security','create-keychain','-p','temp123','ci.keychain'],check=True)
+          subprocess.run(['security','unlock-keychain','-p','temp123','ci.keychain'],check=True)
+          subprocess.run(['security','import','cert.pem','-k','ci.keychain','-A'],check=True)
+          subprocess.run(['security','import','key.pem','-k','ci.keychain','-A'],check=True)
+          subprocess.run(['security','set-key-partition-list','-S','apple-tool:,apple:','-s','-k','temp123','ci.keychain'],check=True)
+          subprocess.run(['security','list-keychains','-d','user','-s','ci.keychain','login.keychain'],check=True)
+          os.remove('cert.pem'); os.remove('key.pem')
+          print('CERT OK')
+          "
+        env:
+          CERT_B64: $APPLE_CERT_PEM_B64
+          KEY_B64: $APPLE_KEY_PEM_B64
+          PROFILE_B64: $BUILD_PROVISION_PROFILE_B64
       - name: Build iOS
         script: flutter build ipa --release
     artifacts:
