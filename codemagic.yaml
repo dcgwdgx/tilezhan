@@ -15,22 +15,27 @@ workflows:
       xcode: latest
       groups:
         - appstore
+        - ios_signing
     scripts:
       - name: Install dependencies
         script: flutter pub get
-      - name: iOS code signing
+      - name: Import signing assets
         script: |
-          xcode-project use-profiles \
-            --api-key="$APP_STORE_CONNECT_API_KEY" \
-            --api-key-id="$APP_STORE_CONNECT_KEY_ID" \
-            --api-issuer-id="$APP_STORE_CONNECT_ISSUER_ID"
-      - name: Build iOS
-        script: flutter build ipa --release
-    artifacts:
-      - build/ios/ipa/*.ipa
-    publishing:
-      app_store_connect:
-        api_key: $APP_STORE_CONNECT_API_KEY
-        key_id: $APP_STORE_CONNECT_KEY_ID
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        submit_to_testflight: true
+          echo "$P12_BASE64" | base64 -d > /tmp/cert.p12
+          echo "$PROFILE_BASE64" | base64 -d > /tmp/profile.mobileprovision
+          security create-keychain -p temp123 build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p temp123 build.keychain
+          security import /tmp/cert.p12 -k build.keychain -P "$P12_PASSWORD" -A
+          security set-key-partition-list -S apple-tool:,apple: -k temp123 build.keychain
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+      - name: Build and upload
+        script: |
+          cd ios
+          gem install fastlane -N
+          fastlane ios beta
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: $APP_STORE_CONNECT_KEY_ID
+          APP_STORE_CONNECT_API_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID
+          APP_STORE_CONNECT_API_KEY: $APP_STORE_CONNECT_API_KEY
