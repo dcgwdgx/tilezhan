@@ -34,7 +34,7 @@ jobs:
           grep -rl "C:\\\\flutter" ios/ 2>/dev/null | xargs -r sed -i '' "s|C:\\\\\\\\flutter|${FLUTTER_ROOT}|g" || true
 
       - name: Install CocoaPods
-        run: cd ios && pod install --repo-update
+        run: cd ios && pod deintegrate && pod install --repo-update
 
       - name: Import cert
         run: |
