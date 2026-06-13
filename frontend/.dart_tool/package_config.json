@@ -320,6 +320,30 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "in_app_purchase",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/in_app_purchase-3.3.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.10"
+    },
+    {
+      "name": "in_app_purchase_android",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/in_app_purchase_android-0.5.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.12"
+    },
+    {
+      "name": "in_app_purchase_platform_interface",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/in_app_purchase_platform_interface-1.4.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.10"
+    },
+    {
+      "name": "in_app_purchase_storekit",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/in_app_purchase_storekit-0.4.10",
+      "packageUri": "lib/",
+      "languageVersion": "3.10"
+    },
+    {
       "name": "io",
       "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/io-1.0.5",
       "packageUri": "lib/",
@@ -510,12 +534,6 @@
       "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/pubspec_parse-1.5.0",
       "packageUri": "lib/",
       "languageVersion": "3.6"
-    },
-    {
-      "name": "purchases_flutter",
-      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/purchases_flutter-5.8.2",
-      "packageUri": "lib/",
-      "languageVersion": "2.15"
     },
     {
       "name": "record_use",

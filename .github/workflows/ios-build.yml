@@ -1,4 +1,4 @@
-name: iOS TestFlight
+name: iOS → TestFlight
 
 on:
   push:
@@ -7,56 +7,92 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-15
     defaults: { run: { working-directory: frontend } }
     steps:
       - uses: actions/checkout@v4
+
       - name: Select Xcode 26
         run: sudo xcode-select -s /Applications/Xcode_26.3.app
+
       - uses: subosito/flutter-action@v2
         with: { flutter-version: '3.44.1', channel: stable, cache: true }
+
       - run: flutter pub get
 
-      - name: Setup iOS
+      # ——— Recreate iOS project (clean slate each build) ———
+      - name: Setup iOS project
         run: |
           cp -r ios/fastlane /tmp/fb 2>/dev/null || true
+          cp ios/ExportOptions.plist /tmp/eo.plist 2>/dev/null || true
           rm -rf ios/
           flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
           cp -r /tmp/fb ios/fastlane 2>/dev/null || true
+          cp /tmp/eo.plist ios/ExportOptions.plist 2>/dev/null || true
+          # Fix bundle ID: com.tilezhan.tilezhan → com.tilezhan.app
           sed -i '' 's/com.tilezhan.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
+          # Set development team (required for automatic signing to discover profiles)
+          sed -i '' 's/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = 74797U8R45;/g' ios/Runner.xcodeproj/project.pbxproj
+          # Ensure automatic signing (default from flutter create, but be explicit)
+          sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Automatic;/g' ios/Runner.xcodeproj/project.pbxproj
 
-      - name: Import cert
+      # ——— Keychain + cert (PEM) ———
+      - name: Import signing certificate
         run: |
           python3 -c "
-          import base64,os,subprocess
-          c=base64.b64decode(os.environ['CERT']);k=base64.b64decode(os.environ['KEY'])
-          open('c.pem','wb').write(c);open('k.pem','wb').write(k)
-          subprocess.run(['security','delete-keychain','ci.keychain'],capture_output=True)
-          subprocess.run(['security','create-keychain','-p','p','ci.keychain'],check=True)
-          subprocess.run(['security','unlock-keychain','-p','p','ci.keychain'],check=True)
-          subprocess.run(['security','import','c.pem','-k','ci.keychain','-A'],check=True)
-          subprocess.run(['security','import','k.pem','-k','ci.keychain','-A'],check=True)
-          subprocess.run(['security','set-key-partition-list','-S','apple-tool:,apple:','-s','-k','p','ci.keychain'],check=True)
-          subprocess.run(['security','list-keychains','-d','user','-s','ci.keychain','login.keychain'],check=True)
-          print('OK')"
+          import base64, os, subprocess
+          c = base64.b64decode(os.environ['CERT_B64'])
+          k = base64.b64decode(os.environ['KEY_B64'])
+          open('cert.pem', 'wb').write(c)
+          open('key.pem', 'wb').write(k)
+          subprocess.run(['security', 'delete-keychain', 'ci.keychain'], capture_output=True)
+          subprocess.run(['security', 'create-keychain', '-p', 'ci', 'ci.keychain'], check=True)
+          subprocess.run(['security', 'unlock-keychain', '-p', 'ci', 'ci.keychain'], check=True)
+          subprocess.run(['security', 'import', 'cert.pem', '-k', 'ci.keychain', '-A'], check=True)
+          subprocess.run(['security', 'import', 'key.pem', '-k', 'ci.keychain', '-A'], check=True)
+          subprocess.run(['security', 'set-keychain-partition-list', '-S', 'apple-tool:,apple:', '-s', '-k', 'ci', 'ci.keychain'], check=True)
+          subprocess.run(['security', 'list-keychains', '-d', 'user', '-s', 'ci.keychain', 'login.keychain'], check=True)
+          print('✅ Keychain ready')
+          "
         env:
-          CERT: ${{ secrets.APPLE_CERT_PEM_B64 }}
-          KEY: ${{ secrets.APPLE_KEY_PEM_B64 }}
+          CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
+          KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
 
-      - name: Install profile
+      - name: Install provisioning profile
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
+          echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" \
+            | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
 
+      # ——— Build IPA (Flutter-first, no gym/xcargs) ———
+      # Xcode automatic signing discovers the installed cert + profile.
+      # ExportOptions.plist handles the export-stage profile assignment,
+      # so SPM targets skip the provisioning-profile conflict.
+      - name: Build IPA
+        run: |
+          flutter build ipa \
+            --release \
+            --build-number=${GITHUB_RUN_NUMBER} \
+            --export-options-plist=ios/ExportOptions.plist
+
+      # ——— Upload to TestFlight ———
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: '3.3' }
 
       - name: Install Fastlane
         run: gem install fastlane -N
 
-      - name: Build and upload
-        run: cd ios && fastlane ios beta
-        env:
-          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+      - name: Create App Store Connect API key
+        run: |
+          echo "${{ secrets.APPSTORE_PRIVATE_KEY }}" > /tmp/appstore_key.json
+
+      - name: Upload to TestFlight
+        working-directory: frontend
+        run: |
+          IPA=$(find build/ios/ipa -name "*.ipa" -print -quit)
+          echo "Uploading $IPA"
+          fastlane run upload_to_testflight \
+            ipa:"$IPA" \
+            api_key_path:/tmp/appstore_key.json \
+            skip_waiting_for_build_processing:true
+
