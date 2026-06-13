@@ -30,6 +30,7 @@ platform :ios do
       scheme: "Runner",
       configuration: "Release",
       export_method: "app-store",
+      xcargs: "DEVELOPMENT_TEAM=74797U8R45",
       export_options: "./ExportOptions.plist",
       clean: true,
     )
