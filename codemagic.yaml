@@ -18,6 +18,12 @@ workflows:
     scripts:
       - name: Install dependencies
         script: flutter pub get
+      - name: iOS code signing
+        script: |
+          xcode-project prepare-signing \
+            --platform ios \
+            --bundle-id com.tilezhan.app \
+            --certificate-type distribution
       - name: Build iOS
         script: flutter build ipa --release
     artifacts:
@@ -28,6 +34,3 @@ workflows:
         key_id: $APP_STORE_CONNECT_KEY_ID
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
-    code_signing:
-      ios:
-        automatic_signing: true
