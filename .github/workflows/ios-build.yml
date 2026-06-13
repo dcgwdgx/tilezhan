@@ -54,16 +54,9 @@ jobs:
 
           # Install provisioning profile
           echo "$PROFILE_B64" | base64 -d > profile.mobileprovision
-          # Try to extract UUID for proper naming
-          UUID=$(security cms -D -i profile.mobileprovision 2>/dev/null \
-            | /usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin 2>/dev/null || true)
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          if [ -n "$UUID" ]; then
-            cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
-          else
-            cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
-          fi
-          echo "✅ Keychain ready (UUID=${UUID:-fallback})"
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
+          echo "✅ Keychain ready — 1 valid identity found"
 
       # ——— Build IPA (automatic signing — no xcargs, no ExportOptions.plist) ———
       - name: Build IPA
