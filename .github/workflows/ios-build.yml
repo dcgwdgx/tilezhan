@@ -32,11 +32,21 @@ jobs:
           api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
 
-      - name: Set development team
-        run: sed -i '' 's/DEVELOPMENT_TEAM = .*;/DEVELOPMENT_TEAM = 74797U8R45;/g' ios/Runner.xcodeproj/project.pbxproj || true
+      - name: Create export options
+        run: |
+          cat > ios/ExportOptions.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key><string>app-store</string>
+              <key>teamID</key><string>74797U8R45</string>
+          </dict>
+          </plist>
+          EOF
 
       - name: Build IPA
-        run: flutter build ipa --release --build-number=${{ github.run_number }}
+        run: flutter build ipa --release --export-options-plist ios/ExportOptions.plist --build-number=${{ github.run_number }}
 
       - name: Upload to TestFlight
         run: |
