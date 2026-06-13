@@ -1,23 +1,18 @@
-opt_out_usage
-
 default_platform(:ios)
 
 platform :ios do
-  desc "Build iOS Release & Upload to TestFlight"
   lane :beta do
     api_key = app_store_connect_api_key(
       key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
       issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
       key_content: ENV["APP_STORE_CONNECT_API_KEY"],
-      duration: 1200,
-      in_house: false,
     )
 
     sigh(
+      app_identifier: "com.tilezhan.app",
+      username: "dcgwdgx@126.com",
+      team_id: "74797U8R45",
       api_key: api_key,
-      platform: "ios",
-      adhoc: false,
-      readonly: true,
     )
 
     increment_build_number(
@@ -28,11 +23,12 @@ platform :ios do
     build_app(
       workspace: "Runner.xcworkspace",
       scheme: "Runner",
-      configuration: "Release",
       export_method: "app-store",
+      configuration: "Release",
       xcargs: "DEVELOPMENT_TEAM=74797U8R45 CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' PROVISIONING_PROFILE_SPECIFIER='TileZhan App Store'",
-      export_options: "./ExportOptions.plist",
-      clean: true,
+      export_options: {
+        provisioningProfiles: { "com.tilezhan.app": "TileZhan App Store" }
+      },
     )
 
     upload_to_testflight(
