@@ -29,18 +29,18 @@ jobs:
           sed -i '' 's/DEVELOPMENT_TEAM = ".*";/DEVELOPMENT_TEAM = "74797U8R45";/g' \
             ios/Runner.xcodeproj/project.pbxproj
 
-      # ——— Code signing with PEM certs (proven on macos-14) ———
+      # ——— Code signing with PEM certs ———
       - name: Import signing certificate
         env:
           CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
           KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
           PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
         run: |
-          # Create temporary keychain and set as default
+          # Build keychain, ADD to search list (keep login.keychain!)
           security create-keychain -p "ci" build.keychain
-          security default-keychain -s build.keychain
           security unlock-keychain -p "ci" build.keychain
           security set-keychain-settings -t 3600 -l build.keychain
+          security list-keychains -d user -s build.keychain login.keychain
 
           # Import PEM cert + key
           echo "$CERT_B64" | base64 -d > cert.pem
@@ -49,9 +49,17 @@ jobs:
           security import key.pem  -k build.keychain -A
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "ci" build.keychain
 
-          # Install provisioning profile (UUID filename for Xcode discovery)
+          # Verify cert is usable
+          security find-identity -v -p codesigning build.keychain
+
+          # Install provisioning profile (decode plist for UUID)
           echo "$PROFILE_B64" | base64 -d > profile.mobileprovision
-          UUID=$(grep -a -A1 'UUID' profile.mobileprovision | grep -o '[-A-Z0-9]\{36\}' | head -1)
+          UUID=$(security cms -D -i profile.mobileprovision 2>/dev/null \
+            | plutil -extract UUID raw - - 2>/dev/null)
+          if [ -z "$UUID" ]; then
+            # Fallback: try grep on raw file
+            UUID=$(grep -a -A1 'UUID' profile.mobileprovision | grep -io '[a-f0-9]\{8\}-[a-f0-9]\{4\}-[a-f0-9]\{4\}-[a-f0-9]\{4\}-[a-f0-9]\{12\}' | head -1)
+          fi
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
           echo "✅ Keychain ready (UUID=$UUID)"
