@@ -18,6 +18,11 @@ workflows:
     scripts:
       - name: Install dependencies
         script: flutter pub get
+      - name: Set up iOS signing
+        script: |
+          export APP_STORE_CONNECT_PRIVATE_KEY="$APP_STORE_CONNECT_API_KEY"
+          export APP_STORE_CONNECT_KEY_IDENTIFIER="$APP_STORE_CONNECT_KEY_ID"
+          xcode-project use-profiles
       - name: Build iOS
         script: flutter build ipa --release
     artifacts:
