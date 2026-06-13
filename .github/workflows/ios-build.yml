@@ -17,45 +17,46 @@ jobs:
         with: { flutter-version: '3.44.1', channel: stable, cache: true }
       - run: flutter pub get
 
-      - name: Import signing cert (P12)
-        uses: apple-actions/import-codesign-certs@v3
-        with:
-          p12-file-base64: ${{ secrets.P12_BASE64 }}
-          p12-password: ${{ secrets.P12_PASSWORD }}
-
-      - name: Download provisioning profile
-        uses: apple-actions/download-provisioning-profiles@v4
-        with:
-          bundle-id: com.tilezhan.app
-          profile-type: IOS_APP_STORE
-          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
-          api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
-          api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
-
-      - name: Create export options
+      - name: Setup iOS
         run: |
-          cat > ios/ExportOptions.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key><string>app-store</string>
-              <key>teamID</key><string>74797U8R45</string>
-          </dict>
-          </plist>
-          EOF
+          cp -r ios/fastlane /tmp/fb 2>/dev/null || true
+          rm -rf ios/
+          flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
+          cp -r /tmp/fb ios/fastlane 2>/dev/null || true
+          sed -i '' 's/com.tilezhan.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
 
-      - name: Build IPA
-        run: flutter build ipa --release --export-options-plist ios/ExportOptions.plist --build-number=${{ github.run_number }}
-
-      - name: Upload to TestFlight
+      - name: Import cert
         run: |
-          IPA=$(find build/ios/ipa -name "*.ipa" | head -1)
-          xcrun altool --upload-app -f "$IPA" -t ios \
-            --apiKey "$APPSTORE_KEY_ID" \
-            --apiIssuer "$APPSTORE_ISSUER_ID" \
-            --apiKeyFile /dev/stdin <<< "$APPSTORE_PRIVATE_KEY"
+          python3 -c "
+          import base64,os,subprocess
+          c=base64.b64decode(os.environ['CERT']);k=base64.b64decode(os.environ['KEY'])
+          open('c.pem','wb').write(c);open('k.pem','wb').write(k)
+          subprocess.run(['security','delete-keychain','ci.keychain'],capture_output=True)
+          subprocess.run(['security','create-keychain','-p','p','ci.keychain'],check=True)
+          subprocess.run(['security','unlock-keychain','-p','p','ci.keychain'],check=True)
+          subprocess.run(['security','import','c.pem','-k','ci.keychain','-A'],check=True)
+          subprocess.run(['security','import','k.pem','-k','ci.keychain','-A'],check=True)
+          subprocess.run(['security','set-key-partition-list','-S','apple-tool:,apple:','-s','-k','p','ci.keychain'],check=True)
+          subprocess.run(['security','list-keychains','-d','user','-s','ci.keychain','login.keychain'],check=True)
+          print('OK')"
         env:
-          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          CERT: ${{ secrets.APPLE_CERT_PEM_B64 }}
+          KEY: ${{ secrets.APPLE_KEY_PEM_B64 }}
+
+      - name: Install profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
+
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: '3.3' }
+
+      - name: Install Fastlane
+        run: gem install fastlane -N
+
+      - name: Build and upload
+        run: cd ios && fastlane ios beta
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
