@@ -52,17 +52,18 @@ jobs:
           # Verify cert is usable
           security find-identity -v -p codesigning build.keychain
 
-          # Install provisioning profile (decode plist for UUID)
+          # Install provisioning profile
           echo "$PROFILE_B64" | base64 -d > profile.mobileprovision
+          # Try to extract UUID for proper naming
           UUID=$(security cms -D -i profile.mobileprovision 2>/dev/null \
-            | plutil -extract UUID raw - - 2>/dev/null)
-          if [ -z "$UUID" ]; then
-            # Fallback: try grep on raw file
-            UUID=$(grep -a -A1 'UUID' profile.mobileprovision | grep -io '[a-f0-9]\{8\}-[a-f0-9]\{4\}-[a-f0-9]\{4\}-[a-f0-9]\{4\}-[a-f0-9]\{12\}' | head -1)
-          fi
+            | /usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin 2>/dev/null || true)
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
-          echo "✅ Keychain ready (UUID=$UUID)"
+          if [ -n "$UUID" ]; then
+            cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+          else
+            cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
+          fi
+          echo "✅ Keychain ready (UUID=${UUID:-fallback})"
 
       # ——— Build IPA (automatic signing — no xcargs, no ExportOptions.plist) ———
       - name: Build IPA
