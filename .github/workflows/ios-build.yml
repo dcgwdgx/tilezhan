@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14          # Intel, stable keychain CLI
+    runs-on: macos-14              # Intel runner, stable keychain CLI
     defaults: { run: { working-directory: frontend } }
     steps:
       - uses: actions/checkout@v4
@@ -17,12 +17,11 @@ jobs:
 
       - run: flutter pub get
 
-      # ——— Recreate iOS project (clean slate) ———
+      # ——— Recreate iOS project ———
       - name: Setup iOS project
         run: |
           rm -rf ios/
           flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
-          # Set bundle ID and team
           sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.tilezhan.tilezhan;/PRODUCT_BUNDLE_IDENTIFIER = com.tilezhan.app;/g' \
             ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 74797U8R45;/g' \
@@ -30,11 +29,11 @@ jobs:
           sed -i '' 's/DEVELOPMENT_TEAM = ".*";/DEVELOPMENT_TEAM = "74797U8R45";/g' \
             ios/Runner.xcodeproj/project.pbxproj
 
-      # ——— Import P12 certificate ———
+      # ——— Code signing with PEM certs (proven on macos-14) ———
       - name: Import signing certificate
         env:
-          P12_B64: ${{ secrets.APPLE_CERT_P12_B64 }}
-          P12_PW: ${{ secrets.APPLE_CERT_P12_PW }}
+          CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
+          KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
           PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
         run: |
           # Create temporary keychain and set as default
@@ -43,22 +42,21 @@ jobs:
           security unlock-keychain -p "ci" build.keychain
           security set-keychain-settings -t 3600 -l build.keychain
 
-          # Import P12 certificate
-          echo "$P12_B64" | base64 -d > cert.p12
-          security import cert.p12 -k build.keychain -P "$P12_PW" -T /usr/bin/codesign
+          # Import PEM cert + key
+          echo "$CERT_B64" | base64 -d > cert.pem
+          echo "$KEY_B64"  | base64 -d > key.pem
+          security import cert.pem -k build.keychain -A
+          security import key.pem  -k build.keychain -A
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "ci" build.keychain
 
-          # Install provisioning profile (UUID-named, required by Xcode)
+          # Install provisioning profile (UUID filename for Xcode discovery)
           echo "$PROFILE_B64" | base64 -d > profile.mobileprovision
           UUID=$(grep -a -A1 'UUID' profile.mobileprovision | grep -o '[-A-Z0-9]\{36\}' | head -1)
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
           echo "✅ Keychain ready (UUID=$UUID)"
 
-      # ——— Build IPA with automatic signing ———
-      # No xcargs, no ExportOptions.plist → Xcode discovers the installed
-      # cert + profile automatically. SPM targets are left alone, so IAP
-      # packages (in_app_purchase) don't trigger provisioning conflicts.
+      # ——— Build IPA (automatic signing — no xcargs, no ExportOptions.plist) ———
       - name: Build IPA
         run: |
           flutter build ipa --release --build-number=${GITHUB_RUN_NUMBER}
@@ -66,14 +64,13 @@ jobs:
           echo "IPA_PATH=$IPA" >> $GITHUB_ENV
           echo "✅ IPA: $IPA"
 
-      # ——— Upload via Apple's native tool (no Fastlane/Ruby needed) ———
+      # ——— Upload via Apple native tool (zero Ruby/Fastlane deps) ———
       - name: Upload to TestFlight
         env:
           ASC_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
           ASC_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
         run: |
-          # Save API key
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$ASC_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
 
