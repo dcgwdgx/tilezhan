@@ -50,7 +50,11 @@ jobs:
           subprocess.run(['security', 'unlock-keychain', '-p', 'ci', 'ci.keychain'], check=True)
           subprocess.run(['security', 'import', 'cert.pem', '-k', 'ci.keychain', '-A'], check=True)
           subprocess.run(['security', 'import', 'key.pem', '-k', 'ci.keychain', '-A'], check=True)
-          subprocess.run(['security', 'set-keychain-partition-list', '-S', 'apple-tool:,apple:', '-s', '-k', 'ci', 'ci.keychain'], check=True)
+          # partition-list command may not exist on newer macOS; -A above already allows access
+          try:
+              subprocess.run(['security', 'set-key-partition-list', '-S', 'apple-tool:,apple:', '-s', '-k', 'ci', 'ci.keychain'], check=True)
+          except subprocess.CalledProcessError:
+              print('⚠ set-key-partition-list skipped (not available on this macOS)')
           subprocess.run(['security', 'list-keychains', '-d', 'user', '-s', 'ci.keychain', 'login.keychain'], check=True)
           print('✅ Keychain ready')
           "
