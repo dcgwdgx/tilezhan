@@ -2,25 +2,34 @@ workflows:
   ios-testflight:
     name: iOS TestFlight
     max_build_duration: 30
+    instance_type: mac_mini_m2
+    working_directory: frontend
     triggering:
       events:
         - push
       branch_patterns:
         - pattern: main
       cancel_previous_builds: true
-    instance_type: mac_mini_m2
-    working_directory: frontend
     environment:
       flutter: 3.44.1
       xcode: latest
       groups:
         - appstore
+        - ios_signing
     scripts:
       - name: Install dependencies
         script: flutter pub get
       - name: Set up iOS signing
         script: |
-          xcode-project use-profiles
+          echo "$P12_BASE64" | base64 -d > /tmp/cert.p12
+          echo "$PROFILE_BASE64" | base64 -d > /tmp/profile.mobileprovision
+          security create-keychain -p temp123 build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p temp123 build.keychain
+          security import /tmp/cert.p12 -k build.keychain -P "$P12_PASSWORD" -A
+          security set-key-partition-list -S apple-tool:,apple: -s -k temp123 build.keychain
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
       - name: Build iOS
         script: flutter build ipa --release
     artifacts:
