@@ -20,10 +20,9 @@ workflows:
         script: flutter pub get
       - name: iOS code signing
         script: |
-          xcode-project prepare-signing \
-            --platform ios \
-            --bundle-id com.tilezhan.app \
-            --certificate-type distribution
+          xcode-project use-profiles
+        env:
+          APP_STORE_CONNECT_TEAM_ID: "74797U8R45"
       - name: Build iOS
         script: flutter build ipa --release
     artifacts:
