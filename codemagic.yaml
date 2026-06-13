@@ -16,6 +16,9 @@ workflows:
       groups:
         - appstore
         - ios_signing
+      vars:
+        FASTLANE_USER: dcgwdgx@126.com
+        FASTLANE_TEAM_ID: "74797U8R45"
     scripts:
       - name: Install dependencies
         script: flutter pub get
@@ -26,17 +29,21 @@ workflows:
           security create-keychain -p temp123 build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p temp123 build.keychain
-          security import /tmp/cert.p12 -k build.keychain -P "" -A || security import /tmp/cert.p12 -k build.keychain -A
+          security import /tmp/cert.p12 -k build.keychain -A
           security set-key-partition-list -S apple-tool:,apple: -s -k temp123 build.keychain
           security list-keychains -d user -s build.keychain login.keychain
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-      - name: Build with Fastlane
+      - name: Build and upload
         script: |
           gem install fastlane -N
           cd ios
           fastlane ios beta
-        env:
-          APP_STORE_CONNECT_API_KEY_ID: $APP_STORE_CONNECT_KEY_ID
-          APP_STORE_CONNECT_API_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID
-          APP_STORE_CONNECT_API_KEY: $APP_STORE_CONNECT_API_KEY
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_API_KEY
+        key_id: $APP_STORE_CONNECT_KEY_ID
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
