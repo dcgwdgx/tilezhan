@@ -16,6 +16,9 @@ workflows:
       groups:
         - appstore
         - ios_signing
+      vars:
+        FASTLANE_USER: dcgwdgx@126.com
+        FASTLANE_TEAM_ID: "74797U8R45"
     scripts:
       - name: Install dependencies
         script: flutter pub get
@@ -32,10 +35,14 @@ workflows:
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
       - name: Build and upload
         script: |
-          cd ios
           gem install fastlane -N
+          cd ios
           fastlane ios beta
-        env:
-          APP_STORE_CONNECT_API_KEY_ID: $APP_STORE_CONNECT_KEY_ID
-          APP_STORE_CONNECT_API_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID
-          APP_STORE_CONNECT_API_KEY: $APP_STORE_CONNECT_API_KEY
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_API_KEY
+        key_id: $APP_STORE_CONNECT_KEY_ID
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
