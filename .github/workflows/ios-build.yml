@@ -7,96 +7,86 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-14          # Intel, stable keychain CLI
     defaults: { run: { working-directory: frontend } }
     steps:
       - uses: actions/checkout@v4
-
-      - name: Select Xcode 26
-        run: sudo xcode-select -s /Applications/Xcode_26.3.app
 
       - uses: subosito/flutter-action@v2
         with: { flutter-version: '3.44.1', channel: stable, cache: true }
 
       - run: flutter pub get
 
-      # ——— Recreate iOS project (clean slate each build) ———
+      # ——— Recreate iOS project (clean slate) ———
       - name: Setup iOS project
         run: |
-          cp -r ios/fastlane /tmp/fb 2>/dev/null || true
-          cp ios/ExportOptions.plist /tmp/eo.plist 2>/dev/null || true
           rm -rf ios/
           flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
-          cp -r /tmp/fb ios/fastlane 2>/dev/null || true
-          cp /tmp/eo.plist ios/ExportOptions.plist 2>/dev/null || true
-          # Fix bundle ID: com.tilezhan.tilezhan → com.tilezhan.app
-          sed -i '' 's/com.tilezhan.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
-          # Set development team (required for automatic signing to discover profiles)
-          sed -i '' 's/DEVELOPMENT_TEAM = \"\";/DEVELOPMENT_TEAM = 74797U8R45;/g' ios/Runner.xcodeproj/project.pbxproj
-          # Ensure automatic signing (default from flutter create, but be explicit)
-          sed -i '' 's/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Automatic;/g' ios/Runner.xcodeproj/project.pbxproj
+          # Set bundle ID and team
+          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.tilezhan.tilezhan;/PRODUCT_BUNDLE_IDENTIFIER = com.tilezhan.app;/g' \
+            ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 74797U8R45;/g' \
+            ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = ".*";/DEVELOPMENT_TEAM = "74797U8R45";/g' \
+            ios/Runner.xcodeproj/project.pbxproj
 
-      # ——— Keychain + cert (PEM) ———
+      # ——— Import P12 certificate ———
       - name: Import signing certificate
-        run: |
-          python3 -c "
-          import base64, os, subprocess
-          c = base64.b64decode(os.environ['CERT_B64'])
-          k = base64.b64decode(os.environ['KEY_B64'])
-          open('cert.pem', 'wb').write(c)
-          open('key.pem', 'wb').write(k)
-          subprocess.run(['security', 'delete-keychain', 'ci.keychain'], capture_output=True)
-          subprocess.run(['security', 'create-keychain', '-p', 'ci', 'ci.keychain'], check=True)
-          subprocess.run(['security', 'unlock-keychain', '-p', 'ci', 'ci.keychain'], check=True)
-          subprocess.run(['security', 'import', 'cert.pem', '-k', 'ci.keychain', '-A'], check=True)
-          subprocess.run(['security', 'import', 'key.pem', '-k', 'ci.keychain', '-A'], check=True)
-          # partition-list command may not exist on newer macOS; -A above already allows access
-          try:
-              subprocess.run(['security', 'set-key-partition-list', '-S', 'apple-tool:,apple:', '-s', '-k', 'ci', 'ci.keychain'], check=True)
-          except subprocess.CalledProcessError:
-              print('⚠ set-key-partition-list skipped (not available on this macOS)')
-          subprocess.run(['security', 'list-keychains', '-d', 'user', '-s', 'ci.keychain', 'login.keychain'], check=True)
-          print('✅ Keychain ready')
-          "
         env:
-          CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
-          KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
-
-      - name: Install provisioning profile
+          P12_B64: ${{ secrets.APPLE_CERT_P12_B64 }}
+          P12_PW: ${{ secrets.APPLE_CERT_P12_PW }}
+          PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
         run: |
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" \
-            | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
+          # Create temporary keychain and set as default
+          security create-keychain -p "ci" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "ci" build.keychain
+          security set-keychain-settings -t 3600 -l build.keychain
 
-      # ——— Build IPA (Flutter-first, no gym/xcargs) ———
-      # Xcode automatic signing discovers the installed cert + profile.
-      # ExportOptions.plist handles the export-stage profile assignment,
-      # so SPM targets skip the provisioning-profile conflict.
+          # Import P12 certificate
+          echo "$P12_B64" | base64 -d > cert.p12
+          security import cert.p12 -k build.keychain -P "$P12_PW" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "ci" build.keychain
+
+          # Install provisioning profile (UUID-named, required by Xcode)
+          echo "$PROFILE_B64" | base64 -d > profile.mobileprovision
+          UUID=$(grep -a -A1 'UUID' profile.mobileprovision | grep -o '[-A-Z0-9]\{36\}' | head -1)
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+          echo "✅ Keychain ready (UUID=$UUID)"
+
+      # ——— Build IPA with automatic signing ———
+      # No xcargs, no ExportOptions.plist → Xcode discovers the installed
+      # cert + profile automatically. SPM targets are left alone, so IAP
+      # packages (in_app_purchase) don't trigger provisioning conflicts.
       - name: Build IPA
         run: |
-          flutter build ipa \
-            --release \
-            --build-number=${GITHUB_RUN_NUMBER} \
-            --export-options-plist=ios/ExportOptions.plist
-
-      # ——— Upload to TestFlight ———
-      - uses: ruby/setup-ruby@v1
-        with: { ruby-version: '3.3' }
-
-      - name: Install Fastlane
-        run: gem install fastlane -N
-
-      - name: Create App Store Connect API key
-        run: |
-          echo "${{ secrets.APPSTORE_PRIVATE_KEY }}" > /tmp/appstore_key.json
-
-      - name: Upload to TestFlight
-        working-directory: frontend
-        run: |
+          flutter build ipa --release --build-number=${GITHUB_RUN_NUMBER}
           IPA=$(find build/ios/ipa -name "*.ipa" -print -quit)
-          echo "Uploading $IPA"
-          fastlane run upload_to_testflight \
-            ipa:"$IPA" \
-            api_key_path:/tmp/appstore_key.json \
-            skip_waiting_for_build_processing:true
+          echo "IPA_PATH=$IPA" >> $GITHUB_ENV
+          echo "✅ IPA: $IPA"
 
+      # ——— Upload via Apple's native tool (no Fastlane/Ruby needed) ———
+      - name: Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          # Save API key
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+
+          xcrun altool --upload-app \
+            -f "$IPA_PATH" \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID" \
+            --type ios
+          echo "✅ Uploaded to TestFlight"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tilezhan-ipa
+          path: ${{ env.IPA_PATH }}
+          retention-days: 30
