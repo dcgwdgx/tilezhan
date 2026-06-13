@@ -65,16 +65,13 @@ jobs:
           echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
 
       - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3'
-          bundler-cache: true
-          working-directory: frontend/ios
+        with: { ruby-version: '3.3' }
+
+      - name: Install Fastlane
+        run: gem install fastlane -N
 
       - name: Build and upload
-        run: |
-          cd ios
-          bundle install
-          bundle exec fastlane beta
+        run: cd ios && fastlane ios beta
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
