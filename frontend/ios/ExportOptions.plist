@@ -11,9 +11,5 @@
         <key>com.tilezhan.app</key>
         <string>TileZhan App Store</string>
     </dict>
-    <key>uploadBitcode</key>
-    <false/>
-    <key>uploadSymbols</key>
-    <true/>
 </dict>
 </plist>

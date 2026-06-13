@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-latest
     defaults: { run: { working-directory: frontend } }
     steps:
       - uses: actions/checkout@v4
@@ -20,15 +20,10 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Store iOS config
-        run: cp -r ios/fastlane /tmp/fastlane_backup 2>/dev/null || true; cp ios/Runner/Info.plist /tmp/Info.plist.backup 2>/dev/null || true
-
-      - name: Recreate iOS project
+      - name: Setup iOS project
         run: |
           rm -rf ios/
           flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
-          cp -r /tmp/fastlane_backup ios/fastlane 2>/dev/null || true
-          cp /tmp/Info.plist.backup ios/Runner/Info.plist 2>/dev/null || true
           sed -i '' 's/com.tilezhan.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
           grep -rl "C:\\\\flutter" ios/ 2>/dev/null | xargs -r sed -i '' "s|C:\\\\\\\\flutter|${FLUTTER_ROOT}|g" || true
 
@@ -48,7 +43,6 @@ jobs:
           subprocess.run(['security','set-key-partition-list','-S','apple-tool:,apple:','-s','-k','temp123','ci.keychain'],check=True)
           subprocess.run(['security','list-keychains','-d','user','-s','ci.keychain','login.keychain'],check=True)
           os.remove('cert.pem'); os.remove('key.pem')
-          subprocess.run(['security','find-identity','-v','-p','codesigning'])
           print('CERT OK')
           "
         env:
@@ -60,15 +54,14 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
 
-      - uses: ruby/setup-ruby@v1
-        with: { ruby-version: '3.3' }
+      - name: Build IPA
+        run: flutter build ipa --release --export-options-plist ios/ExportOptions.plist
 
-      - name: Install Fastlane
-        run: gem install fastlane -N
-
-      - name: Build and upload
-        run: cd ios && fastlane ios beta
+      - name: Upload to TestFlight
+        run: |
+          IPA=$(find build/ios/ipa -name "*.ipa" | head -1)
+          xcrun altool --upload-app -f "$IPA" -t ios --apiKey "$APPSTORE_KEY_ID" --apiIssuer "$APPSTORE_ISSUER_ID" --apiKeyFile /dev/stdin <<< "$APPSTORE_PRIVATE_KEY"
         env:
-          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
