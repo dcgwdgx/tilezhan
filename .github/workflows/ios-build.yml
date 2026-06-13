@@ -11,57 +11,36 @@ jobs:
     defaults: { run: { working-directory: frontend } }
     steps:
       - uses: actions/checkout@v4
-
       - name: Select Xcode 26
         run: sudo xcode-select -s /Applications/Xcode_26.3.app
-
       - uses: subosito/flutter-action@v2
         with: { flutter-version: '3.44.1', channel: stable, cache: true }
-
       - run: flutter pub get
-
-      - name: Setup iOS project
+      - name: Setup iOS
         run: |
           rm -rf ios/
           flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
           sed -i '' 's/com.tilezhan.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
-          grep -rl "C:\\\\flutter" ios/ 2>/dev/null | xargs -r sed -i '' "s|C:\\\\\\\\flutter|${FLUTTER_ROOT}|g" || true
-
-      - name: Import cert
+      - name: Import certs
         run: |
           python3 -c "
-          import base64, os, subprocess
-          cert = base64.b64decode(os.environ['CERT_B64'])
-          key = base64.b64decode(os.environ['KEY_B64'])
-          with open('cert.pem','wb') as f: f.write(cert)
-          with open('key.pem','wb') as f: f.write(key)
+          import base64,os,subprocess;c=base64.b64decode(os.environ['CERT']);k=base64.b64decode(os.environ['KEY'])
+          open('c.pem','wb').write(c);open('k.pem','wb').write(k)
           subprocess.run(['security','delete-keychain','ci.keychain'],capture_output=True)
-          subprocess.run(['security','create-keychain','-p','temp123','ci.keychain'],check=True)
-          subprocess.run(['security','unlock-keychain','-p','temp123','ci.keychain'],check=True)
-          subprocess.run(['security','import','cert.pem','-k','ci.keychain','-A'],check=True)
-          subprocess.run(['security','import','key.pem','-k','ci.keychain','-A'],check=True)
-          subprocess.run(['security','set-key-partition-list','-S','apple-tool:,apple:','-s','-k','temp123','ci.keychain'],check=True)
+          subprocess.run(['security','create-keychain','-p','p','ci.keychain'],check=True)
+          subprocess.run(['security','unlock-keychain','-p','p','ci.keychain'],check=True)
+          subprocess.run(['security','import','c.pem','-k','ci.keychain','-A'],check=True)
+          subprocess.run(['security','import','k.pem','-k','ci.keychain','-A'],check=True)
+          subprocess.run(['security','set-key-partition-list','-S','apple-tool:,apple:','-s','-k','p','ci.keychain'],check=True)
           subprocess.run(['security','list-keychains','-d','user','-s','ci.keychain','login.keychain'],check=True)
-          os.remove('cert.pem'); os.remove('key.pem')
-          print('CERT OK')
-          "
+          print('OK')"
         env:
-          CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
-          KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
-
+          CERT: ${{ secrets.APPLE_CERT_PEM_B64 }}
+          KEY: ${{ secrets.APPLE_KEY_PEM_B64 }}
       - name: Install profile
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/tilezhan.mobileprovision
-
-      - name: Build IPA
-        run: flutter build ipa --release --export-options-plist ios/ExportOptions.plist
-
-      - name: Upload to TestFlight
-        run: |
-          IPA=$(find build/ios/ipa -name "*.ipa" | head -1)
-          xcrun altool --upload-app -f "$IPA" -t ios --apiKey "$APPSTORE_KEY_ID" --apiIssuer "$APPSTORE_ISSUER_ID" --apiKeyFile /dev/stdin <<< "$APPSTORE_PRIVATE_KEY"
-        env:
-          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          echo "${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/$(uuidgen).mobileprovision
+      - name: Build
+        run: flutter build ipa --release
+      - run: xcrun altool --upload-app -f build/ios/ipa/*.ipa -t ios --apiKey "${{ secrets.APPSTORE_KEY_ID }}" --apiIssuer "${{ secrets.APPSTORE_ISSUER_ID }}" --apiKeyFile /dev/stdin <<< "${{ secrets.APPSTORE_PRIVATE_KEY }}"
