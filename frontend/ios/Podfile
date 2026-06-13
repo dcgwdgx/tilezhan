@@ -1,6 +1,7 @@
-platform :ios, '13.0'
+flutter_root = ENV['FLUTTER_ROOT']
+require File.expand_path(File.join(flutter_root, 'packages', 'flutter_tools', 'bin', 'podhelper'))
 
-require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), File.dirname(File.realpath(__FILE__)))
+platform :ios, '13.0'
 
 use_frameworks!
 
