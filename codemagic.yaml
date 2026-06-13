@@ -15,34 +15,11 @@ workflows:
       xcode: latest
       groups:
         - appstore
-        - ios_signing
-      vars:
-        FASTLANE_USER: dcgwdgx@126.com
-        FASTLANE_TEAM_ID: "74797U8R45"
     scripts:
       - name: Install dependencies
         script: flutter pub get
-      - name: Import signing assets
-        script: |
-          echo "$APPLE_CERT_PEM_B64" | base64 -d > /tmp/cert.pem
-          echo "$APPLE_KEY_PEM_B64" | base64 -d > /tmp/key.pem
-          echo "$BUILD_PROFILE_BASE64" | base64 -d > /tmp/profile.mobileprovision
-          security create-keychain -p temp123 build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p temp123 build.keychain
-          security import /tmp/cert.pem -k build.keychain -A
-          security import /tmp/key.pem -k build.keychain -A
-          security set-key-partition-list -S apple-tool:,apple: -s -k temp123 build.keychain
-          security list-keychains -d user -s build.keychain login.keychain
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-      - name: Build and upload
-        script: |
-          export APP_STORE_CONNECT_API_KEY_ID="$APP_STORE_CONNECT_KEY_ID"
-          export APP_STORE_CONNECT_API_ISSUER_ID="$APP_STORE_CONNECT_ISSUER_ID"
-          gem install fastlane -N
-          cd ios
-          fastlane ios beta
+      - name: Build iOS
+        script: flutter build ipa --release
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
