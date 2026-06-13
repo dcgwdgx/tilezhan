@@ -24,13 +24,16 @@ workflows:
         script: flutter pub get
       - name: Import signing assets
         script: |
-          echo "$P12_BASE64" | base64 -d > /tmp/cert.p12
-          echo "$PROFILE_BASE64" | base64 -d > /tmp/profile.mobileprovision
+          echo "$APPLE_CERT_PEM_B64" | base64 -d > /tmp/cert.pem
+          echo "$APPLE_KEY_PEM_B64" | base64 -d > /tmp/key.pem
+          echo "$BUILD_PROFILE_BASE64" | base64 -d > /tmp/profile.mobileprovision
           security create-keychain -p temp123 build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p temp123 build.keychain
-          security import /tmp/cert.p12 -k build.keychain -P "$P12_PASSWORD" -A
-          security set-key-partition-list -S apple-tool:,apple: -k temp123 build.keychain
+          security import /tmp/cert.pem -k build.keychain -A
+          security import /tmp/key.pem -k build.keychain -A
+          security set-key-partition-list -S apple-tool:,apple: -s -k temp123 build.keychain
+          security list-keychains -d user -s build.keychain login.keychain
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
       - name: Build and upload
