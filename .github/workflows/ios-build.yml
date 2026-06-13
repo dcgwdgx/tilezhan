@@ -71,7 +71,10 @@ jobs:
           working-directory: frontend/ios
 
       - name: Build and upload
-        run: cd ios && bundle exec fastlane beta
+        run: |
+          cd ios
+          bundle install
+          bundle exec fastlane beta
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
