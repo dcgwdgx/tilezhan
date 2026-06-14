@@ -53,14 +53,7 @@ jobs:
       # ——— Export signed IPA ———
       - name: Export signed IPA
         run: |
-          # Re-extract UUID from installed profile (avoids cross-step env issues)
-          UUID=$(for f in ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision; do
-            grep -a -A1 'UUID' "$f" | grep -oE '[-A-Z0-9]{36}' | head -1
-            break
-          done)
-          echo "Using profile UUID=$UUID"
-
-          cat > ExportOptions.plist << PLISTEOF
+          cat > ExportOptions.plist << 'PLISTEOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -74,13 +67,12 @@ jobs:
               <key>provisioningProfiles</key>
               <dict>
                   <key>com.tilezhan.app</key>
-                  <string>$UUID</string>
+                  <string>TileZhan App Store</string>
               </dict>
           </dict>
           </plist>
           PLISTEOF
-          echo "ExportOptions:"
-          cat ExportOptions.plist
+          echo "ExportOptions.plist ready"
 
           xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
@@ -89,7 +81,7 @@ jobs:
 
           IPA=$(find build/ios/ipa -name "*.ipa" -print -quit)
           echo "IPA_PATH=$IPA" >> $GITHUB_ENV
-          echo "✅ IPA: $IPA"
+          echo "✅ IPA exported: $IPA"
 
       # ——— Upload ———
       - name: Upload to TestFlight
