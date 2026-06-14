@@ -18,17 +18,16 @@ jobs:
 
       - run: flutter pub get
 
-      # ——— Keychain + cert + profile ———
-      - name: Import signing certificate
+      # ——— 1. Install cert + profile ———
+      - name: Setup code signing
         id: signing
         env:
           CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
           KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
           PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
         run: |
-          security delete-keychain build.keychain 2>/dev/null || true
           security create-keychain -p "temp123" build.keychain
-          security list-keychains -d user -s build.keychain login.keychain
+          security list-keychains -s build.keychain
           security unlock-keychain -p "temp123" build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
 
@@ -43,28 +42,39 @@ jobs:
           UUID=$(grep -a -A1 'UUID' profile.mobileprovision | grep -oE '[-A-Z0-9]{36}' | head -1)
           cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
           echo "PROFILE_UUID=$UUID" >> $GITHUB_ENV
+          echo "✅ Signing ready (UUID=$UUID)"
 
-          echo "✅ Keychain ready (UUID=$UUID)"
-          security find-identity -v -p codesigning build.keychain
+      # ——— 2. Flutter prepare only (no build) ———
+      - name: Flutter prepare
+        run: |
+          flutter build ios --release --config-only
 
-      # ——— Force manual signing in Xcode project ———
-      - name: Configure Xcode manual signing
+      # ——— 3. xcodebuild archive (CLI params override everything) ———
+      - name: Build xcarchive
+        env:
+          PROFILE_UUID: ${{ env.PROFILE_UUID }}
         run: |
           cd ios
-          PROFILE_UUID="${{ env.PROFILE_UUID }}"
-          sed -i '' 's/DEVELOPMENT_TEAM = "[^"]*";/DEVELOPMENT_TEAM = "74797U8R45";/g' Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = "74797U8R45";/g' Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = "[^"]*";/PROVISIONING_PROFILE_SPECIFIER = "'"$PROFILE_UUID"'";/g' Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGN_IDENTITY = "[^"]*";/CODE_SIGN_IDENTITY = "Apple Distribution";/g' Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = [^;]*;/PRODUCT_BUNDLE_IDENTIFIER = com.tilezhan.app;/g' Runner.xcodeproj/project.pbxproj
-          echo "✅ Manual signing configured"
-          grep -E "(DEVELOPMENT_TEAM|CODE_SIGN_STYLE|PROVISIONING_PROFILE|CODE_SIGN_IDENTITY|PRODUCT_BUNDLE)" Runner.xcodeproj/project.pbxproj | head -15
+          xcodebuild archive \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -archivePath ../build/ios/Runner.xcarchive \
+            DEVELOPMENT_TEAM=74797U8R45 \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE="$PROFILE_UUID" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
+            CODE_SIGNING_REQUIRED=YES \
+            CODE_SIGNING_ALLOWED=YES
+          echo "✅ Archive built"
 
-      # ——— Create ExportOptions.plist ———
-      - name: Create ExportOptions.plist
+      # ——— 4. Export signed IPA ———
+      - name: Export IPA
+        env:
+          PROFILE_UUID: ${{ env.PROFILE_UUID }}
         run: |
-          cat > ios/ExportOptions.plist << 'PLISTEOF'
+          cat > ExportOptions.plist << PLISTEOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -78,22 +88,22 @@ jobs:
               <key>provisioningProfiles</key>
               <dict>
                   <key>com.tilezhan.app</key>
-                  <string>${{ env.PROFILE_UUID }}</string>
+                  <string>$PROFILE_UUID</string>
               </dict>
           </dict>
           </plist>
           PLISTEOF
-          echo "✅ ExportOptions.plist created"
 
-      # ——— Build IPA ———
-      - name: Build IPA
-        run: |
-          flutter build ipa --release --build-number=${GITHUB_RUN_NUMBER} --export-options-plist=ios/ExportOptions.plist
+          xcodebuild -exportArchive \
+            -archivePath build/ios/Runner.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist ExportOptions.plist
+
           IPA=$(find build/ios/ipa -name "*.ipa" -print -quit)
           echo "IPA_PATH=$IPA" >> $GITHUB_ENV
           echo "✅ IPA: $IPA"
 
-      # ——— Upload ———
+      # ——— 5. Upload ———
       - name: Upload to TestFlight
         env:
           ASC_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
