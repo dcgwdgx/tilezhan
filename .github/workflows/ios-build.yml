@@ -18,14 +18,9 @@ jobs:
 
       - run: flutter pub get
 
-      # ——— In-place project config (no rm -rf ios/) ———
-      - name: Configure Xcode project
-        run: |
-          sed -i '' 's/DEVELOPMENT_TEAM = ".*";/DEVELOPMENT_TEAM = "74797U8R45";/' ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = .*;/PRODUCT_BUNDLE_IDENTIFIER = com.tilezhan.app;/' ios/Runner.xcodeproj/project.pbxproj
-
-      # ——— PEM cert import (proven compatible with macOS security) ———
+      # ——— Keychain + cert + profile ———
       - name: Import signing certificate
+        id: signing
         env:
           CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
           KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
@@ -33,7 +28,7 @@ jobs:
         run: |
           security delete-keychain build.keychain 2>/dev/null || true
           security create-keychain -p "temp123" build.keychain
-          security default-keychain -s build.keychain
+          security list-keychains -d user -s build.keychain login.keychain
           security unlock-keychain -p "temp123" build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
 
@@ -46,19 +41,59 @@ jobs:
           echo "$PROFILE_B64" | base64 -d > profile.mobileprovision
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           UUID=$(grep -a -A1 'UUID' profile.mobileprovision | grep -oE '[-A-Z0-9]{36}' | head -1)
-          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
+          echo "PROFILE_UUID=$UUID" >> $GITHUB_ENV
+
           echo "✅ Keychain ready (UUID=$UUID)"
           security find-identity -v -p codesigning build.keychain
 
-      # ——— Build with automatic signing ———
+      # ——— Force manual signing in Xcode project ———
+      - name: Configure Xcode manual signing
+        run: |
+          cd ios
+          PROFILE_UUID="${{ env.PROFILE_UUID }}"
+          sed -i '' 's/DEVELOPMENT_TEAM = "[^"]*";/DEVELOPMENT_TEAM = "74797U8R45";/g' Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = "74797U8R45";/g' Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = "[^"]*";/PROVISIONING_PROFILE_SPECIFIER = "'"$PROFILE_UUID"'";/g' Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_IDENTITY = "[^"]*";/CODE_SIGN_IDENTITY = "Apple Distribution";/g' Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = [^;]*;/PRODUCT_BUNDLE_IDENTIFIER = com.tilezhan.app;/g' Runner.xcodeproj/project.pbxproj
+          echo "✅ Manual signing configured"
+          grep -E "(DEVELOPMENT_TEAM|CODE_SIGN_STYLE|PROVISIONING_PROFILE|CODE_SIGN_IDENTITY|PRODUCT_BUNDLE)" Runner.xcodeproj/project.pbxproj | head -15
+
+      # ——— Create ExportOptions.plist ———
+      - name: Create ExportOptions.plist
+        run: |
+          cat > ios/ExportOptions.plist << 'PLISTEOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>teamID</key>
+              <string>74797U8R45</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>com.tilezhan.app</key>
+                  <string>${{ env.PROFILE_UUID }}</string>
+              </dict>
+          </dict>
+          </plist>
+          PLISTEOF
+          echo "✅ ExportOptions.plist created"
+
+      # ——— Build IPA ———
       - name: Build IPA
         run: |
-          flutter build ipa --release --build-number=${GITHUB_RUN_NUMBER}
+          flutter build ipa --release --build-number=${GITHUB_RUN_NUMBER} --export-options-plist=ios/ExportOptions.plist
           IPA=$(find build/ios/ipa -name "*.ipa" -print -quit)
           echo "IPA_PATH=$IPA" >> $GITHUB_ENV
           echo "✅ IPA: $IPA"
 
-      # ——— Upload via altool ———
+      # ——— Upload ———
       - name: Upload to TestFlight
         env:
           ASC_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
