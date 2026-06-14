@@ -60,6 +60,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     });
   }
 
+  /// 弹战绩或 10 连斩促销窗口。付费用户跳过。
   void _maybeShowBattleReport() {
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) return;
@@ -80,7 +81,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     );
   }
 
-  // Watch for feedback phase to record SRS (catches both skip and manual discard)
+  /// 追踪 isFinished 翻转 → 在下一帧记录战绩、扣体力、弹窗。
   bool _wasFinished = false;
 
   void _recordSrs(bool isSkip) {
@@ -95,7 +96,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     final state = ref.watch(nanikiruProvider);
     final notifier = ref.read(nanikiruProvider.notifier);
 
-    // Catch manual discard confirm (onTileTapped → confirmDiscard)
+    // 手动确认打出牌 → 战绩 + 扣体力 + 弹窗
     if (state.isFinished && !_wasFinished) {
       _wasFinished = true;
       Future.microtask(() {
@@ -106,13 +107,13 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
 
         final hearts = ref.read(heartServiceProvider);
         if (s.isPerfect) {
-          hearts.recordCorrect();
+          hearts.recordCorrect(); // 正确：更新战绩 + 连斩
           ref.read(srsNotifierProvider.notifier).recordReview(
             'nanikiru_${s.correctDiscardId}', 'nanikiru', 5);
         } else {
-          hearts.recordWrong();
+          hearts.recordWrong(); // 错误：归零连斩，不耗心（进错题池免费重练）
         }
-        // Daily challenge first (free), then consume hearts
+        // 每日挑战优先（免费），其次消耗心数
         bool depleted = false;
         if (!hearts.useDailyChallenge()) {
           depleted = hearts.consume();
@@ -345,9 +346,13 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
             AnalyticsService.answered('nanikiru', false);
             notifier.confirmDiscard(state.correctDiscardId, isSkip: true);
             _recordSrs(true);
+            // 跳过也算尝试，消耗体力
             final hearts = ref.read(heartServiceProvider);
-            hearts.recordWrong();
-            final depleted = hearts.consume();
+            hearts.recordWrong(); // 归零连斩
+            bool depleted = false;
+            if (!hearts.useDailyChallenge()) {
+              depleted = hearts.consume();
+            }
             if (depleted) _maybeShowBattleReport();
           }),
         ],

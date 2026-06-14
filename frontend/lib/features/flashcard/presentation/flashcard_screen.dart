@@ -82,6 +82,10 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     ref.read(heartServiceProvider).recordWrong();
   }
 
+  /// 回答提交后的流程：录战绩 → 扣体力 → 弹促销/战绩窗口。
+  ///
+  /// 费用逻辑：每日挑战 3 题免费 → 心数消耗 → 心耗尽弹窗。
+  /// 错误回答不耗心（进错题池），但会归零连斩。
   void _handleAnswer(bool isCorrect) {
     AnalyticsService.answered('flashcard', isCorrect);
     _feedbackCtrl.forward(from: 0);
@@ -89,7 +93,9 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
 
     if (isCorrect) {
       AudioService.playCorrect();
-      hearts.recordCorrect();
+      hearts.recordCorrect(); // 更新战绩 + 全时连斩 +1
+
+      // 每日挑战优先（免费），其次消耗心数
       bool depleted = false;
       if (!hearts.useDailyChallenge()) {
         depleted = hearts.consume();
@@ -97,7 +103,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
       if (depleted) _maybeShowBattleReport();
     } else {
       AudioService.playWrong();
-      hearts.recordWrong();
+      hearts.recordWrong(); // 错误不耗心，但归零连斩
     }
 
     ref.read(flashcardQuizProvider.notifier).submitAnswer(isCorrect);
@@ -113,10 +119,11 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     setState(() {});
   }
 
+  /// 弹战绩或组合促销窗口。付费用户不弹。10 连斩优先展示促销。
   void _maybeShowBattleReport() {
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) return;
-    // Check combo promo first (10-streak = special offer)
+    // 10 连斩 → 20% OFF 年费促销
     if (ref.read(showComboPromoProvider)) {
       showModalBottomSheet(
         context: context,
