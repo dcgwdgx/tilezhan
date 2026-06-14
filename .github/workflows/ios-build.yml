@@ -31,18 +31,22 @@ jobs:
           CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERT_P12_PW }}
           PROVISIONING_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
         run: |
+          security delete-keychain build.keychain 2>/dev/null || true
           security create-keychain -p "temp123" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "temp123" build.keychain
-          security set-keychain-settings -t 3600 -l build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
 
           echo "$CERTIFICATE_BASE64" | base64 -d > certificate.p12
-          security import certificate.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          echo "🔍 验证 P12..."
+          openssl pkcs12 -in certificate.p12 -noout -passin pass:"$CERTIFICATE_PASSWORD"
+          echo "✅ P12 密码正确"
+          security import certificate.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign -A
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "temp123" build.keychain
 
           echo "$PROVISIONING_PROFILE_BASE64" | base64 -d > profile.mobileprovision
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          UUID=$(grep -a -A1 'UUID' profile.mobileprovision | grep -o '[-A-Z0-9]\{36\}' | head -1)
+          UUID=$(grep -a -A1 'UUID' profile.mobileprovision | grep -oE '[-A-Z0-9]{36}' | head -1)
           cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
           echo "✅ Keychain ready (UUID=$UUID)"
 
