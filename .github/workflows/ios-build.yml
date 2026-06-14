@@ -53,13 +53,28 @@ jobs:
       # ——— Export signed IPA ———
       - name: Export signed IPA
         run: |
-          cat > ExportOptions.plist << 'PLISTEOF'
+          # Verify installed profiles
+          echo "Installed profiles:"
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
+
+          # Extract UUID properly via security cms
+          PROFILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision 2>/dev/null | head -1)
+          if [ -n "$PROFILE" ]; then
+            UUID=$(security cms -D -i "$PROFILE" 2>/dev/null | grep -A1 '<key>UUID</key>' | tail -1 | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+            echo "Profile UUID from cms: $UUID"
+          else
+            echo "No profile files found!"
+            ls ~/Library/MobileDevice/Provisioning\ Profiles/
+            UUID=""
+          fi
+
+          cat > ExportOptions.plist << PLISTEOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
               <key>method</key>
-              <string>app-store</string>
+              <string>app-store-connect</string>
               <key>teamID</key>
               <string>74797U8R45</string>
               <key>signingStyle</key>
@@ -67,12 +82,11 @@ jobs:
               <key>provisioningProfiles</key>
               <dict>
                   <key>com.tilezhan.app</key>
-                  <string>TileZhan App Store</string>
+                  <string>$UUID</string>
               </dict>
           </dict>
           </plist>
           PLISTEOF
-          echo "ExportOptions.plist ready"
 
           xcodebuild -exportArchive \
             -archivePath build/ios/archive/Runner.xcarchive \
@@ -81,7 +95,7 @@ jobs:
 
           IPA=$(find build/ios/ipa -name "*.ipa" -print -quit)
           echo "IPA_PATH=$IPA" >> $GITHUB_ENV
-          echo "✅ IPA exported: $IPA"
+          echo "✅ IPA: $IPA"
 
       # ——— Upload ———
       - name: Upload to TestFlight
