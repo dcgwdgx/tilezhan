@@ -22,13 +22,12 @@ jobs:
           cp -r ios/fastlane /tmp/fb 2>/dev/null || true
           cp ios/ExportOptions.plist /tmp/eo.plist 2>/dev/null || true
           rm -rf ios/
+          # Disable Flutter SPM integration globally (CocoaPods-only)
+          flutter config --no-enable-swift-package-manager
           flutter create --platforms=ios --org com.tilezhan --project-name tilezhan .
           cp -r /tmp/fb ios/fastlane 2>/dev/null || true
           cp /tmp/eo.plist ios/ExportOptions.plist 2>/dev/null || true
           sed -i '' 's/com.tilezhan.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
-          # Nuke Package.swift files so Xcode won't create SPM targets
-          # (CocoaPods handles plugin integration; SPM auto-discovery causes provisioning conflicts)
-          find . -name "Package.swift" -delete 2>/dev/null || true
 
       - name: Import signing certificate
         env:
