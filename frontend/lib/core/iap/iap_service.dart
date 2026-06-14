@@ -36,6 +36,21 @@ class IapState {
       return null;
     }
   }
+
+  IapState copyWith({
+    IapStatus? status,
+    List<ProductDetails>? products,
+    Set<String>? activeEntitlements,
+    String? error,
+    bool clearError = false,
+  }) {
+    return IapState(
+      status: status ?? this.status,
+      products: products ?? this.products,
+      activeEntitlements: activeEntitlements ?? this.activeEntitlements,
+      error: clearError ? null : (error ?? this.error),
+    );
+  }
 }
 
 enum IapStatus { loading, ready, purchasing, restoring, error, unavailable }
@@ -126,22 +141,4 @@ class IapService {
   }
 
   void dispose() => _stateCtrl.close();
-}
-
-// Helpers for immutable state
-extension _IapStateCopy on IapState {
-  IapState copyWith({
-    IapStatus? status,
-    List<ProductDetails>? products,
-    Set<String>? activeEntitlements,
-    String? error,
-    bool clearError = false,
-  }) {
-    return IapState(
-      status: status ?? this.status,
-      products: products ?? this.products,
-      activeEntitlements: activeEntitlements ?? this.activeEntitlements,
-      error: clearError ? null : (error ?? this.error),
-    );
-  }
 }
