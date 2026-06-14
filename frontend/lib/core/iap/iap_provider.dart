@@ -1,22 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'iap_service.dart';
 
-/// Singleton IAP service instance, initialised on first read.
+/// Singleton IAP service, initialised on first read and kept alive.
 final iapServiceProvider = Provider<IapService>((ref) {
-  final service = IapService();
-  service.init();
-  ref.onDispose(() => service.dispose());
-  return service;
+  final svc = IapService();
+  svc.init();
+  ref.onDispose(svc.dispose);
+  return svc;
 });
 
-/// Current IAP connection / purchase status.
-final iapStatusProvider = StreamProvider<IapStatus>((ref) {
-  final service = ref.watch(iapServiceProvider);
-  return service.statusStream;
+/// Reactive IAP state stream.
+final iapStateProvider = StreamProvider<IapState>((ref) {
+  return ref.watch(iapServiceProvider).stateStream;
 });
 
-/// Available products with ownership flags.
-final iapProductsProvider = StreamProvider<List<TzProduct>>((ref) {
-  final service = ref.watch(iapServiceProvider);
-  return service.productsStream;
+/// Convenience: is the user premium?
+final isPremiumProvider = Provider<bool>((ref) {
+  return ref.watch(iapStateProvider).valueOrNull?.isPremium ?? false;
 });

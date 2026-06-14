@@ -1,216 +1,147 @@
 import 'dart:async';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
-/// Product IDs — must match App Store Connect configuration.
-/// These serve as the single source of truth for IAP product references.
+/// Product IDs — must match App Store Connect exactly.
 class TzProducts {
   TzProducts._();
 
-  // Subscriptions
-  static const String premiumMonthly = 'com.tilezhan.app.premium.monthly';
-  static const String premiumYearly = 'com.tilezhan.app.premium.yearly';
+  static const String yearly = 'com.tilezhan.app.premium.yearly';
+  static const String monthly = 'com.tilezhan.app.premium.monthly';
+  static const String weekly = 'com.tilezhan.app.premium.weekly';
 
-  // One-time purchases
-  static const String lifetime = 'com.tilezhan.app.lifetime';
-  static const String coinPackSmall = 'com.tilezhan.app.coins.small';
-  static const String coinPackLarge = 'com.tilezhan.app.coins.large';
-
-  /// All product IDs the app can query.
-  static const Set<String> all = {
-    premiumMonthly,
-    premiumYearly,
-    lifetime,
-    coinPackSmall,
-    coinPackLarge,
-  };
+  static const Set<String> all = {yearly, monthly, weekly};
 }
 
-/// Represents the IAP connection / purchase state.
-enum IapStatus {
-  /// Store not yet initialised.
-  loading,
+/// Reactive IAP state.
+class IapState {
+  final IapStatus status;
+  final List<ProductDetails> products;
+  final Set<String> activeEntitlements;
+  final String? error;
 
-  /// Store available, products fetched.
-  ready,
+  const IapState({
+    this.status = IapStatus.loading,
+    this.products = const [],
+    this.activeEntitlements = const {},
+    this.error,
+  });
 
-  /// Store unavailable (Simulator, parental controls, etc.).
-  unavailable,
+  bool get isPremium => activeEntitlements.isNotEmpty;
+  bool get hasProducts => products.isNotEmpty;
 
-  /// A purchase is in flight.
-  purchasing,
-
-  /// An error occurred.
-  error,
+  ProductDetails? operator [](String id) {
+    try {
+      return products.firstWhere((p) => p.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
-/// Wraps [ProductDetails] + an optional entitlement flag for UI convenience.
-class TzProduct {
-  final ProductDetails details;
-  final bool isOwned;
+enum IapStatus { loading, ready, purchasing, restoring, error, unavailable }
 
-  const TzProduct({required this.details, this.isOwned = false});
-
-  String get id => details.id;
-  String get title => details.title;
-  String get description => details.description;
-  String get price => details.price;
-  String get currencyCode => details.currencyCode;
-  bool get isSubscription =>
-      details.id == TzProducts.premiumMonthly ||
-      details.id == TzProducts.premiumYearly;
-}
-
-/// Lightweight IAP service backed by [in_app_purchase].
-///
-/// Responsibilities:
-/// - Initialise the store connection.
-/// - Fetch product metadata from the App Store.
-/// - Execute purchases and restore previous purchases.
-/// - Expose reactive state via [statusStream] and [productsStream].
+/// Thin wrapper around [InAppPurchase] with Riverpod-friendly streams.
 class IapService {
   final InAppPurchase _iap = InAppPurchase.instance;
 
-  final StreamController<IapStatus> _statusCtrl =
-      StreamController<IapStatus>.broadcast();
-  final StreamController<List<TzProduct>> _productsCtrl =
-      StreamController<List<TzProduct>>.broadcast();
+  final _stateCtrl = StreamController<IapState>.broadcast();
+  IapState _state = const IapState();
 
-  IapStatus _status = IapStatus.loading;
-  List<ProductDetails> _storeProducts = [];
-  Set<String> _entitlements = {};
+  Stream<IapState> get stateStream => _stateCtrl.stream;
+  IapState get state => _state;
 
-  // ---------------------------------------------------------------------------
-  // Public streams
-  // ---------------------------------------------------------------------------
-
-  Stream<IapStatus> get statusStream => _statusCtrl.stream;
-  Stream<List<TzProduct>> get productsStream => _productsCtrl.stream;
-  IapStatus get status => _status;
-  List<TzProduct> get products => _storeProducts
-      .map((p) => TzProduct(details: p, isOwned: _entitlements.contains(p.id)))
-      .toList();
-
-  // ---------------------------------------------------------------------------
-  // Lifecycle
-  // ---------------------------------------------------------------------------
-
-  /// Initialise the store connection and start listening for purchase updates.
   Future<void> init() async {
     final available = await _iap.isAvailable();
     if (!available) {
-      _setStatus(IapStatus.unavailable);
+      _emit(_state.copyWith(status: IapStatus.unavailable));
       return;
     }
-
-    // Listen for purchase updates from the store (across sessions).
     _iap.purchaseStream.listen(_onPurchaseUpdate);
-
     await _fetchProducts();
   }
-
-  /// Release resources.
-  void dispose() {
-    _statusCtrl.close();
-    _productsCtrl.close();
-  }
-
-  // ---------------------------------------------------------------------------
-  // Product fetching
-  // ---------------------------------------------------------------------------
 
   Future<void> _fetchProducts() async {
     try {
       final response = await _iap.queryProductDetails(TzProducts.all);
       if (response.notFoundIDs.isNotEmpty) {
-        // Products not configured in App Store Connect yet — not fatal.
-        // ignore: avoid_print
-        print('⚠ IAP products not found: ${response.notFoundIDs}');
+        // Products not yet configured in App Store Connect — not fatal.
+        print('⚠ SKUs not found: ${response.notFoundIDs}');
       }
-      _storeProducts = response.productDetails;
-      _setStatus(IapStatus.ready);
-      _emitProducts();
+      _emit(_state.copyWith(
+        status: IapStatus.ready,
+        products: response.productDetails,
+      ));
     } catch (e) {
-      _setStatus(IapStatus.error);
+      _emit(_state.copyWith(status: IapStatus.error, error: e.toString()));
     }
   }
 
-  /// Re-fetch products (e.g. after StoreKit changes).  Safe to call anytime.
-  Future<void> refreshProducts() => _fetchProducts();
-
-  // ---------------------------------------------------------------------------
-  // Purchases
-  // ---------------------------------------------------------------------------
-
-  /// Kick off a purchase for [productId].
-  Future<bool> purchase(String productId) async {
-    final details = _storeProducts.firstWhere(
+  Future<void> purchase(String productId) async {
+    final details = _state.products.firstWhere(
       (p) => p.id == productId,
       orElse: () => throw StateError('Product not found: $productId'),
     );
-
-    _setStatus(IapStatus.purchasing);
-
-    final param = PurchaseParam(productDetails: details);
+    _emit(_state.copyWith(status: IapStatus.purchasing));
     try {
-      await _iap.buyNonConsumable(purchaseParam: param);
-      return true;
+      await _iap.buyNonConsumable(purchaseParam: PurchaseParam(productDetails: details));
     } catch (e) {
-      _setStatus(IapStatus.error);
+      _emit(_state.copyWith(status: IapStatus.error, error: e.toString()));
       rethrow;
     }
   }
 
-  /// Restore previously purchased non-consumable / subscription products.
   Future<void> restore() async {
-    _setStatus(IapStatus.loading);
+    _emit(_state.copyWith(status: IapStatus.restoring));
     try {
       await _iap.restorePurchases();
-      // Results arrive via [purchaseStream]; status is updated there.
     } catch (e) {
-      _setStatus(IapStatus.error);
+      _emit(_state.copyWith(status: IapStatus.error, error: e.toString()));
     }
   }
-
-  // ---------------------------------------------------------------------------
-  // Internals
-  // ---------------------------------------------------------------------------
 
   void _onPurchaseUpdate(List<PurchaseDetails> purchases) {
     for (final p in purchases) {
-      _handlePurchase(p);
+      switch (p.status) {
+        case PurchaseStatus.purchased:
+        case PurchaseStatus.restored:
+          final entitlements = {..._state.activeEntitlements, p.productID};
+          _iap.completePurchase(p);
+          _emit(_state.copyWith(
+            status: IapStatus.ready,
+            activeEntitlements: entitlements,
+          ));
+        case PurchaseStatus.pending:
+          break;
+        case PurchaseStatus.error:
+          _emit(_state.copyWith(status: IapStatus.error, error: p.error?.message));
+        case PurchaseStatus.canceled:
+          _emit(_state.copyWith(status: IapStatus.ready));
+      }
     }
   }
 
-  void _handlePurchase(PurchaseDetails purchase) {
-    switch (purchase.status) {
-      case PurchaseStatus.pending:
-        // Waiting for parental approval or similar — do nothing yet.
-        break;
-
-      case PurchaseStatus.purchased:
-      case PurchaseStatus.restored:
-        _entitlements.add(purchase.productID);
-        _iap.completePurchase(purchase);
-        _emitProducts();
-        _setStatus(IapStatus.ready);
-        break;
-
-      case PurchaseStatus.error:
-        _setStatus(IapStatus.error);
-        break;
-
-      case PurchaseStatus.canceled:
-        _setStatus(IapStatus.ready);
-        break;
-    }
+  void _emit(IapState s) {
+    _state = s;
+    _stateCtrl.add(s);
   }
 
-  void _setStatus(IapStatus s) {
-    _status = s;
-    _statusCtrl.add(s);
-  }
+  void dispose() => _stateCtrl.close();
+}
 
-  void _emitProducts() {
-    _productsCtrl.add(products);
+// Helpers for immutable state
+extension _IapStateCopy on IapState {
+  IapState copyWith({
+    IapStatus? status,
+    List<ProductDetails>? products,
+    Set<String>? activeEntitlements,
+    String? error,
+    bool clearError = false,
+  }) {
+    return IapState(
+      status: status ?? this.status,
+      products: products ?? this.products,
+      activeEntitlements: activeEntitlements ?? this.activeEntitlements,
+      error: clearError ? null : (error ?? this.error),
+    );
   }
 }
