@@ -24,12 +24,12 @@ jobs:
           sed -i '' 's/DEVELOPMENT_TEAM = ".*";/DEVELOPMENT_TEAM = "74797U8R45";/' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = .*;/PRODUCT_BUNDLE_IDENTIFIER = com.tilezhan.app;/' ios/Runner.xcodeproj/project.pbxproj
 
-      # ——— P12 cert import (exactly per guide) ———
+      # ——— PEM cert import (proven compatible with macOS security) ———
       - name: Import signing certificate
         env:
-          CERTIFICATE_BASE64: ${{ secrets.APPLE_CERT_P12_B64 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERT_P12_PW }}
-          PROVISIONING_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          CERT_B64: ${{ secrets.APPLE_CERT_PEM_B64 }}
+          KEY_B64: ${{ secrets.APPLE_KEY_PEM_B64 }}
+          PROFILE_B64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
         run: |
           security delete-keychain build.keychain 2>/dev/null || true
           security create-keychain -p "temp123" build.keychain
@@ -37,18 +37,18 @@ jobs:
           security unlock-keychain -p "temp123" build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
 
-          echo "$CERTIFICATE_BASE64" | base64 -d > certificate.p12
-          echo "🔍 验证 P12..."
-          openssl pkcs12 -in certificate.p12 -noout -passin pass:"$CERTIFICATE_PASSWORD"
-          echo "✅ P12 密码正确"
-          security import certificate.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign -A
+          echo "$CERT_B64" | base64 -d > cert.pem
+          echo "$KEY_B64"  | base64 -d > key.pem
+          security import cert.pem -k build.keychain -T /usr/bin/codesign -A
+          security import key.pem  -k build.keychain -T /usr/bin/codesign -A
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "temp123" build.keychain
 
-          echo "$PROVISIONING_PROFILE_BASE64" | base64 -d > profile.mobileprovision
+          echo "$PROFILE_B64" | base64 -d > profile.mobileprovision
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           UUID=$(grep -a -A1 'UUID' profile.mobileprovision | grep -oE '[-A-Z0-9]{36}' | head -1)
           cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
           echo "✅ Keychain ready (UUID=$UUID)"
+          security find-identity -v -p codesigning build.keychain
 
       # ——— Build with automatic signing ———
       - name: Build IPA
