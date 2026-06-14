@@ -5,11 +5,11 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 class TzProducts {
   TzProducts._();
 
-  static const String yearly = 'com.tilezhan.app.premium.yearly';
   static const String monthly = 'com.tilezhan.app.premium.monthly';
-  static const String weekly = 'com.tilezhan.app.premium.weekly';
+  static const String yearly = 'com.tilezhan.app.premium.yearly';
+  static const String lifetime = 'com.tilezhan.app.premium.lifetime';
 
-  static const Set<String> all = {yearly, monthly, weekly};
+  static const Set<String> all = {monthly, yearly, lifetime};
 }
 
 /// Reactive IAP state.

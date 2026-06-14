@@ -16,7 +16,7 @@ class PremiumScreen extends ConsumerStatefulWidget {
 }
 
 class _PremiumScreenState extends ConsumerState<PremiumScreen> {
-  String? _selectedProductId;
+  String? _selectedId;
 
   @override
   Widget build(BuildContext context) {
@@ -56,106 +56,157 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
   }
 
   Widget _buildContent(IapState state) {
-    final isPurchasing = state.status == IapStatus.purchasing;
-    final isRestoring = state.status == IapStatus.restoring;
     final error = state.error;
+    final isPurchasing = state.status == IapStatus.purchasing;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: Column(children: [
-        const Text('💎', style: TextStyle(fontSize: 56)),
+        const Text('💎', style: TextStyle(fontSize: 48)),
         const SizedBox(height: 8),
-        const Text('TILEZHAN PRO',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900,
-            color: AppColors.neonGold, letterSpacing: 3)),
-        const SizedBox(height: 8),
-        const Text('Unlimited Learning. Zero Interruptions.',
-          style: TextStyle(fontSize: 14, color: AppColors.jadeWhiteDim)),
-        const SizedBox(height: 24),
-        _buildFeatureList(),
-        const SizedBox(height: 24),
+        const Text('Choose Your Plan',
+          style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900,
+            color: AppColors.neonGold, letterSpacing: 1)),
+        const SizedBox(height: 16),
 
         if (error != null)
           _buildError(error)
         else if (state.hasProducts)
-          ..._buildPricingCards(state, isPurchasing)
-        else if (state.status == IapStatus.unavailable)
-          TzCard(padding: const EdgeInsets.all(16), child: const Text(
-            'In-App Purchases are not available on this device.',
-            style: TextStyle(color: AppColors.jadeWhiteDim))),
-        const SizedBox(height: 24),
+          ..._buildPlanCards(state, isPurchasing),
+
+        const SizedBox(height: 20),
 
         TzButton(
-          label: isPurchasing ? 'PURCHASING...' : 'START FREE TRIAL',
+          label: isPurchasing
+            ? 'PURCHASING...'
+            : (_selectedId != null ? 'CONTINUE' : 'SELECT A PLAN'),
           style: TzButtonStyle.gold,
-          onPressed: _selectedProductId != null && !isPurchasing
-            ? () => _purchase(_selectedProductId!)
+          onPressed: _selectedId != null && !isPurchasing
+            ? () => _purchase(_selectedId!)
             : null,
         ),
-        const SizedBox(height: 16),
-        _buildFooter(isRestoring),
+        const SizedBox(height: 12),
+        _buildRestoreButton(),
+        const SizedBox(height: 8),
+        _buildAllPlansFooter(),
         const SizedBox(height: 40),
       ]),
     );
   }
 
-  List<Widget> _buildPricingCards(IapState state, bool disabled) {
-    // Sort: yearly first (best value), then monthly, then weekly
-    final sorted = state.products.toList()
-      ..sort((a, b) => (b.rawPrice).compareTo(a.rawPrice));
+  List<Widget> _buildPlanCards(IapState state, bool disabled) {
+    final products = Map<String, ProductDetails>.fromEntries(
+      state.products.map((p) => MapEntry(p.id, p)),
+    );
 
-    final badges = <String, String?>{
-      TzProducts.yearly: '🌟 BEST VALUE — 50% OFF',
-      TzProducts.monthly: null,
-      TzProducts.weekly: null,
-    };
+    final plans = [
+      _Plan(
+        id: 'free',
+        title: 'FREE',
+        price: '\$0',
+        subtitle: '10/day',
+        badge: null,
+        features: const ['10 puzzles/day', 'Mistakes free forever', 'Daily challenge'],
+        isFree: true,
+      ),
+      _Plan(
+        id: TzProducts.monthly,
+        title: 'MONTHLY',
+        price: products[TzProducts.monthly]?.price ?? '\$4.99',
+        subtitle: '/month',
+        badge: '★ POPULAR',
+        features: const ['Unlimited puzzles', 'SRS mistake tracking', 'Full stats & analytics', 'All difficulties'],
+      ),
+      _Plan(
+        id: TzProducts.yearly,
+        title: 'ANNUAL',
+        price: products[TzProducts.yearly]?.price ?? '\$29.99',
+        subtitle: '/year',
+        badge: 'BEST VALUE — Save 50%',
+        features: const ['Everything in Monthly', 'ELO deep analysis', 'Exclusive skins', 'Priority support'],
+      ),
+      _Plan(
+        id: TzProducts.lifetime,
+        title: 'LIFETIME',
+        price: products[TzProducts.lifetime]?.price ?? '\$49.99',
+        subtitle: 'one time',
+        badge: 'PAY ONCE',
+        features: const ['Everything forever', 'All future features', 'Founder badge', 'No subscriptions'],
+      ),
+    ];
 
-    return sorted.map((p) {
-      final id = p.id;
-      final badge = badges[id];
-      final isSelected = _selectedProductId == id;
+    return plans.map((plan) {
+      final isSelected = _selectedId == plan.id;
+      final isFree = plan.isFree;
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: GestureDetector(
-          onTap: disabled ? null : () => setState(() => _selectedProductId = id),
+          onTap: disabled ? null : () => setState(() => _selectedId = plan.id),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: isSelected
                 ? AppColors.neonGold.withOpacity(0.12)
-                : AppColors.jadeCard,
+                : isFree
+                  ? AppColors.jadeCard.withOpacity(0.6)
+                  : AppColors.jadeCard,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected ? AppColors.neonGold : AppColors.jadeHover,
+                color: isSelected
+                  ? AppColors.neonGold
+                  : isFree ? AppColors.jadeHover : AppColors.jadeHover,
                 width: isSelected ? 2 : 1,
               ),
             ),
-            child: Row(children: [
-              if (isSelected)
-                Container(
-                  width: 24, height: 24,
-                  margin: const EdgeInsets.only(right: 12),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle, color: AppColors.neonGold),
-                  child: const Icon(Icons.check, size: 16, color: Colors.black),
-                ),
-              const SizedBox(width: 8),
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (badge != null)
-                    Text(badge, style: const TextStyle(fontSize: 10,
-                      fontWeight: FontWeight.w700, color: AppColors.neonGold)),
-                  Text(p.title, style: TextStyle(fontSize: 14,
-                    fontWeight: FontWeight.w800, color: isSelected
-                      ? AppColors.neonGold : AppColors.jadeWhite)),
-                  Text(p.price, style: const TextStyle(fontSize: 22,
-                    fontWeight: FontWeight.w900, color: AppColors.jadeWhite)),
-                  Text(p.description, style: const TextStyle(fontSize: 12,
-                    color: AppColors.jadeWhiteDim)),
-                ],
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // Badge + title row
+              Row(children: [
+                Expanded(child: Text(plan.title, style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: isSelected ? AppColors.neonGold : AppColors.jadeWhite,
+                  letterSpacing: 1,
+                ))),
+                if (plan.badge != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: plan.id == TzProducts.lifetime
+                        ? AppColors.neonGold.withOpacity(0.2)
+                        : AppColors.neonGold,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(plan.badge!, style: TextStyle(
+                      fontSize: 9, fontWeight: FontWeight.w800,
+                      color: plan.id == TzProducts.lifetime
+                        ? AppColors.neonGold : Colors.black,
+                    )),
+                  ),
+              ]),
+              const SizedBox(height: 6),
+              // Price
+              Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text(plan.price, style: const TextStyle(
+                  fontSize: 26, fontWeight: FontWeight.w900, color: AppColors.jadeWhite)),
+                if (plan.subtitle.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4, left: 4),
+                    child: Text(plan.subtitle, style: const TextStyle(
+                      fontSize: 12, color: AppColors.jadeWhiteDim)),
+                  ),
+              ]),
+              const SizedBox(height: 10),
+              // Features
+              ...plan.features.map((f) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(children: [
+                  const Icon(Icons.check, size: 14, color: AppColors.neonGold),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(f, style: const TextStyle(
+                    fontSize: 12, color: AppColors.jadeWhiteDim, height: 1.4))),
+                ]),
               )),
             ]),
           ),
@@ -164,71 +215,76 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     }).toList();
   }
 
-  Widget _buildFooter(bool isRestoring) {
-    return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-      GestureDetector(
-        onTap: isRestoring ? null : _restore,
-        child: Text(
-          isRestoring ? 'RESTORING...' : 'Restore Purchases',
-          style: TextStyle(
-            fontSize: 12,
-            color: AppColors.jadeWhiteMuted.withOpacity(0.6),
-            decoration: TextDecoration.underline,
-          ),
-        ),
-      ),
-      const Text('  ·  ', style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted)),
-      const Text('Terms', style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted)),
-      const Text('  ·  ', style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted)),
-      const Text('Privacy', style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted)),
-    ]);
+  Widget _buildError(String message) {
+    return TzCard(padding: const EdgeInsets.all(16), child: Column(children: [
+      const Icon(Icons.error_outline, color: Colors.redAccent, size: 32),
+      const SizedBox(height: 8),
+      Text(message, textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 13, color: AppColors.jadeWhiteDim)),
+      const SizedBox(height: 12),
+      TzButton(label: 'RETRY', style: TzButtonStyle.ghost,
+        onPressed: () => ref.read(iapServiceProvider).init()),
+    ]));
   }
 
-  Widget _buildError(String message) {
-    return TzCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(children: [
-        const Icon(Icons.error_outline, color: Colors.redAccent, size: 32),
-        const SizedBox(height: 8),
-        Text(message, textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 13, color: AppColors.jadeWhiteDim)),
-        const SizedBox(height: 12),
-        TzButton(
-          label: 'RETRY',
-          style: TzButtonStyle.ghost,
-          onPressed: () => ref.read(iapServiceProvider).init(),
-        ),
+  Widget _buildRestoreButton() {
+    return TextButton(
+      onPressed: () => ref.read(iapServiceProvider).restore(),
+      child: const Text('Restore Purchases',
+        style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteMuted,
+          decoration: TextDecoration.underline)),
+    );
+  }
+
+  Widget _buildAllPlansFooter() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: AppColors.jadeCard.withOpacity(0.5),
+      ),
+      child: const Column(children: [
+        Text('All paid plans include:',
+          style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted)),
+        SizedBox(height: 6),
+        Text('✅ Unlimited puzzle replay   ✅ Ghost Mode (mistake review)   ✅ Cancel anytime',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteDim)),
       ]),
     );
   }
 
-  Widget _buildFeatureList() {
-    final features = [
-      '✅  Unlimited Hearts — Never wait again',
-      '✅  All Mnemonic Illustrations Unlocked',
-      '✅  Advanced Puzzle Packs',
-      '✅  Full Yaku Collection (40 Han)',
-      '✅  Ad-Free Experience',
-    ];
-    return TzCard(padding: const EdgeInsets.all(20), child: Column(
-      children: features.map((f) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Text(f, style: const TextStyle(fontSize: 14,
-          fontWeight: FontWeight.w600, color: AppColors.jadeWhite, height: 1.5)),
-      )).toList(),
-    ));
-  }
-
-  void _purchase(String productId) {
-    ref.read(iapServiceProvider).purchase(productId).catchError((e) {
+  void _purchase(String id) {
+    if (id == 'free') {
+      context.pop();
+      return;
+    }
+    ref.read(iapServiceProvider).purchase(id).catchError((e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Purchase failed: $e')));
       }
     });
   }
+}
 
-  void _restore() {
-    ref.read(iapServiceProvider).restore();
-  }
+/// Models one pricing tier for the UI.
+class _Plan {
+  final String id;
+  final String title;
+  final String price;
+  final String subtitle;
+  final String? badge;
+  final List<String> features;
+  final bool isFree;
+
+  const _Plan({
+    required this.id,
+    required this.title,
+    required this.price,
+    this.subtitle = '',
+    this.badge,
+    this.features = const [],
+    this.isFree = false,
+  });
 }
