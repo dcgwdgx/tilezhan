@@ -11,6 +11,7 @@ import '../../../core/hearts/heart_provider.dart';
 import '../../../core/iap/iap_provider.dart';
 import '../../../shared/models/tile_model.dart';
 import '../../../shared/widgets/tz_battle_report.dart';
+import '../../../shared/widgets/tz_combo_promo.dart';
 import '../../../shared/widgets/tz_countdown_ring.dart';
 import '../../../shared/widgets/tz_progress_bar.dart';
 import '../../../shared/widgets/tz_pulse_painter.dart';
@@ -89,7 +90,10 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     if (isCorrect) {
       AudioService.playCorrect();
       hearts.recordCorrect();
-      final depleted = hearts.consume();
+      bool depleted = false;
+      if (!hearts.useDailyChallenge()) {
+        depleted = hearts.consume();
+      }
       if (depleted) _maybeShowBattleReport();
     } else {
       AudioService.playWrong();
@@ -112,11 +116,21 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   void _maybeShowBattleReport() {
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) return;
+    // Check combo promo first (10-streak = special offer)
+    if (ref.read(showComboPromoProvider)) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => const TzComboPromo(),
+      );
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => TzBattleReport(),
+      builder: (_) => const TzBattleReport(),
     );
   }
 

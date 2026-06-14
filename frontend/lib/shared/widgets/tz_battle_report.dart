@@ -5,8 +5,11 @@ import '../../core/constants/app_colors.dart';
 import '../../core/hearts/heart_provider.dart';
 import '../widgets/tz_button.dart';
 
-/// Shown when free user runs out of hearts. Shows session stats
-/// and CTA to subscribe. Premium users never see this.
+/// 体力耗尽时的今日战绩弹窗——对齐 tilezhan-pricing.md §一。
+///
+/// 展示今日正确率、连斩、总题数，顺势展示 $4.99/月 CTA。
+/// 底部「继续免费错题」跳转 `/graveyard`（错题永不耗心）。
+/// 付费用户不会看到此弹窗。
 class TzBattleReport extends ConsumerWidget {
   final VoidCallback? onClose;
 

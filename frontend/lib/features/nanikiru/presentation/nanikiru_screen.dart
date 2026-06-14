@@ -9,6 +9,7 @@ import '../../../core/srs/srs_provider.dart';
 import '../../../core/hearts/heart_provider.dart';
 import '../../../core/iap/iap_provider.dart';
 import '../../../shared/widgets/tz_battle_report.dart';
+import '../../../shared/widgets/tz_combo_promo.dart';
 import '../../../shared/widgets/tz_progress_bar.dart';
 import '../../../shared/widgets/tz_slash_painter.dart';
 import '../../../shared/widgets/tz_tile.dart';
@@ -62,6 +63,15 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
   void _maybeShowBattleReport() {
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) return;
+    if (ref.read(showComboPromoProvider)) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => const TzComboPromo(),
+      );
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -102,8 +112,11 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
         } else {
           hearts.recordWrong();
         }
-        // Consume heart & check if battle report needed
-        final depleted = hearts.consume();
+        // Daily challenge first (free), then consume hearts
+        bool depleted = false;
+        if (!hearts.useDailyChallenge()) {
+          depleted = hearts.consume();
+        }
         if (depleted) _maybeShowBattleReport();
       });
     }

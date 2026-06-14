@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'heart_service.dart';
 import '../iap/iap_provider.dart';
 
-/// Singleton HeartService.
+// ---- 体力 & 每日挑战 ----
+
+/// 全局 HeartService 单例（初始化时检查每日重置）。
 final heartServiceProvider = Provider<HeartService>((ref) {
   final svc = HeartService();
   svc.init();
@@ -11,22 +13,29 @@ final heartServiceProvider = Provider<HeartService>((ref) {
   return svc;
 });
 
-/// Hearts remaining (polls every minute for daily reset check).
+/// 每 60 秒刷新一次剩余心数（UI 自动感知）。
 final heartsRemainingProvider = StreamProvider<int>((ref) {
   final svc = ref.watch(heartServiceProvider);
-  // Re-check daily reset every 60s
-  return Stream.periodic(const Duration(seconds: 60), (i) => svc.hearts)
-    .asBroadcastStream();
+  return Stream.periodic(
+    const Duration(seconds: 60), (i) => svc.hearts,
+  ).asBroadcastStream();
 });
 
-/// Can the user play? (premium → always, free → has hearts)
+/// 用户能否继续游戏：付费用户无限，免费用户需有剩余心数。
 final canPlayProvider = Provider<bool>((ref) {
   final isPremium = ref.watch(isPremiumProvider);
   if (isPremium) return true;
   return ref.watch(heartServiceProvider).hasHearts;
 });
 
-/// Session battle report data (resets daily).
+/// 今日剩余免费挑战次数。
+final dailyChallengeRemainingProvider = Provider<int>((ref) {
+  return ref.watch(heartServiceProvider).dailyChallengeRemaining;
+});
+
+// ---- 战绩报告 ----
+
+/// 持久化的战绩数据，费时作为弹窗输入。
 class BattleReport {
   final int correct;
   final int wrong;
@@ -44,6 +53,7 @@ class BattleReport {
   double get accuracy => total == 0 ? 0 : correct / total;
 }
 
+/// 当前会话的战绩快照（每日重置）。
 final battleReportProvider = Provider<BattleReport>((ref) {
   final svc = ref.watch(heartServiceProvider);
   return BattleReport(
@@ -52,4 +62,19 @@ final battleReportProvider = Provider<BattleReport>((ref) {
     maxCombo: svc.maxCombo,
     heartsRemaining: svc.hearts,
   );
+});
+
+// ---- 组合促销（10 连斩）----
+
+/// 全时跨会话连斩数。
+final allTimeComboProvider = Provider<int>((ref) {
+  return ref.watch(heartServiceProvider).allTimeCombo;
+});
+
+/// 是否触发 10 连斩促销（仅免费用户，≥10 连时显示）。
+final showComboPromoProvider = Provider<bool>((ref) {
+  final svc = ref.watch(heartServiceProvider);
+  final isPremium = ref.watch(isPremiumProvider);
+  if (isPremium) return false;
+  return svc.allTimeCombo >= 10;
 });

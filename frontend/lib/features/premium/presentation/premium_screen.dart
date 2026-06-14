@@ -68,7 +68,22 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
           style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900,
             color: AppColors.neonGold, letterSpacing: 1)),
         const SizedBox(height: 16),
-
+        // Launch promo banner
+        Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.neonGold.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.neonGold.withOpacity(0.2)),
+          ),
+          child: Row(children: [
+            const Text('🚀', style: TextStyle(fontSize: 18)),
+            const SizedBox(width: 8),
+            const Expanded(child: Text('Launch Special: Lifetime 20% OFF — Limited Time',
+              style: TextStyle(fontSize: 12, color: AppColors.neonGold))),
+          ]),
+        ),
         if (error != null)
           _buildError(error)
         else if (state.hasProducts)
