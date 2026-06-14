@@ -18,7 +18,7 @@ jobs:
 
       - run: flutter pub get
 
-      # ——— Install cert + profile (just in case no-codesign needs them) ———
+      # ——— Install cert + profile ———
       - name: Setup code signing
         id: signing
         env:
@@ -41,24 +41,67 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           UUID=$(grep -a -A1 'UUID' profile.mobileprovision | grep -oE '[-A-Z0-9]{36}' | head -1)
           cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
-
-          # Use GITHUB_OUTPUT for reliable cross-step passing
           echo "profile_uuid=$UUID" >> $GITHUB_OUTPUT
           echo "✅ Signing ready (UUID=$UUID)"
 
-      # ——— Try no-codesign first (App Store Connect signs it) ———
-      - name: Build IPA (no-codesign)
+      # ——— Build unsigned archive (Flutter handles everything except signing) ———
+      - name: Build unsigned archive
         run: |
           flutter build ipa --release --build-number=${GITHUB_RUN_NUMBER} --no-codesign
+          echo "✅ Archive built"
+
+      # ——— Export signed IPA ———
+      - name: Export signed IPA
+        env:
+          PROFILE_UUID: ${{ steps.signing.outputs.profile_uuid }}
+        run: |
+          cat > ExportOptions.plist << PLISTEOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>teamID</key>
+              <string>74797U8R45</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>com.tilezhan.app</key>
+                  <string>$PROFILE_UUID</string>
+              </dict>
+          </dict>
+          </plist>
+          PLISTEOF
+
+          xcodebuild -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist ExportOptions.plist
+
           IPA=$(find build/ios/ipa -name "*.ipa" -print -quit)
           echo "IPA_PATH=$IPA" >> $GITHUB_ENV
           echo "✅ IPA: $IPA"
 
-      # ——— Upload via apple-actions ———
+      # ——— Upload ———
       - name: Upload to TestFlight
-        uses: apple-actions/upload-testflight-build@v1
+        env:
+          ASC_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          xcrun altool --upload-app \
+            -f "$IPA_PATH" \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID" \
+            --type ios
+          echo "✅ Uploaded"
+
+      - uses: actions/upload-artifact@v4
         with:
-          app-path: ${{ env.IPA_PATH }}
-          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
-          api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
-          api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          name: tilezhan-ipa
+          path: ${{ env.IPA_PATH }}
+          retention-days: 30
