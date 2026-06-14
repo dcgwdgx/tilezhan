@@ -39,9 +39,12 @@ jobs:
 
           echo "$PROFILE_B64" | base64 -d > profile.mobileprovision
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          UUID=$(grep -a -A1 'UUID' profile.mobileprovision | grep -oE '[-A-Z0-9]{36}' | head -1)
-          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
+          # Use security cms to properly decode binary plist and extract UUID
+          UUID=$(security cms -D -i profile.mobileprovision 2>/dev/null \
+            | grep -A1 '<key>UUID</key>' | tail -1 \
+            | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
           echo "profile_uuid=$UUID" >> $GITHUB_OUTPUT
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
           echo "✅ Signing ready (UUID=$UUID)"
 
       # ——— Build unsigned archive (Flutter handles everything except signing) ———
