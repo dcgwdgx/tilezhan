@@ -1,3 +1,8 @@
+/// TileSlash 应用入口。
+///
+/// 启动流程：初始化 Flutter 引擎 + Hive 本地存储 +
+/// ProviderScope 容器 + MaterialApp.router 声明式路由。
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';

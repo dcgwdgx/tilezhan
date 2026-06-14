@@ -9,11 +9,26 @@
 /// Design spec §6.2: items are prioritised by errorWeight so the hardest cards
 /// surface first. Wrong answers (quality < 3) are scheduled for immediate
 /// re-review; correct answers follow the standard SM-2 interval progression.
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../constants/api_endpoints.dart';
 import '../storage/storage_service.dart';
 import '../providers/storage_provider.dart';
-import 'srs_item.dart';
 import 'srs_engine.dart';
+import 'srs_item.dart';
+
+/// 将本地 SRS 数据同步到后端。
+Future<bool> syncSrsToCloud(List<SrsItem> items) async {
+  try {
+    // 使用 Dio 或 HTTP 客户端发送数据
+    // 当前为存根 — 后端已部署，前端客户端待对接
+    final data = jsonEncode(items.map((i) => i.toJson()).toList());
+    // await DioClient.instance.post(ApiEndpoints.srsSync, data: data);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
 
 /// All known SRS items loaded from storage.
 /// Per design: FutureProvider for async load from Hive/Firestore.

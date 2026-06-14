@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/hearts/heart_provider.dart';
 import '../../../core/iap/iap_provider.dart';
 import '../../../core/iap/iap_service.dart';
 import '../../../shared/widgets/tz_button.dart';
@@ -79,22 +80,23 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
           style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900,
             color: AppColors.neonGold, letterSpacing: 1)),
         const SizedBox(height: 16),
-        // Launch promo banner
-        Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.neonGold.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.neonGold.withOpacity(0.2)),
+        // 首开 48h Lifetime 促销（付费用户不显示）
+        if (ref.read(heartServiceProvider).isLifetimePromoActive(false))
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.neonGold.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.neonGold.withOpacity(0.2)),
+            ),
+            child: Row(children: [
+              const Text('🚀', style: TextStyle(fontSize: 18)),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('Launch Special: Lifetime 20% OFF — Limited Time',
+                style: TextStyle(fontSize: 12, color: AppColors.neonGold))),
+            ]),
           ),
-          child: Row(children: [
-            const Text('🚀', style: TextStyle(fontSize: 18)),
-            const SizedBox(width: 8),
-            const Expanded(child: Text('Launch Special: Lifetime 20% OFF — Limited Time',
-              style: TextStyle(fontSize: 12, color: AppColors.neonGold))),
-          ]),
-        ),
         if (error != null)
           _buildError(error)
         else if (state.hasProducts)

@@ -1,3 +1,8 @@
+/// IAP 内购服务 — 封装 in_app_purchase 插件的核心逻辑。
+///
+/// 初始化 StoreKit 连接、查询商品、执行购买/恢复、
+/// 通过 [IapState] 暴拉响应式状态流供 UI 消费。
+
 import 'dart:async';
 import 'package:in_app_purchase/in_app_purchase.dart';
 

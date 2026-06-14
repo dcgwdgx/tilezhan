@@ -1,3 +1,8 @@
+/// 闪卡答题屏幕 — 牌面识别 + SRS 间隔重复。
+///
+/// 显示一张麻雀牌，用户回答后正确/错误反馈、连击动画、
+/// 计费逻辑：每日挑战优先免费，其次扣心，心耗尽弹战绩窗口。
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,6 +42,11 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     super.initState();
     _feedbackCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
     Future.microtask(() {
+      // 免费用户体力/每日挑战耗尽时弹窗，不开始 quiz
+      if (!ref.read(canPlayProvider)) {
+        _maybeShowBattleReport();
+        return;
+      }
       ref.read(flashcardQuizProvider.notifier).initQuiz(suite: widget.suite);
     });
   }

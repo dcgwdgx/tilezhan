@@ -1,3 +1,8 @@
+/// 错题墓地屏幕 — 展示所有待复习错题列表。
+///
+/// 每道错题可点击进入复习模式（不耗体力），
+/// 按紧急程度排序（SRS errorWeight 降序）。
+
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

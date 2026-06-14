@@ -1,3 +1,8 @@
+/// 翡翠绿底统一卡片组件。
+///
+/// 可配金色边框 + 圆角 16，用于页面中嵌入的容器区域，
+/// 取代各处重复的 Container + BoxDecoration 手写样式。
+
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 

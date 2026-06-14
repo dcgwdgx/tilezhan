@@ -1,3 +1,8 @@
+/// SharedPreferences 键值存储服务。
+///
+/// 封装本地持久化读写，用于心数/连胜/设置等简单 KV 数据。
+/// 结构化数据（SRS / 进度）由 IsarService 负责。
+
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';

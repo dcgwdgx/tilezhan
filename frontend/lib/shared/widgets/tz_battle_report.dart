@@ -1,3 +1,8 @@
+/// 体力耗尽时的今日战绩弹窗。
+///
+/// 展示正确率/连斩/总题数，顺势推 $4.99/月 CTA，
+/// 底部「继续免费错题」跳转错题墓地。付费用户不弹。
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';

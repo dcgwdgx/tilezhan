@@ -1,3 +1,8 @@
+/// 10 连斩组合促销弹窗。
+///
+/// 免费用户连续答对 10 题时触发，展示 20% OFF 年费优惠，
+/// 引导跳转 /premium 完成转化。付费用户永不可见。
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';

@@ -3,9 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:tilezhan/core/hearts/heart_service.dart';
+import 'package:tilezhan/core/hearts/heart_provider.dart';
 import 'package:tilezhan/core/iap/iap_provider.dart';
 import 'package:tilezhan/core/iap/iap_service.dart';
 import 'package:tilezhan/features/premium/presentation/premium_screen.dart';
+
+/// Fake HeartService — returns no promo, always ready.
+class _FakeHeartService extends HeartService {
+  @override int get hearts => 10;
+  @override Future<void> init() async {}
+  @override bool isLifetimePromoActive(bool _) => true;
+}
 
 /// Fake IapService that returns products without StoreKit.
 class _FakeIapService implements IapService {
@@ -63,7 +72,10 @@ class _FakeIapService implements IapService {
 
 Widget _wrap(Widget child) {
   return ProviderScope(
-    overrides: [iapServiceProvider.overrideWith((ref) => _FakeIapService())],
+    overrides: [
+      iapServiceProvider.overrideWith((ref) => _FakeIapService()),
+      heartServiceProvider.overrideWith((ref) => _FakeHeartService()),
+    ],
     child: MaterialApp(home: child),
   );
 }

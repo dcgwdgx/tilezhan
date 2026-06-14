@@ -1,3 +1,7 @@
+/// 体力/每日挑战/战绩/促销的 Riverpod 状态管理。
+///
+/// 所有 Provider 基于 [HeartService] 单例，UI 通过 Riverpod 自动响应数据变化。
+
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'heart_service.dart';

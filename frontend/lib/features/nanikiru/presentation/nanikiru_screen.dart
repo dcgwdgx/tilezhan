@@ -1,3 +1,8 @@
+/// 何切（牌效率选择）屏幕 — ELO 难度匹配 + 斜切动画。
+///
+/// 手牌展示 + 倒计时条 + 切牌确认/跳过 + 计费逻辑。
+/// 正确 = 更新战绩 + 扣心；错误 = 进错题池不扣心。
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,6 +40,11 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     super.initState();
     _slashCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
     Future.microtask(() {
+      // 免费用户体力/每日挑战耗尽时弹窗，不生成新题
+      if (!ref.read(canPlayProvider)) {
+        _maybeShowBattleReport();
+        return;
+      }
       ref.read(nanikiruProvider.notifier).initPuzzle();
       _startCountdown();
     });

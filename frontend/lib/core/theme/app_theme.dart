@@ -1,3 +1,8 @@
+/// AppTheme 全局暗色主题配置。
+///
+/// 赛博国风色彩系统：翡翠绿底 + 霓虹金 + 琉璃红 + 暗夜紫，
+/// 统一 TextTheme / 卡片 / 按钮 / 进度条等组件样式。
+
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 

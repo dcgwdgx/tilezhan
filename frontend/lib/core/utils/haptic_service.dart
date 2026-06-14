@@ -1,8 +1,7 @@
-import 'package:flutter/services.dart';
-
 /// 触觉反馈包装 — 轻/中/重 触觉 + 系统音效。
 ///
 /// 统一项目内所有触觉反馈的调用入口，便于全局调优振感强度与时长。
+import 'package:flutter/services.dart';
 /// - [lightTap] 轻柔反馈，用于普通点击、正确答案等。
 /// - [mediumTap] 中等反馈，用于切牌、弃牌等操作。
 /// - [heavyTap] 强烈反馈，用于错误提示等需要引起注意的场景。
