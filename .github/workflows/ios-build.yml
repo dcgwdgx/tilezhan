@@ -26,15 +26,9 @@ jobs:
           cp -r /tmp/fb ios/fastlane 2>/dev/null || true
           cp /tmp/eo.plist ios/ExportOptions.plist 2>/dev/null || true
           sed -i '' 's/com.tilezhan.tilezhan/com.tilezhan.app/g' ios/Runner.xcodeproj/project.pbxproj
-          # Add PROVISIONING_PROFILE_SPECIFIER per-target (SPM targets don't have DEVELOPMENT_TEAM)
-          python3 -c "
-          import re
-          p='ios/Runner.xcodeproj/project.pbxproj'
-          c=open(p).read()
-          c=re.sub(r'DEVELOPMENT_TEAM = 74797U8R45;', 'DEVELOPMENT_TEAM = 74797U8R45;\\n				PROVISIONING_PROFILE_SPECIFIER = \"TileZhan App Store\";', c)
-          open(p,'w').write(c)
-          print('OK')
-          "
+          # Nuke Package.swift files so Xcode won't create SPM targets
+          # (CocoaPods handles plugin integration; SPM auto-discovery causes provisioning conflicts)
+          find . -name "Package.swift" -delete 2>/dev/null || true
 
       - name: Import signing certificate
         env:
