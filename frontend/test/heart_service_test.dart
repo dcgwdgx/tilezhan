@@ -76,6 +76,63 @@ void main() {
     });
   });
 
+  group('DailyChallenge', () {
+    test('defaults to 3 remaining', () {
+      expect(svc.dailyChallengeRemaining, 3);
+      expect(svc.canUseDailyChallenge, isTrue);
+    });
+
+    test('useDailyChallenge reduces remaining', () {
+      expect(svc.useDailyChallenge(), isTrue);
+      expect(svc.dailyChallengeRemaining, 2);
+      expect(svc.useDailyChallenge(), isTrue);
+      expect(svc.dailyChallengeRemaining, 1);
+      expect(svc.useDailyChallenge(), isTrue);
+      expect(svc.dailyChallengeRemaining, 0);
+    });
+
+    test('useDailyChallenge returns false when depleted', () {
+      svc.useDailyChallenge(); // 2 left
+      svc.useDailyChallenge(); // 1 left
+      svc.useDailyChallenge(); // 0 left
+      expect(svc.canUseDailyChallenge, isFalse);
+      expect(svc.useDailyChallenge(), isFalse);
+    });
+  });
+
+  group('ComboPromo', () {
+    test('allTimeCombo increments on correct', () {
+      svc.recordCorrect();
+      expect(svc.allTimeCombo, 1);
+      svc.recordCorrect();
+      expect(svc.allTimeCombo, 2);
+    });
+
+    test('allTimeCombo resets on wrong', () {
+      svc.recordCorrect();
+      svc.recordCorrect();
+      svc.recordWrong();
+      expect(svc.allTimeCombo, 0);
+    });
+
+    test('allTimeCombo hits 10 = promo trigger', () {
+      for (int i = 0; i < 10; i++) {
+        svc.recordCorrect();
+      }
+      expect(svc.allTimeCombo, 10);
+    });
+  });
+
+  group('LifetimePromo', () {
+    test('isLifetimePromoActive true for free user within 48h', () {
+      expect(svc.isLifetimePromoActive(false), isTrue);
+    });
+
+    test('isLifetimePromoActive false for premium user', () {
+      expect(svc.isLifetimePromoActive(true), isFalse);
+    });
+  });
+
   group('BattleReport', () {
     test('calculates total and accuracy', () {
       const report = BattleReport(
