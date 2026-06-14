@@ -1,7 +1,22 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
+/// AppTheme — global visual theme for the TileZhan app.
+///
+/// Provides a cohesive [ThemeData] built from [AppColors] and [AppTypography],
+/// covering ColorScheme, typography, and component-level overrides for
+/// AppBar, cards, buttons, bottom nav, and progress indicators.
+/// The dark cyber-brush-and-ink aesthetic (赛博国风) is the single supported
+/// brightness; all surfaces use the jade-deep palette with vermillion and
+/// neon-gold accents.
+
 class AppTheme {
+  /// The single [ThemeData] instance used app-wide.
+  ///
+  /// Always dark brightness. Colors are drawn from [AppColors];
+  /// [AppTypography] is applied via the global [fontFamily] and per-widget
+  /// [textStyle] overrides. Callers should access this through Riverpod
+  /// or `Theme.of(context)` — not by holding a reference to the getter result.
   static ThemeData get dark {
     return ThemeData(
       brightness: Brightness.dark,

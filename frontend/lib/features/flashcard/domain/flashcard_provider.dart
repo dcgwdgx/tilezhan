@@ -1,3 +1,11 @@
+/// 闪卡 quiz 状态管理 — 通过 Riverpod StateNotifier 驱
+/// 动单局答题流程：加载牌池、出题、判对错、助记联想及下一题推进。
+///
+/// 核心职责：
+/// - 从 [TileRepository] 加载全量牌数据并按花色 / 风箭过滤
+/// - 为每道题预构建干扰项 options，避免 UI 重建时闪烁
+/// - 管理答题状态机：答题中 → 查看助记 → 下一题 → 结算
+/// - 通过 [flashcardQuizProvider] 暴露给 Widget 层消费
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/models/tile_model.dart';
@@ -5,10 +13,18 @@ import '../../../shared/data/tile_repository.dart';
 import '../../../core/providers/tile_data_provider.dart';
 import 'flashcard_state.dart';
 
+/// 闪卡 quiz 全局 Provider，由 Riverpod 自动管理生命周期。
+/// 离开闪卡页面时自动释放状态，避免内存常驻。
 final flashcardQuizProvider =
     StateNotifierProvider.autoDispose<FlashcardQuizNotifier, FlashcardQuizState>(
         (ref) => FlashcardQuizNotifier(ref.read(tileRepositoryProvider)));
 
+/// 闪卡答题流程的状态控制器。
+///
+/// 持有 [TileRepository] 引用，负责初始化牌队列、生成干扰选项、
+/// 记录对/错计数、切换助记展示及推进到下一题。
+/// 所有状态变更通过不可变 [FlashcardQuizState] 完成，
+/// 确保 Riverpod 的 rebuild 粒度精确。
 class FlashcardQuizNotifier extends StateNotifier<FlashcardQuizState> {
   final TileRepository _repo;
   List<TileModel> _allTiles = [];

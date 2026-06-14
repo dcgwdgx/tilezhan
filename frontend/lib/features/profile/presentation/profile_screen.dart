@@ -1,3 +1,11 @@
+/// 个人资料页 — 展示玩家 ELO 评分、连胜记录及段位等级。
+///
+/// 数据来源为本地持久化存储（[StorageService]），包含三种核心指标：
+/// - **ELO** — 对战匹配分，初始值 1000，根据对局胜负浮动。
+/// - **Streak** — 连胜/连败计数器，体现近期战绩趋势。
+/// - **Level** — 由 ELO 映射的段位（Beginner → Learner → Adept → Expert → Master）。
+///
+/// 页面同时预留了账号登录、恢复购买、动画速度与每日目标等偏好设置入口（目前为占位状态）。
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +13,10 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/storage_provider.dart';
 import '../../../core/storage/storage_service.dart';
 
+/// 个人资料 ELO / 战绩屏幕。
+///
+/// 顶部展示头像与段位，中部以三栏网格显示 ELO / Streak / Level 三项核心数据，
+/// 下方依次排列账号与偏好设置分组。
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 

@@ -1,15 +1,35 @@
+/// Tile efficiency (ukeire) calculation for Riichi Mahjong.
+///
+/// Determines how many winning-tile draws (ukeire) each possible discard
+/// yields from a 14-tile closed hand.  Used by the AI to compare discard
+/// candidates: higher ukeire counts mean more paths to tenpai.
+///
+/// Ported from backend app/engine/ukeire.py.
+library ukeire_calculator;
+
 import 'shanten_calculator.dart';
 
 /// Calculates tile acceptance (ukeire) after discarding from a 14-tile hand.
-/// Ported from backend app/engine/ukeire.py.
+///
+/// For every unique tile in the hand, simulates removing it and then testing
+/// all 34 possible draws to see whether shanten decreases.  The result tells
+/// the caller which discards keep the most outs alive.
 class UkeireCalculator {
+  /// The 14-tile closed hand to analyze (before any discard).
   final List<String> hand14;
 
+  /// Creates a calculator for the given 14-tile hand.
+  ///
+  /// Throws [ArgumentError] if [hand14] does not contain exactly 14 tile IDs.
   UkeireCalculator(this.hand14) {
     if (hand14.length != 14) throw ArgumentError('Expected 14 tiles');
   }
 
-  /// Returns map of discardTileId → {shanten, ukeireTypes, ukeireCount}.
+  /// Computes ukeire for every unique discard candidate.
+  ///
+  /// Returns a map keyed by the discarded tile ID, each value containing
+  /// the shanten number after discard, the set of tile types that advance
+  /// the hand, and the total count of remaining winning tiles.
   Map<String, _DiscardResult> calculate() {
     final results = <String, _DiscardResult>{};
     final seen = <String>{};
@@ -44,6 +64,7 @@ class UkeireCalculator {
     return results;
   }
 
+  /// All 34 tile types in Riichi Mahjong (1m–9m, 1p–9p, 1s–9s, 1z–7z).
   static const _allTileIds = [
     'm1','m2','m3','m4','m5','m6','m7','m8','m9',
     'p1','p2','p3','p4','p5','p6','p7','p8','p9',
@@ -52,9 +73,16 @@ class UkeireCalculator {
   ];
 }
 
+/// Result for a single discard candidate.
 class _DiscardResult {
+  /// Shanten number after removing this tile (lower is closer to tenpai).
   final int shantenAfter;
+
+  /// Tile types that reduce shanten when drawn.
   final List<String> ukeireTypes;
+
+  /// Total number of remaining winning tiles (counting multiplicity).
   final int ukeireCount;
+
   const _DiscardResult({required this.shantenAfter, required this.ukeireTypes, required this.ukeireCount});
 }

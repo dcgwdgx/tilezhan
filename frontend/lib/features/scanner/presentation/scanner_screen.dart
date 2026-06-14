@@ -1,3 +1,7 @@
+/// 役种扫描参考列表 — 展示一副参考手牌可能组成的全部役种。
+///
+/// MVP 阶段提供一个精选的基础役种列表，每个役种带图标、名称、
+/// 英文名、简介以及解锁状态。V2 将加入完整的手牌扫描功能。
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';

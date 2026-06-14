@@ -1,3 +1,8 @@
+/// 首页 — 体力/每日挑战/快捷入口
+///
+/// 展示玩家体力状态、段位徽章、每日挑战卡片、快捷功能网格，以及底部导航栏。
+/// 体力通过 [heartServiceProvider] 读取，每日挑战剩余次数通过
+/// [dailyChallengeRemainingProvider] 读取，快捷入口通过 GridView 布局九宫格。
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +12,14 @@ import '../../../core/iap/iap_provider.dart';
 import '../../../shared/widgets/tz_battle_report.dart';
 import '../../../shared/widgets/tz_button.dart';
 
+/// 首页主屏幕，展示体力、段位、每日挑战和快捷入口。
+///
+/// 包含以下区域：
+/// - 顶栏：体力心数 & 会员徽章
+/// - 段位卡片：称号、等级、ELO 分数
+/// - 每日挑战：剩余免费次数 & 开始按钮
+/// - 快捷入口：九宫格导航（闪卡、何切、扫描、役种、牌谱、牌浏览、个人、会员、设置）
+/// - 底部导航：首页 / 牌 / 役 / 回顾
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 

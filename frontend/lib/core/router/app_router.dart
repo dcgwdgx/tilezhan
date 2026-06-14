@@ -1,3 +1,9 @@
+/// GoRouter 路由配置，定义应用全屏页面的路径映射与转场动画。
+///
+/// 每个路由使用统一的 [CustomTransitionPage] 包装，提供从右向左滑入
+/// 并伴随淡入的 200ms 过渡效果。路由按扁平结构组织，覆盖启动、引导、
+/// 主页、闪卡、何切、牌览、收藏、牌河、高级版、扫码、个人中心、设置
+/// 共计 12 个全屏页面。
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/splash/presentation/splash_screen.dart';
@@ -31,6 +37,10 @@ CustomTransitionPage _page(Widget child, GoRouterState state) {
   );
 }
 
+/// 应用全局路由实例，12 条全屏页面路由的扁平映射。
+///
+/// 初始位置为 `/splash`。每条路由通过 [_page] 构建统一的转场动画页。
+/// `/flashcard` 路由支持 `suite` 查询参数以指定牌组。
 final appRouter = GoRouter(
   initialLocation: '/splash',
   routes: [

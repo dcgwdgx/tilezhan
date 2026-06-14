@@ -1,7 +1,20 @@
+/// TileZhan onboarding / walkthrough screen.
+///
+/// Displays a multi-step introduction to the app — swipe-to-learn tile
+/// recognition, visual mnemonics for all 34 mahjong tiles, and the discard
+/// efficiency mechanic — before handing off to the main experience.
+/// Navigates forward through [OnboardingScreen._steps] via dot indicators
+/// and a next button; the final step emits a "GET STARTED" CTA.
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 
+/// Full-screen onboarding walkthrough widget.
+///
+/// Managed by the [GoRouter] dispatcher at the `/onboarding` route (if any).
+/// Conveys the core value propositions in 3 swipe-free steps with rich
+/// emoji, titles, and descriptions. Animates a dot-stepper at the bottom
+/// and offers a skip affordance that jumps directly to `/`.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 

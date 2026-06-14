@@ -1,3 +1,7 @@
+/// 全牌浏览 34 牌 + 助记
+///
+/// 展示 34 张麻将牌的网格视图，每张牌附带其助记词（名称、标语、描述、中文）。
+/// 点击牌面可播放语音并弹出详细助记对话框。
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +11,7 @@ import '../../../shared/models/tile_model.dart';
 import '../../../shared/widgets/tz_tile.dart';
 import '../../../core/providers/tile_data_provider.dart';
 
+/// 全牌浏览页面，34 张麻将牌网格展示，支持点击查看助记详情。
 class TileBrowserScreen extends ConsumerWidget {
   const TileBrowserScreen({super.key});
 

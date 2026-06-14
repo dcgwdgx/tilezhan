@@ -1,9 +1,21 @@
+/// 役种收藏册 (Yaku Collection Screen).
+///
+/// Displays a grid of unlockable Mahjong yaku cards. Unlock progress is driven by
+/// SRS review count — every 5 reviews unlocks one additional yaku, up to all 8.
+/// Tapping an unlocked card shows a detail dialog with the yaku name, English
+/// translation, star mastery rating, and a short description.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/srs/srs_provider.dart';
 
+/// A full-screen collection viewer for unlocked Mahjong yaku (scoring patterns).
+///
+/// The grid shows each yaku as a card with an emoji icon, Japanese name, English
+/// name, star rating, and a lock overlay when not yet unlocked. A horizontal
+/// filter bar at the top allows browsing by category (All, Basics, Color, Clone,
+/// VIP). Tapping an unlocked card opens [AlertDialog] with additional detail.
 class CollectionScreen extends ConsumerWidget {
   const CollectionScreen({super.key});
 

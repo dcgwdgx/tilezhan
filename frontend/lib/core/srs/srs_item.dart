@@ -1,3 +1,15 @@
+/// SM-2 spaced-repetition data model.
+///
+/// Contains the immutable [SrsItem] value-object together with its JSON
+/// serialisation helpers.  Used by the review scheduler to decide which
+/// item to serve next and how to update its interval/easiness after a grade.
+///
+/// See [SrsItem.errorWeight] for the prioritisation heuristic.
+
+/// Immutable model for a single SM-2 spaced-repetition item.
+///
+/// Tracks review history (repetitions, interval, easiness factor) and
+/// computes an [errorWeight] used to prioritise urgent items.
 class SrsItem {
   final String itemId;
   final String type;       // 'flashcard' | 'nanikiru'
@@ -9,6 +21,12 @@ class SrsItem {
   final int createdAt;     // epoch ms — first error
   final int lastReviewedAt;// epoch ms — most recent review
 
+  /// Creates a new SM-2 item.
+  ///
+  /// [type] must be `'flashcard'` or `'nanikiru'`.
+  /// [ef] defaults to the SM-2 starting easiness of 2.5.
+  /// [interval] is in days; [nextReviewAt] / [createdAt] / [lastReviewedAt]
+  /// are epoch milliseconds.
   const SrsItem({
     required this.itemId,
     required this.type,
@@ -24,6 +42,7 @@ class SrsItem {
   /// Higher = more urgent to review.
   double get errorWeight => reps == 0 ? errors.toDouble() : errors / (reps + 1);
 
+  /// Returns a copy with the given fields replaced.
   SrsItem copyWith({
     double? ef, int? reps, int? interval, int? nextReviewAt,
     int? errors, int? createdAt, int? lastReviewedAt,
@@ -37,11 +56,13 @@ class SrsItem {
     lastReviewedAt: lastReviewedAt ?? this.lastReviewedAt,
   );
 
+  /// Serialises this item to a JSON-compatible map.
   Map<String, dynamic> toJson() => {
     'itemId':itemId,'type':type,'ef':ef,'reps':reps,'interval':interval,
     'nextReviewAt':nextReviewAt,'errors':errors,
     'createdAt':createdAt,'lastReviewedAt':lastReviewedAt,
   };
+  /// Deserialises an [SrsItem] from a JSON-compatible map.
   factory SrsItem.fromJson(Map<String, dynamic> j) => SrsItem(
     itemId: j['itemId'], type: j['type']??'flashcard',
     ef: (j['ef'] as num?)?.toDouble()??2.5, reps: j['reps']??0,

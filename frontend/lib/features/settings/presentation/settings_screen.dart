@@ -1,8 +1,19 @@
+/// Settings screen providing user-facing configuration, account management,
+/// and app information.
+///
+/// Organized into three sections:
+/// - **Learning**: animation speed, daily card goal, and countdown duration.
+/// - **Account**: sign-in and purchase restoration (placeholder).
+/// - **About**: version number, privacy policy, and terms of service.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 
+/// A scrollable settings page with sections for Learning, Account, and About.
+///
+/// Uses [ConsumerWidget] from Riverpod for reactive state access. Each section
+/// is rendered as a rounded card with a list of labeled, tappable tiles.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 

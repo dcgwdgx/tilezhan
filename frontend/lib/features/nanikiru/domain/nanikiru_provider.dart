@@ -1,3 +1,8 @@
+/// 何切 (Nanikiru) 谜题状态管理模块。
+///
+/// 提供基于 Riverpod 的 [StateNotifierProvider] 和 [NanikiruNotifier]，
+/// 负责谜题的生成、倒计时、选牌交互和判定反馈。
+/// 难度随用户 ELO 自适应，由 [DifficultyScorer] 和 [PuzzleGenerator] 协作完成。
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/models/tile_model.dart';
 import '../../../shared/data/tile_repository.dart';
@@ -8,10 +13,17 @@ import 'nanikiru_state.dart';
 import 'puzzle_generator.dart';
 import 'difficulty_scorer.dart';
 
+/// 何切谜题的全局状态提供者，自动释放以节省内存。
 final nanikiruProvider =
     StateNotifierProvider.autoDispose<NanikiruNotifier, NaniKiruState>(
         (ref) => NanikiruNotifier(ref.read(tileRepositoryProvider), ref));
 
+/// 管理何切谜题的完整生命周期。
+///
+/// 职责包括：
+/// - 加载全量牌库并根据用户 ELO 生成自适应难度的谜题
+/// - 处理倒计时 tick、选牌 tap、确认弃牌及手牌排序
+/// - 控制谜题状态流转：准备 → 选择中 → 反馈 → 下一题
 class NanikiruNotifier extends StateNotifier<NaniKiruState> {
   final TileRepository _repo;
   final Ref _ref;

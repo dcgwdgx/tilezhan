@@ -7,6 +7,12 @@ import '../../../shared/models/tile_model.dart';
 import '../../../shared/widgets/tz_card.dart';
 import '../domain/graveyard_provider.dart';
 
+/// 错题墓地 — 复习列表界面
+///
+/// Displays the user's SRS due queue: a weakness radar summarising error
+/// rates across the five mahjong suits, a scrollable list of overdue
+/// flashcard and nanikiru items, and a "Review All" button that launches
+/// the flashcard session. 所有数据通过 Riverpod providers 驱动。
 class GraveyardScreen extends ConsumerWidget {
   const GraveyardScreen({super.key});
 

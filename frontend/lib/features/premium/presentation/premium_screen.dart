@@ -1,3 +1,8 @@
+/// Premium subscription screen with four-tier pricing (Free / Monthly / Annual / Lifetime).
+///
+/// Displays plan cards with badge highlights, feature lists, and real Store prices
+/// fetched via IAP. Supports purchase, restore, and error retry flows. The launch
+/// promo banner shows a limited-time lifetime discount.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +13,12 @@ import '../../../core/iap/iap_service.dart';
 import '../../../shared/widgets/tz_button.dart';
 import '../../../shared/widgets/tz_card.dart';
 
+/// Premium pricing page: Free / Monthly / Annual / Lifetime tiers.
+///
+/// Reads product details from [IapState] (via Riverpod) and renders
+/// selectable plan cards with real Store prices. Tapping a plan sets the
+/// selection; the bottom CTA triggers the purchase flow through [IapService].
+/// The "Restore Purchases" link and per-tier feature lists are also rendered here.
 class PremiumScreen extends ConsumerStatefulWidget {
   const PremiumScreen({super.key});
 

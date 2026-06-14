@@ -1,3 +1,14 @@
+/// SRS (Spaced Repetition System) state management via Riverpod.
+///
+/// Exposes the full review lifecycle:
+/// - [srsItemsProvider] — async load of all SRS items from storage
+/// - [dueItemsProvider] — items currently due, sorted by [SrsItem.errorWeight] descending
+/// - [srsNotifierProvider] / [SrsReviewNotifier] — record reviews, recalculate SM-2
+///   schedule, and persist back to storage
+///
+/// Design spec §6.2: items are prioritised by errorWeight so the hardest cards
+/// surface first. Wrong answers (quality < 3) are scheduled for immediate
+/// re-review; correct answers follow the standard SM-2 interval progression.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/storage_service.dart';
 import '../providers/storage_provider.dart';
@@ -26,9 +37,17 @@ final dueItemsProvider = Provider<List<SrsItem>>((ref) {
 /// Notifier for recording reviews and updating SRS state.
 final srsNotifierProvider = NotifierProvider<SrsReviewNotifier, Map<String, SrsItem>>(SrsReviewNotifier.new);
 
+/// Reactive notifier that loads, mutates, and persists the SRS item map.
+///
+/// On [build] it asynchronously hydrates state from [StorageService] and
+/// subscribes to future storage updates. Every mutation through
+/// [recordReview] is immediately flushed to storage via [_save].
 class SrsReviewNotifier extends Notifier<Map<String, SrsItem>> {
   StorageService? _storage;
 
+  /// Initialises the notifier: subscribes to [storageServiceProvider] and
+  /// hydrates [state] once the storage backend is ready. Returns an empty
+  /// map while loading.
   @override
   Map<String, SrsItem> build() {
     ref.watch(storageServiceProvider).whenData((s) {
@@ -39,13 +58,24 @@ class SrsReviewNotifier extends Notifier<Map<String, SrsItem>> {
     return {};
   }
 
+  /// Persists current [state] to the storage backend.
+  ///
+  /// No-op if the storage service has not been initialised yet (i.e. during
+  /// the brief window before [build] receives the first async value).
   void _save() {
     if (_storage == null) return;
     _storage!.setJson(StorageService.kSrsItems,
       state.map((k, v) => MapEntry(k, v.toJson())));
   }
 
-  /// Record a review and update the SRS schedule.
+  /// Record a review and update the SRS schedule for [itemId].
+  ///
+  /// Delegates to [SrsEngine.calculate] for the SM-2 algorithm, then
+  /// computes [SrsItem.nextReviewAt]:
+  /// - quality < 3 (wrong): immediate re-review (nextReviewAt = now)
+  /// - quality >= 3 (correct): next review after [newInterval] days
+  ///
+  /// The updated item is merged into [state] and flushed to storage.
   void recordReview(String itemId, String type, int quality) {
     final now = DateTime.now().millisecondsSinceEpoch;
     final existing = state[itemId];

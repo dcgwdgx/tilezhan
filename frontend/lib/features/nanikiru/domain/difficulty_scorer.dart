@@ -1,8 +1,30 @@
+/// Difficulty scoring system for Nanikiru puzzles.
+///
+/// Evaluates every puzzle on 6 orthogonal dimensions (shanten distance, valid
+/// discard count, ukeire complexity, trap attraction, yaku recognition, and
+/// time pressure), computes a weighted sum, and maps it to the 800–1600
+/// Puzzle Rating scale defined in PRD §B1.3.
+///
+/// The rating is used both for sorting the puzzle library and for matching
+/// puzzles to a player's current ELO band via [targetRange].
 import 'package:tilezhan/shared/models/puzzle_model.dart';
 
 /// 6-dimensional Puzzle Rating calculator per PRD §B1.3.
+///
+/// ## Formula
 /// Puzzle_Rating = 800 + Σ(dimension_score × weight × 400)
+///
+/// ## Dimensions (weights in [_weights])
+/// - **shanten** (0.25): higher shanten number = further from tenpai = harder.
+/// - **validDiscards** (0.20): fewer correct discard options = harder.
+/// - **ukeireComplexity** (0.20): more tile types that improve the hand = harder
+///   to identify the optimal line.
+/// - **trapAttraction** (0.15): presence of tempting-but-wrong discards.
+/// - **yakuRecognition** (0.10): difficulty of spotting the winning yaku.
+/// - **timePressure** (0.10): time pressure multiplier (reserved for timed mode).
 class DifficultyScorer {
+  /// Dimension weights (must sum to 1.0). Tune these to shift the relative
+  /// contribution of each dimension to the final Puzzle Rating.
   static const _weights = {
     'shanten': 0.25,
     'validDiscards': 0.20,

@@ -1,13 +1,36 @@
+/// A countdown ring widget with configurable duration, color, and size.
+///
+/// Renders a circular countdown timer with a glowing arc that depletes as time
+/// runs out. The central number shows seconds remaining. The ring can enter an
+/// "urgent" state where the color shifts to vermillion for visual urgency.
+///
+/// Key features:
+/// - Configurable [size] (default 100)
+/// - Dual color state: gold (normal) vs. vermillion (urgent)
+/// - Progress-driven arc with glow effect
+/// - Monospaced central digit display
+
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 
+/// A circular countdown timer ring.
+///
+/// Displays a dark track ring with a colored progress arc that sweeps
+/// clockwise from the top. The arc includes a blur glow for a neon effect.
+/// A large monospaced digit sits in the center showing remaining seconds.
 class TzCountdownRing extends StatelessWidget {
   final double progress;     // 0.0-1.0
   final int secondsLeft;     // display number
   final double size;
   final bool urgent;
 
+  /// Creates a countdown ring.
+  ///
+  /// [progress] ranges 0.0–1.0 and controls the arc sweep angle.
+  /// [secondsLeft] is the digit shown in the center of the ring.
+  /// [size] sets the ring diameter (default 100).
+  /// [urgent] switches the ring color from gold to vermillion.
   const TzCountdownRing({
     super.key,
     required this.progress,

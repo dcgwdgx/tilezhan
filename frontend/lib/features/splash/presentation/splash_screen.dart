@@ -1,8 +1,17 @@
+/// 启动闪屏 —— 应用冷启动时展示的品牌入场动画，含淡入 + 缩放 + 进度条，
+/// 动画结束后自动跳转至 onboarding 页面。
+///
+/// 动画时长约 2 秒（淡入 0.8 s，回弹缩放 1.2 s），额外留 0.4 s 停留后路由跳转。
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 
+/// 应用启动闪屏页。
+///
+/// 展示品牌标识（🀄 太极麻将牌符号）、英文标题 TILEZHAN、中文副标题「麻 雀 斩」、
+/// 标语及水平进度条，搭配 Jade/朱膘配色。动画由 [AnimationController] 驱动，
+/// 完成后通过 [GoRouter] 导航至 `/onboarding`。
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
