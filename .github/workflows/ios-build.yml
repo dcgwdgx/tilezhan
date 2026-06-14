@@ -18,7 +18,7 @@ jobs:
 
       - run: flutter pub get
 
-      # ——— 1. Install cert + profile ———
+      # ——— Install cert + profile (just in case no-codesign needs them) ———
       - name: Setup code signing
         id: signing
         env:
@@ -41,86 +41,24 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           UUID=$(grep -a -A1 'UUID' profile.mobileprovision | grep -oE '[-A-Z0-9]{36}' | head -1)
           cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
-          echo "PROFILE_UUID=$UUID" >> $GITHUB_ENV
+
+          # Use GITHUB_OUTPUT for reliable cross-step passing
+          echo "profile_uuid=$UUID" >> $GITHUB_OUTPUT
           echo "✅ Signing ready (UUID=$UUID)"
 
-      # ——— 2. Flutter prepare only (no build) ———
-      - name: Flutter prepare
+      # ——— Try no-codesign first (App Store Connect signs it) ———
+      - name: Build IPA (no-codesign)
         run: |
-          flutter build ios --release --config-only
-
-      # ——— 3. xcodebuild archive (CLI params override everything) ———
-      - name: Build xcarchive
-        env:
-          PROFILE_UUID: ${{ env.PROFILE_UUID }}
-        run: |
-          cd ios
-          xcodebuild archive \
-            -workspace Runner.xcworkspace \
-            -scheme Runner \
-            -configuration Release \
-            -archivePath ../build/ios/Runner.xcarchive \
-            DEVELOPMENT_TEAM=74797U8R45 \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE="$PROFILE_UUID" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
-            CODE_SIGNING_REQUIRED=YES \
-            CODE_SIGNING_ALLOWED=YES
-          echo "✅ Archive built"
-
-      # ——— 4. Export signed IPA ———
-      - name: Export IPA
-        env:
-          PROFILE_UUID: ${{ env.PROFILE_UUID }}
-        run: |
-          cat > ExportOptions.plist << PLISTEOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>app-store</string>
-              <key>teamID</key>
-              <string>74797U8R45</string>
-              <key>signingStyle</key>
-              <string>manual</string>
-              <key>provisioningProfiles</key>
-              <dict>
-                  <key>com.tilezhan.app</key>
-                  <string>$PROFILE_UUID</string>
-              </dict>
-          </dict>
-          </plist>
-          PLISTEOF
-
-          xcodebuild -exportArchive \
-            -archivePath build/ios/Runner.xcarchive \
-            -exportPath build/ios/ipa \
-            -exportOptionsPlist ExportOptions.plist
-
+          flutter build ipa --release --build-number=${GITHUB_RUN_NUMBER} --no-codesign
           IPA=$(find build/ios/ipa -name "*.ipa" -print -quit)
           echo "IPA_PATH=$IPA" >> $GITHUB_ENV
           echo "✅ IPA: $IPA"
 
-      # ——— 5. Upload ———
+      # ——— Upload via apple-actions ———
       - name: Upload to TestFlight
-        env:
-          ASC_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-          ASC_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
-        run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$ASC_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
-          xcrun altool --upload-app \
-            -f "$IPA_PATH" \
-            --apiKey "$ASC_KEY_ID" \
-            --apiIssuer "$ASC_ISSUER_ID" \
-            --type ios
-          echo "✅ Uploaded"
-
-      - uses: actions/upload-artifact@v4
+        uses: apple-actions/upload-testflight-build@v1
         with:
-          name: tilezhan-ipa
-          path: ${{ env.IPA_PATH }}
-          retention-days: 30
+          app-path: ${{ env.IPA_PATH }}
+          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
