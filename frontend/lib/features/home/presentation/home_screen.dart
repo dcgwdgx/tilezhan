@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/providers/storage_provider.dart';
-import '../../../core/storage/storage_service.dart';
-import '../../../core/utils/animation_utils.dart';
+import '../../../core/hearts/heart_provider.dart';
+import '../../../core/iap/iap_provider.dart';
+import '../../../shared/widgets/tz_battle_report.dart';
 import '../../../shared/widgets/tz_button.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -17,80 +16,20 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin {
-  int _hearts = 3;
-  int _streak = 0;
-
   late AnimationController _shimmerCtrl;
-  int _breakingHeart = -1;
-  late AnimationController _heartCtrl;
   int _activeTab = 0;
 
   @override
   void initState() {
     super.initState();
     _shimmerCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
-    _heartCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
-    if (!isTestEnvironment) _shimmerCtrl.repeat();
-    _loadStats();
+    _shimmerCtrl.repeat();
   }
 
   @override
   void dispose() {
     _shimmerCtrl.dispose();
-    _heartCtrl.dispose();
     super.dispose();
-  }
-
-  void _loadStats() {
-    final storage = ref.read(storageServiceProvider).valueOrNull;
-    if (storage == null) return;
-    setState(() {
-      _hearts = storage.getInt(StorageService.kHearts);
-      if (_hearts == 0) _hearts = 3; // default
-      _streak = storage.getInt(StorageService.kStreak);
-    });
-  }
-
-  void _saveStats() {
-    final storage = ref.read(storageServiceProvider).valueOrNull;
-    if (storage == null) return;
-    storage.setInt(StorageService.kHearts, _hearts);
-    storage.setInt(StorageService.kStreak, _streak);
-  }
-
-  void _breakHeart(int i) {
-    if (_hearts <= 0) return;
-    setState(() {
-      _breakingHeart = i;
-      _hearts--;
-    });
-    _heartCtrl.forward(from: 0);
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) setState(() => _breakingHeart = -1);
-    });
-    _saveStats();
-    if (_hearts <= 0) _showPaywall();
-  }
-
-  void _showPaywall() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.jadeCard,
-        title: const Text('💎 Out of Stamina!', style: TextStyle(color: AppColors.jadeWhite)),
-        content: const Text('Hearts recover every 4 hours.\n\nUnlock unlimited with TileZhan Pro.',
-            style: TextStyle(color: AppColors.jadeWhiteDim)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context),
-              child: const Text('Wait', style: TextStyle(color: AppColors.jadeWhiteMuted))),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.neonGold),
-            child: const Text('Unlock Pro', style: TextStyle(color: Colors.black)),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -129,67 +68,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildTopBar() {
+    final hearts = ref.watch(heartServiceProvider).hearts;
+    final isPremium = ref.watch(isPremiumProvider);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-      child: Row(
-        children: [
-          Text('🔥 $_streak', style: const TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFFFF8A00),
+      child: Row(children: [
+        // Hearts
+        Row(children: [
+          Text('❤️', style: TextStyle(
+            fontSize: 18,
+            color: hearts > 0 ? const Color(0xFFFF3B30) : AppColors.jadeWhiteMuted,
           )),
-          const Spacer(),
-          Row(
-            children: List.generate(3, (i) {
-              final breaking = _breakingHeart == i && _heartCtrl.isAnimating;
-              if (breaking) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: SizedBox(
-                    width: 22, height: 22,
-                    child: Stack(
-                      children: [
-                        Transform.translate(
-                          offset: Offset(-15 * _heartCtrl.value, -10 * _heartCtrl.value * _heartCtrl.value),
-                          child: Transform.rotate(
-                            angle: -0.5 * _heartCtrl.value,
-                            child: Opacity(opacity: 1 - _heartCtrl.value,
-                              child: SvgPicture.asset('assets/icons/heart_full.svg', width: 22, height: 22, colorFilter: const ColorFilter.mode(Color(0xFFFF3B30), BlendMode.srcIn))),
-                          ),
-                        ),
-                        Transform.translate(
-                          offset: Offset(15 * _heartCtrl.value, -10 * _heartCtrl.value * _heartCtrl.value),
-                          child: Transform.rotate(
-                            angle: 0.5 * _heartCtrl.value,
-                            child: Opacity(opacity: 1 - _heartCtrl.value,
-                              child: SvgPicture.asset('assets/icons/heart_full.svg', width: 22, height: 22, colorFilter: const ColorFilter.mode(Color(0xFFFF3B30), BlendMode.srcIn))),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-              return GestureDetector(
-                onTap: () => _breakHeart(i),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: Text(i < _hearts ? '❤️' : '🖤', style: const TextStyle(fontSize: 18)),
-                ),
-              );
-            }),
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: _showPaywall,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.demonPurple.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text('👑 PRO', style: TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.demonPurple,
-              )),
+          const SizedBox(width: 4),
+          Text('$hearts/10', style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            color: hearts > 0 ? AppColors.jadeWhite : AppColors.jadeWhiteMuted,
+            decoration: hearts == 0 ? TextDecoration.lineThrough : null,
+          )),
+        ]),
+        const Spacer(),
+        // Premium badge
+        GestureDetector(
+          onTap: () => context.push('/premium'),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: isPremium
+                ? AppColors.neonGold.withOpacity(0.2)
+                : AppColors.demonPurple.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
             ),
+            child: Text(
+              isPremium ? '👑 PRO' : '👑 UPGRADE',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800,
+                color: isPremium ? AppColors.neonGold : AppColors.jadeWhiteMuted),
+            ),
+          ),
           ),
         ],
       ),
@@ -240,49 +156,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Color(0xFF0F3526), Color(0xFF0D3D26)],
             begin: Alignment.topLeft, end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.neonGold.withOpacity(0.2)),
-          boxShadow: [BoxShadow(color: AppColors.neonGold.withOpacity(0.06), blurRadius: 40, spreadRadius: 2)],
+          border: Border.all(color: AppColors.neonGold.withOpacity(0.25)),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('✦ TODAY\'S QUEST', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 2, color: AppColors.neonGold)),
-            const SizedBox(height: 20),
-            _questItem('🃏', 'Tile Flashcards · Manzu Advanced', '8/10', 0.8, AppColors.neonGold),
-            const SizedBox(height: 16),
-            _questItem('⚔️', 'Nani-Kiru · Two-Sided Waits', '1/3', 0.33, AppColors.neonGold),
-            const SizedBox(height: 16),
-            _questItem('👻', 'Tile Graveyard Review', '⚠ 12 due', 0.0, AppColors.vermillion),
-            const SizedBox(height: 20),
-            TzButton(
-              label: '⚡ START DAILY QUEST',
-              style: TzButtonStyle.gold,
-              onPressed: () => context.push('/flashcard'),
+        child: Column(children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.neonGold.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text('✨ DAILY CHALLENGE', style: TextStyle(
+                fontSize: 11, fontWeight: FontWeight.w800,
+                color: AppColors.neonGold, letterSpacing: 1)),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _questItem(String icon, String label, String count, double progress, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Row(children: [Text(icon, style: const TextStyle(fontSize: 16)), const SizedBox(width: 8), Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.jadeWhite))]),
-          Text(count, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.jadeWhiteDim)),
+            const Spacer(),
+            const Text('0 ❤️', style: TextStyle(fontSize: 12,
+              color: AppColors.jadeWhiteDim)),
+          ]),
+          const SizedBox(height: 16),
+          const Text('3 puzzles. No stamina cost. Claim your daily reward.',
+            style: TextStyle(fontSize: 14, color: AppColors.jadeWhiteDim)),
+          const SizedBox(height: 16),
+          TzButton(
+            label: '⚡ START CHALLENGE',
+            style: TzButtonStyle.gold,
+            onPressed: () => context.push('/nanikiru'),
+          ),
         ]),
-        const SizedBox(height: 8),
-        _ShimmerBar(progress: progress, color: color, ctrl: _shimmerCtrl),
-      ],
+      ),
     );
   }
 

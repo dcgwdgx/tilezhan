@@ -69,7 +69,10 @@ class TzBattleReport extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         TextButton(
-          onPressed: onClose,
+          onPressed: () {
+            Navigator.pop(context); // close modal
+            context.push('/graveyard');
+          },
           child: const Text('继续免费错题',
             style: TextStyle(fontSize: 13, color: AppColors.jadeWhiteMuted)),
         ),
