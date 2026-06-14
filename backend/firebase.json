@@ -1,3 +1,4 @@
+// Firebase 配置
 {
   "firestore": {
     "indexes": "firestore.indexes.json"

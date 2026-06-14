@@ -1,3 +1,4 @@
+"""助记词 JSON 生成脚本"""
 import os, json
 with open("d:/claude/tilezhan/frontend/assets/data/tiles.json",encoding="utf-8") as f:
     tiles = json.load(f)
