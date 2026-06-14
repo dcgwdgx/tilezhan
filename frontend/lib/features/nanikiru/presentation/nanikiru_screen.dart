@@ -6,6 +6,9 @@ import '../../../core/analytics/analytics_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/audio_service.dart';
 import '../../../core/srs/srs_provider.dart';
+import '../../../core/hearts/heart_provider.dart';
+import '../../../core/iap/iap_provider.dart';
+import '../../../shared/widgets/tz_battle_report.dart';
 import '../../../shared/widgets/tz_progress_bar.dart';
 import '../../../shared/widgets/tz_slash_painter.dart';
 import '../../../shared/widgets/tz_tile.dart';
@@ -56,6 +59,17 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     });
   }
 
+  void _maybeShowBattleReport() {
+    final isPremium = ref.read(isPremiumProvider);
+    if (isPremium) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => TzBattleReport(),
+    );
+  }
+
   // Watch for feedback phase to record SRS (catches both skip and manual discard)
   bool _wasFinished = false;
 
@@ -74,17 +88,23 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     // Catch manual discard confirm (onTileTapped → confirmDiscard)
     if (state.isFinished && !_wasFinished) {
       _wasFinished = true;
-      // Only record if not already recorded by Skip button (quality already set)
-      // For manual, we record here
       Future.microtask(() {
         final s = ref.read(nanikiruProvider);
         AudioService.playSlash();
         _slashCtrl.forward(from: 0);
         AnalyticsService.answered('nanikiru', s.isPerfect);
+
+        final hearts = ref.read(heartServiceProvider);
         if (s.isPerfect) {
+          hearts.recordCorrect();
           ref.read(srsNotifierProvider.notifier).recordReview(
             'nanikiru_${s.correctDiscardId}', 'nanikiru', 5);
+        } else {
+          hearts.recordWrong();
         }
+        // Consume heart & check if battle report needed
+        final depleted = hearts.consume();
+        if (depleted) _maybeShowBattleReport();
       });
     }
     if (!state.isFinished) {
@@ -312,6 +332,10 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
             AnalyticsService.answered('nanikiru', false);
             notifier.confirmDiscard(state.correctDiscardId, isSkip: true);
             _recordSrs(true);
+            final hearts = ref.read(heartServiceProvider);
+            hearts.recordWrong();
+            final depleted = hearts.consume();
+            if (depleted) _maybeShowBattleReport();
           }),
         ],
       ),

@@ -7,7 +7,10 @@ import '../../../core/analytics/analytics_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/audio_service.dart';
 import '../../../core/srs/srs_provider.dart';
+import '../../../core/hearts/heart_provider.dart';
+import '../../../core/iap/iap_provider.dart';
 import '../../../shared/models/tile_model.dart';
+import '../../../shared/widgets/tz_battle_report.dart';
 import '../../../shared/widgets/tz_countdown_ring.dart';
 import '../../../shared/widgets/tz_progress_bar.dart';
 import '../../../shared/widgets/tz_pulse_painter.dart';
@@ -75,16 +78,24 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     ref.read(flashcardQuizProvider.notifier).submitAnswer(false);
     _recordSrs(0);
     _showMnemonic();
+    ref.read(heartServiceProvider).recordWrong();
   }
 
   void _handleAnswer(bool isCorrect) {
     AnalyticsService.answered('flashcard', isCorrect);
     _feedbackCtrl.forward(from: 0);
+    final hearts = ref.read(heartServiceProvider);
+
     if (isCorrect) {
       AudioService.playCorrect();
+      hearts.recordCorrect();
+      final depleted = hearts.consume();
+      if (depleted) _maybeShowBattleReport();
     } else {
       AudioService.playWrong();
+      hearts.recordWrong();
     }
+
     ref.read(flashcardQuizProvider.notifier).submitAnswer(isCorrect);
     _recordSrs(isCorrect ? 4 : 1);
     _countdownTimer?.cancel();
@@ -96,6 +107,17 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
       _showMnemonic();
     }
     setState(() {});
+  }
+
+  void _maybeShowBattleReport() {
+    final isPremium = ref.read(isPremiumProvider);
+    if (isPremium) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => TzBattleReport(),
+    );
   }
 
   void _recordSrs(int quality) {
