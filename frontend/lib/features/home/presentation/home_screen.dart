@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/hearts/heart_provider.dart';
 import '../../../core/iap/iap_provider.dart';
+import '../../../core/srs/srs_provider.dart';
 import '../../../shared/widgets/tz_battle_report.dart';
 import '../../../shared/widgets/tz_button.dart';
 
@@ -125,6 +126,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  /// 从 SRS 数据推算段位名称——根据总复习次数递进。
+  String _rankName(WidgetRef ref) {
+    final srs = ref.watch(srsItemsProvider).valueOrNull ?? {};
+    final total = srs.values.fold<int>(0, (s, i) => s + i.reps);
+    if (total < 5) return 'Novice';
+    if (total < 20) return 'Apprentice';
+    if (total < 50) return 'Adept';
+    if (total < 100) return 'Expert';
+    return 'Master';
+  }
+
+  /// SRS 总复习次数。
+  int _totalReviews(WidgetRef ref) {
+    final srs = ref.watch(srsItemsProvider).valueOrNull ?? {};
+    return srs.values.fold<int>(0, (s, i) => s + i.reps);
+  }
+
   Widget _buildBadgeCard() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -151,14 +169,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               child: const Center(child: Text('🏆', style: TextStyle(fontSize: 28))),
             ),
             const SizedBox(width: 16),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Adept · Lv.7', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.jadeWhite)),
-                SizedBox(height: 2),
-                Text('1248 ELO', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.neonGold)),
-              ],
-            ),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // 段位从 SRS 总复习次数推算
+              Text(_rankName(ref), style: const TextStyle(fontSize: 18,
+                fontWeight: FontWeight.w700, color: AppColors.jadeWhite)),
+              const SizedBox(height: 2),
+              Text('${_totalReviews(ref)} reviews',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                  color: AppColors.neonGold)),
+            ]),
           ],
         ),
       ),

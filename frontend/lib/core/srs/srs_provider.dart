@@ -17,16 +17,18 @@ import '../providers/storage_provider.dart';
 import 'srs_engine.dart';
 import 'srs_item.dart';
 
-/// 将本地 SRS 数据同步到后端。
-Future<bool> syncSrsToCloud(List<SrsItem> items) async {
+/// 将本地 SRS 数据同步到后端（JSON 序列化后 POST）。
+///
+/// 返回 (success, uploadedCount)。后端已部署但 HTTP 客户端待对接，
+/// 当前仅序列化数据，不实际发送。
+Future<(bool, int)> syncSrsToCloud(List<SrsItem> items) async {
   try {
-    // 使用 Dio 或 HTTP 客户端发送数据
-    // 当前为存根 — 后端已部署，前端客户端待对接
     final data = jsonEncode(items.map((i) => i.toJson()).toList());
-    // await DioClient.instance.post(ApiEndpoints.srsSync, data: data);
-    return true;
+    // final res = await DioClient.instance.post(ApiEndpoints.srsSync, data: data);
+    // return (res.statusCode == 200, items.length);
+    return (true, items.length);
   } catch (_) {
-    return false;
+    return (false, 0);
   }
 }
 

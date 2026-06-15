@@ -37,9 +37,16 @@ async def get_status(user: dict = Depends(get_current_user)):
 async def revenuecat_webhook(request: Request):
     """RevenueCat 服务器到服务器通知。
 
-    生产环境应验证 Authorization 头中的 webhook secret。
-    当前信任 RevenueCat 来源（测试阶段），后续加固时添加签名验证。
+    验证 Authorization 头中的 Bearer token（需与 RevenueCat 后台配置的
+    webhook secret 一致），防止伪造调用。
     """
+    # 签名验证：Authorization: Bearer <webhook_secret>
+    expected = settings.REVENUECAT_WEBHOOK_SECRET
+    if expected:
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer ") or auth[7:] != expected:
+            return {"status": "unauthorized", "detail": "Invalid webhook secret"}
+
     try:
         body = await request.json()
     except Exception:

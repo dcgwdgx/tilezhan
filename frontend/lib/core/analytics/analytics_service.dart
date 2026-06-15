@@ -56,12 +56,20 @@ class AnalyticsService {
   static void enable() => _enabled = true;
 
   /// 取出当前缓冲中的所有事件并清空缓冲。
-  ///
-  /// 返回事件的快照列表，可用于批量上报到远程服务。
   static List<_Event> flush() { final b = List<_Event>.from(_buffer); _buffer.clear(); return b; }
 
   /// 重置到默认状态 — 清空缓冲并启用埋点。仅用于测试。
   static void reset() { _buffer.clear(); _enabled = true; }
+
+  /// 向后端分析系统发送事件（异步，不阻塞 UI）。
+  ///
+  /// [event] 事件名：app_open / hearts_depleted / promo_shown / daily_challenge_used。
+  /// 后端已部署，HTTP 客户端接入后替换为实际 API 调用。
+  static void trackBackend(String event, {String userId = ''}) {
+    if (!_enabled) return;
+    // TODO: DioClient.instance.post(ApiEndpoints.trackAnalytics,
+    //     data: {'event': event, 'user_id': userId});
+  }
 }
 
 /// 埋点事件数据模型（内部使用）。
