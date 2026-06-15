@@ -41,7 +41,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     {
       'emoji': '💎',
       'title': '免费开始',
-      'desc': '无需注册，直接开始\n付费会员解锁无限体力\n$4.99/月，可随时取消',
+      'desc': '无需注册，直接开始\n付费会员解锁无限体力\n\$4.99/月，可随时取消',
     },
   ];
 
