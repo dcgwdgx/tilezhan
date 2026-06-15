@@ -39,15 +39,15 @@ class TzBattleReport extends ConsumerWidget {
         const SizedBox(height: 20),
         const Text('🎯', style: TextStyle(fontSize: 40)),
         const SizedBox(height: 8),
-        const Text('今日战绩',
+        const Text('Today\'s Battle Report',
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900,
             color: AppColors.neonGold)),
         const SizedBox(height: 24),
         // Stats row
         Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-          _stat('总题数', '${report.total}'),
-          _stat('正确率', '${(report.accuracy * 100).toInt()}%'),
-          _stat('最大连斩', '${report.maxCombo}×'),
+          _stat('Total', '${report.total}'),
+          _stat('Accuracy', '${(report.accuracy * 100).toInt()}%'),
+          _stat('Max Combo', '${report.maxCombo}×'),
         ]),
         const SizedBox(height: 24),
         // Ghost mode notice
@@ -61,7 +61,7 @@ class TzBattleReport extends ConsumerWidget {
             Icon(Icons.auto_fix_high, color: AppColors.neonGold, size: 20),
             SizedBox(width: 10),
             Expanded(child: Text(
-              '错题永远免费重练，不限次数',
+              'Review mistakes anytime — free, no limits',
               style: TextStyle(fontSize: 13, color: AppColors.jadeWhiteDim),
             )),
           ]),
@@ -69,7 +69,7 @@ class TzBattleReport extends ConsumerWidget {
         const SizedBox(height: 20),
         // Premium CTA
         TzButton(
-          label: '\$4.99/月  无限刷题',
+          label: '\$4.99/mo  —  Unlimited Play',
           style: TzButtonStyle.gold,
           onPressed: () {
             context.push('/premium');
@@ -81,7 +81,7 @@ class TzBattleReport extends ConsumerWidget {
             Navigator.pop(context); // close modal
             context.push('/graveyard');
           },
-          child: const Text('继续免费错题',
+          child: const Text('Review Past Mistakes',
             style: TextStyle(fontSize: 13, color: AppColors.jadeWhiteMuted)),
         ),
         const SizedBox(height: 16),

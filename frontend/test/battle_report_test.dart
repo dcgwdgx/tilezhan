@@ -32,7 +32,7 @@ void main() {
       await tester.pumpWidget(_wrap(const Scaffold(body: TzBattleReport())));
       await tester.pumpAndSettle();
 
-      expect(find.text('今日战绩'), findsOneWidget);
+      expect(find.text('Today\'s Battle Report'), findsOneWidget);
       expect(find.text('10'), findsOneWidget); // 7 + 3 total
       expect(find.text('70%'), findsOneWidget);
       expect(find.text('4×'), findsOneWidget);
@@ -49,14 +49,14 @@ void main() {
       await tester.pumpWidget(_wrap(const Scaffold(body: TzBattleReport())));
       await tester.pumpAndSettle();
 
-      expect(find.text('继续免费错题'), findsOneWidget);
+      expect(find.text('Review Past Mistakes'), findsOneWidget);
     });
 
     testWidgets('shows mistake review hint', (tester) async {
       await tester.pumpWidget(_wrap(const Scaffold(body: TzBattleReport())));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('错题永远免费'), findsOneWidget);
+      expect(find.textContaining('Review mistakes'), findsOneWidget);
     });
   });
 }

@@ -30,18 +30,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _steps = const [
     {
       'emoji': '🀄',
-      'title': '认识麻将牌',
-      'desc': '34 种牌，4 选 1 识别训练\n答对扣心，答错免费重练\n每天 10 心，用完全天练错题',
+      'title': 'Master Tile\nRecognition',
+      'desc': '4-choice flashcard quiz for all 34 tiles.\nCorrect = use a heart.\nWrong = review free forever.',
     },
     {
       'emoji': '⚔️',
-      'title': '练习牌效率',
-      'desc': '摸到一张牌后\n从手牌中选出最优弃牌\n斩击确认，正确有特写动画',
+      'title': 'Train Tile\nEfficiency',
+      'desc': 'Draw a tile, then choose the\noptimal discard from your hand.\nPerfect answers get visual rewards.',
     },
     {
       'emoji': '💎',
-      'title': '免费开始',
-      'desc': '无需注册，直接开始\n付费会员解锁无限体力\n\$4.99/月，可随时取消',
+      'title': 'Start Free',
+      'desc': 'No sign-up required.\n10 free puzzles every day.\nUnlock unlimited with Pro.',
     },
   ];
 
