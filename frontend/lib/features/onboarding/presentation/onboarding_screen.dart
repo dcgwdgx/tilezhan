@@ -7,6 +7,7 @@
 /// and a next button; the final step emits a "GET STARTED" CTA.
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 
 /// Full-screen onboarding walkthrough widget.
@@ -29,18 +30,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _steps = const [
     {
       'emoji': '🀄',
-      'title': 'Master Mahjong\nthe Smart Way',
-      'desc': 'Like flashcards, but for the world\'s\nmost addictive mind game.',
-    },
-    {
-      'emoji': '🃏',
-      'title': 'Swipe to Learn',
-      'desc': 'Recognize all 34 tiles instantly\nwith visual mnemonics.\n0.5 second per card.',
+      'title': '认识麻将牌',
+      'desc': '34 种牌，4 选 1 识别训练\n答对扣心，答错免费重练\n每天 10 心，用完全天练错题',
     },
     {
       'emoji': '⚔️',
-      'title': 'Slice to Win',
-      'desc': 'Learn which tile to discard\nfor maximum efficiency.\nOne slash at a time.',
+      'title': '练习牌效率',
+      'desc': '摸到一张牌后\n从手牌中选出最优弃牌\n斩击确认，正确有特写动画',
+    },
+    {
+      'emoji': '💎',
+      'title': '免费开始',
+      'desc': '无需注册，直接开始\n付费会员解锁无限体力\n$4.99/月，可随时取消',
     },
   ];
 
@@ -90,7 +91,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: Row(
                 children: [
                   TextButton(
-                    onPressed: () => context.go('/'),
+                    onPressed: () {
+                      Hive.box('prefs').put('onboarding_complete', true);
+                      context.go('/');
+                    },
                     child: const Text('Skip', style: TextStyle(color: AppColors.jadeWhiteMuted)),
                   ),
                   const Spacer(),
@@ -99,6 +103,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       if (_step < _totalSteps - 1) {
                         setState(() => _step++);
                       } else {
+                        Hive.box('prefs').put('onboarding_complete', true);
                         context.go('/');
                       }
                     },

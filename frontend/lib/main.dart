@@ -19,6 +19,8 @@ import 'core/router/app_router.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
+  // 启动时就打开 prefs Box，供 SplashScreen 检查引导完成标志
+  await Hive.openBox('prefs');
   runApp(const ProviderScope(child: TileSlashApp()));
 }
 

@@ -5,13 +5,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 
 /// 应用启动闪屏页。
 ///
-/// 展示品牌标识（🀄 太极麻将牌符号）、英文标题 TILEZHAN、中文副标题「麻 雀 斩」、
-/// 标语及水平进度条，搭配 Jade/朱膘配色。动画由 [AnimationController] 驱动，
-/// 完成后通过 [GoRouter] 导航至 `/onboarding`。
+/// 2 秒动画后检查 [onboardingComplete] 标志：
+/// - 首次启动 → /onboarding（引导页）
+/// - 曾经完成引导 → /（首页）
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -24,6 +25,12 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _fadeIn;
   late Animation<double> _scale;
+
+  /// 是否已完成引导（Hive 持久化），跨会话保持。
+  static bool get onboardingComplete {
+    final box = Hive.box('prefs');
+    return box.get('onboarding_complete', defaultValue: false);
+  }
 
   @override
   void initState() {
@@ -41,7 +48,10 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
 
     Timer(const Duration(milliseconds: 2400), () {
-      if (mounted) context.go('/onboarding');
+      if (!mounted) return;
+      // 首次启动进引导页，已引导过直接进首页
+      final target = onboardingComplete ? '/' : '/onboarding';
+      context.go(target);
     });
   }
 
