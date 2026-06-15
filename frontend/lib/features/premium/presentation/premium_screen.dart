@@ -287,10 +287,22 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
       context.pop();
       return;
     }
-    ref.read(iapServiceProvider).purchase(id).catchError((e) {
+    // 显示购买中状态
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Connecting to App Store...'),
+        duration: Duration(seconds: 2)));
+
+    ref.read(iapServiceProvider).purchase(id).then((_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Purchase failed: $e')));
+          const SnackBar(content: Text('Purchase successful! 🎉'),
+            backgroundColor: Colors.green));
+      }
+    }).catchError((e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Purchase failed: $e'),
+            backgroundColor: Colors.red, duration: const Duration(seconds: 4)));
       }
     });
   }

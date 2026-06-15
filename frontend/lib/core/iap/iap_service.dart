@@ -101,10 +101,14 @@ class IapService {
       (p) => p.id == productId,
       orElse: () => throw StateError('Product not found: $productId'),
     );
+    print('🔵 Purchase: $productId (${details.title}, ${details.price})');
     _emit(_state.copyWith(status: IapStatus.purchasing));
     try {
+      // buyNonConsumable handles both non-consumables AND auto-renewable subscriptions
       await _iap.buyNonConsumable(purchaseParam: PurchaseParam(productDetails: details));
+      print('✅ Purchase completed: $productId');
     } catch (e) {
+      print('❌ Purchase error: $e');
       _emit(_state.copyWith(status: IapStatus.error, error: e.toString()));
       rethrow;
     }
