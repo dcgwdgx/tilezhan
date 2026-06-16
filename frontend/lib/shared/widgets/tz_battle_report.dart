@@ -1,34 +1,67 @@
-/// 体力耗尽时的今日战绩弹窗。
+/// Battle report modal — shown when free user runs out of hearts.
 ///
-/// 展示正确率/连斩/总题数，顺势推 $4.99/月 CTA，
-/// 底部「继续免费错题」跳转错题墓地。付费用户不弹。
-
+/// Displays session stats (accuracy, combo, total) with premium CTA,
+/// mistake review link, and a share button to post results on social media.
+/// Premium users never see this.
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
 import '../../core/constants/app_colors.dart';
 import '../../core/hearts/heart_provider.dart';
 import '../widgets/tz_button.dart';
 
-/// 体力耗尽时的今日战绩弹窗——对齐 tilezhan-pricing.md §一。
-///
-/// 展示今日正确率、连斩、总题数，顺势展示 $4.99/月 CTA。
-/// 底部「继续免费错题」跳转 `/graveyard`（错题永不耗心）。
-/// 付费用户不会看到此弹窗。
-class TzBattleReport extends ConsumerWidget {
-  final VoidCallback? onClose;
-
-  const TzBattleReport({super.key, this.onClose});
+class TzBattleReport extends ConsumerStatefulWidget {
+  const TzBattleReport({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TzBattleReport> createState() => _TzBattleReportState();
+}
+
+class _TzBattleReportState extends ConsumerState<TzBattleReport> {
+  final _captureKey = GlobalKey();
+
+  /// Capture the battle report card as a PNG and share it.
+  Future<void> _shareResults(BattleReport report) async {
+    try {
+      final boundary = _captureKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      final image = await boundary.toImage(pixelRatio: 2.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+
+      final dir = await getTemporaryDirectory();
+      final file = File(
+        '${dir.path}/tilezhan_report_${DateTime.now().millisecondsSinceEpoch}.png');
+      await file.writeAsBytes(byteData.buffer.asUint8List());
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '🎯 ${report.total} puzzles today · '
+            '${(report.accuracy * 100).toInt()}% accuracy · '
+            '${report.maxCombo}× max combo on TileZhan!',
+      );
+    } catch (e) {
+      // Share failed — non-critical
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final report = ref.watch(battleReportProvider);
 
     return Container(
       padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.jadeDeep,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         // Handle bar
@@ -37,55 +70,89 @@ class TzBattleReport extends ConsumerWidget {
           borderRadius: BorderRadius.circular(2),
         )),
         const SizedBox(height: 20),
-        const Text('🎯', style: TextStyle(fontSize: 40)),
-        const SizedBox(height: 8),
-        const Text('Today\'s Battle Report',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900,
-            color: AppColors.neonGold)),
-        const SizedBox(height: 24),
-        // Stats row
-        Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-          _stat('Total', '${report.total}'),
-          _stat('Accuracy', '${(report.accuracy * 100).toInt()}%'),
-          _stat('Max Combo', '${report.maxCombo}×'),
-        ]),
-        const SizedBox(height: 24),
-        // Ghost mode notice
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.jadeCard,
-            borderRadius: BorderRadius.circular(12),
+
+        // Sharable card (captured as image)
+        RepaintBoundary(
+          key: _captureKey,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F3526), Color(0xFF0D3D26)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.neonGold.withOpacity(0.2)),
+            ),
+            child: Column(children: [
+              const Text('🎯', style: TextStyle(fontSize: 36)),
+              const SizedBox(height: 4),
+              const Text('Today\'s Battle Report',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900,
+                  color: AppColors.neonGold)),
+              const SizedBox(height: 20),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+                _stat('Total', '${report.total}'),
+                _stat('Accuracy', '${(report.accuracy * 100).toInt()}%'),
+                _stat('Max Combo', '${report.maxCombo}×'),
+              ]),
+              const SizedBox(height: 12),
+              Text('tilezhan.app',
+                style: TextStyle(fontSize: 11, color: AppColors.neonGold.withOpacity(0.6))),
+            ]),
           ),
-          child: const Row(children: [
-            Icon(Icons.auto_fix_high, color: AppColors.neonGold, size: 20),
-            SizedBox(width: 10),
-            Expanded(child: Text(
-              'Review mistakes anytime — free, no limits',
-              style: TextStyle(fontSize: 13, color: AppColors.jadeWhiteDim),
-            )),
-          ]),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
+
+        // Share button
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          _actionBtn(Icons.share, 'Share', () => _shareResults(report)),
+          const SizedBox(width: 24),
+          _actionBtn(Icons.auto_fix_high, 'Mistakes', () {
+            Navigator.pop(context);
+            context.push('/graveyard');
+          }),
+          const SizedBox(width: 24),
+          _actionBtn(Icons.person_add, 'Invite', () {
+            _shareInviteLink();
+          }),
+        ]),
+        const SizedBox(height: 16),
+
         // Premium CTA
         TzButton(
           label: '\$4.99/mo  —  Unlimited Play',
           style: TzButtonStyle.gold,
-          onPressed: () {
-            context.push('/premium');
-          },
-        ),
-        const SizedBox(height: 12),
-        TextButton(
-          onPressed: () {
-            Navigator.pop(context); // close modal
-            context.push('/graveyard');
-          },
-          child: const Text('Review Past Mistakes',
-            style: TextStyle(fontSize: 13, color: AppColors.jadeWhiteMuted)),
+          onPressed: () => context.push('/premium'),
         ),
         const SizedBox(height: 16),
       ]),
+    );
+  }
+
+  Widget _actionBtn(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(children: [
+        Container(
+          width: 44, height: 44,
+          decoration: BoxDecoration(
+            color: AppColors.jadeCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.jadeHover),
+          ),
+          child: Icon(icon, color: AppColors.jadeWhiteDim, size: 20),
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.jadeWhiteMuted)),
+      ]),
+    );
+  }
+
+  void _shareInviteLink() {
+    Share.share(
+      '🀄 Join me on TileZhan — master Mahjong tile recognition! '
+      'Free daily puzzles. Get it at tilezhan.app',
     );
   }
 

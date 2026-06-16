@@ -19,9 +19,7 @@ class _FakeHeartService extends HeartService {
 
 Widget _wrap(Widget child) {
   return ProviderScope(
-    overrides: [
-      heartServiceProvider.overrideWith((ref) => _FakeHeartService()),
-    ],
+    overrides: [heartServiceProvider.overrideWith((ref) => _FakeHeartService())],
     child: MaterialApp(home: child),
   );
 }
@@ -31,7 +29,6 @@ void main() {
     testWidgets('shows battle report with correct stats', (tester) async {
       await tester.pumpWidget(_wrap(const Scaffold(body: TzBattleReport())));
       await tester.pumpAndSettle();
-
       expect(find.text('Today\'s Battle Report'), findsOneWidget);
       expect(find.text('10'), findsOneWidget); // 7 + 3 total
       expect(find.text('70%'), findsOneWidget);
@@ -41,22 +38,21 @@ void main() {
     testWidgets('shows premium CTA', (tester) async {
       await tester.pumpWidget(_wrap(const Scaffold(body: TzBattleReport())));
       await tester.pumpAndSettle();
-
-      expect(find.textContaining('\$4.99'), findsOneWidget);
+      expect(find.textContaining('4.99'), findsOneWidget);
     });
 
-    testWidgets('continue to graveyard visible', (tester) async {
+    testWidgets('shows action buttons: Share, Mistakes, Invite', (tester) async {
       await tester.pumpWidget(_wrap(const Scaffold(body: TzBattleReport())));
       await tester.pumpAndSettle();
-
-      expect(find.text('Review Past Mistakes'), findsOneWidget);
+      expect(find.text('Share'), findsOneWidget);
+      expect(find.text('Mistakes'), findsOneWidget);
+      expect(find.text('Invite'), findsOneWidget);
     });
 
-    testWidgets('shows mistake review hint', (tester) async {
+    testWidgets('shows app domain', (tester) async {
       await tester.pumpWidget(_wrap(const Scaffold(body: TzBattleReport())));
       await tester.pumpAndSettle();
-
-      expect(find.textContaining('Review mistakes'), findsOneWidget);
+      expect(find.text('tilezhan.app'), findsOneWidget);
     });
   });
 }
