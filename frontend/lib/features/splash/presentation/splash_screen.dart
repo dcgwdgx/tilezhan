@@ -1,32 +1,26 @@
-/// 启动闪屏 —— 应用冷启动时展示的品牌入场动画，含淡入 + 缩放 + 进度条，
-/// 动画结束后自动跳转至 onboarding 页面。
+/// Splash screen with staggered reveal animation.
 ///
-/// 动画时长约 2 秒（淡入 0.8 s，回弹缩放 1.2 s），额外留 0.4 s 停留后路由跳转。
+/// Sequence: emoji fade+scale → title slide-up → tagline → shimmer bar.
+/// After 2.5s, checks [onboardingComplete] to decide: /onboarding or /.
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/constants/app_colors.dart';
 
-/// 应用启动闪屏页。
-///
-/// 2 秒动画后检查 [onboardingComplete] 标志：
-/// - 首次启动 → /onboarding（引导页）
-/// - 曾经完成引导 → /（首页）
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
-
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeIn;
-  late Animation<double> _scale;
+  late AnimationController _ctrl;
+  late Animation<double> _emojiFade, _emojiScale;
+  late Animation<double> _titleFade, _titleSlide;
+  late Animation<double> _tagFade;
 
-  /// 是否已完成引导（Hive 持久化），跨会话保持。
   static bool get onboardingComplete {
     final box = Hive.box('prefs');
     return box.get('onboarding_complete', defaultValue: false);
@@ -35,21 +29,28 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    );
-    _fadeIn = Tween(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
-    );
-    _scale = Tween(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.6, curve: Curves.easeOutBack)),
-    );
-    _controller.forward();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 2200));
 
-    Timer(const Duration(milliseconds: 2400), () {
+    // Emoji: fade in + scale bounce (0–0.5s)
+    _emojiFade = Tween(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: const Interval(0.0, 0.25, curve: Curves.easeOut)));
+    _emojiScale = Tween(begin: 0.3, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: const Interval(0.0, 0.35, curve: Curves.elasticOut)));
+
+    // Title: fade + slide up (0.2–0.7s)
+    _titleFade = Tween(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: const Interval(0.15, 0.45, curve: Curves.easeOut)));
+    _titleSlide = Tween(begin: 24.0, end: 0.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: const Interval(0.15, 0.5, curve: Curves.easeOutCubic)));
+
+    // Tagline: fade in (0.4–0.8s)
+    _tagFade = Tween(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: const Interval(0.3, 0.6, curve: Curves.easeOut)));
+
+    _ctrl.forward();
+
+    Timer(const Duration(milliseconds: 2500), () {
       if (!mounted) return;
-      // 首次启动进引导页，已引导过直接进首页
       final target = onboardingComplete ? '/' : '/onboarding';
       context.go(target);
     });
@@ -57,7 +58,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _controller.dispose();
+    _ctrl.dispose();
     super.dispose();
   }
 
@@ -67,39 +68,62 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: AppColors.jadeDeep,
       body: Center(
         child: AnimatedBuilder(
-          animation: _controller,
-          builder: (_, child) => Opacity(
-            opacity: _fadeIn.value,
-            child: Transform.scale(
-              scale: _scale.value,
-              child: child,
-            ),
-          ),
-          child: Column(
+          animation: _ctrl,
+          builder: (_, child) => Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('🀄', style: TextStyle(fontSize: 72)),
-              const SizedBox(height: 20),
-              const Text('TILEZHAN', style: TextStyle(
-                fontSize: 34, fontWeight: FontWeight.w800,
-                letterSpacing: 4, color: AppColors.jadeWhite,
-              )),
-              const SizedBox(height: 4),
-              const Text('麻 雀 斩', style: TextStyle(
-                fontSize: 15, color: AppColors.neonGold, letterSpacing: 8,
-                fontWeight: FontWeight.w500,
-              )),
-              const SizedBox(height: 12),
-              const Text('Master Mahjong, One Tile at a Time.',
-                  style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)),
-              const SizedBox(height: 40),
+              // Emoji with glow effect
+              Opacity(
+                opacity: _emojiFade.value,
+                child: Transform.scale(
+                  scale: _emojiScale.value,
+                  child: Container(
+                    width: 120, height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.neonGold.withOpacity(0.3 * _emojiFade.value),
+                          blurRadius: 40, spreadRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text('🀄', style: TextStyle(fontSize: 64)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Title: slide up + fade
+              Opacity(
+                opacity: _titleFade.value,
+                child: Transform.translate(
+                  offset: Offset(0, _titleSlide.value),
+                  child: const Text('TILEZAN', style: TextStyle(
+                    fontSize: 32, fontWeight: FontWeight.w900,
+                    letterSpacing: 6, color: AppColors.jadeWhite,
+                  )),
+                ),
+              ),
+              const SizedBox(height: 6),
+              // Tagline: fade in
+              Opacity(
+                opacity: _tagFade.value,
+                child: const Text('Master Mahjong, One Tile at a Time.',
+                  style: TextStyle(fontSize: 13, color: AppColors.neonGold,
+                    letterSpacing: 1)),
+              ),
+              const SizedBox(height: 36),
+              // Shimmer progress bar
               SizedBox(
-                width: 160, height: 3,
+                width: 140, height: 3,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(2),
                   child: LinearProgressIndicator(
                     backgroundColor: AppColors.jadeHover,
-                    color: AppColors.vermillion,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.vermillion.withOpacity(0.8)),
                   ),
                 ),
               ),
