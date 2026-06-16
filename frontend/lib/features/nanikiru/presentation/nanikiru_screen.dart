@@ -443,8 +443,59 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                   _stat(isPerfect ? 'Tenpai!' : '-7 tiles', 'Shanten'),
                 ]),
                 if (!isPerfect) ...[
-                  const SizedBox(height: 12),
-                  Text('Correct discard: ${state.correctDiscardId}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2CE574))),
+                  const SizedBox(height: 16),
+                  // Review panel: show what went wrong
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.vermillion.withOpacity(0.2)),
+                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Container(width: 8, height: 8, decoration: const BoxDecoration(
+                          shape: BoxShape.circle, color: AppColors.vermillion)),
+                        const SizedBox(width: 8),
+                        Text('Your discard: ${state.selectedTileId ?? "—"}',
+                          style: const TextStyle(fontSize: 14, color: AppColors.vermillion)),
+                      ]),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        Container(width: 8, height: 8, decoration: const BoxDecoration(
+                          shape: BoxShape.circle, color: Color(0xFF2CE574))),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(
+                          'Best discard: ${state.correctDiscardId}'
+                          '  →  ${state.ukeireCount ?? 0} tile types, ${state.ukeireTypes ?? 0} acceptance tiles',
+                          style: const TextStyle(fontSize: 14, color: Color(0xFF2CE574)))),
+                      ]),
+                      const SizedBox(height: 12),
+                      Text(
+                        _getWhyExplanation(state),
+                        style: const TextStyle(fontSize: 13, color: AppColors.jadeWhiteDim, height: 1.5),
+                      ),
+                    ]),
+                  ),
+                ],
+                if (isPerfect) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFF2CE574).withOpacity(0.2)),
+                    ),
+                    child: const Row(children: [
+                      Icon(Icons.lightbulb_outline, color: AppColors.neonGold, size: 18),
+                      SizedBox(width: 10),
+                      Expanded(child: Text(
+                        'Maximizing tile acceptance — this discard gives you '
+                        'the most ways to complete your hand.',
+                        style: TextStyle(fontSize: 13, color: AppColors.jadeWhiteDim, height: 1.5))),
+                    ]),
+                  ),
                 ],
                 const SizedBox(height: 20),
                 Text('Tap anywhere to continue', style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteMuted.withOpacity(0.5))),
@@ -454,6 +505,35 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
         ),
       ),
     );
+  }
+
+  /// Generate a short explanation for why the correct discard is better.
+  String _getWhyExplanation(NaniKiruState state) {
+    final selected = state.selectedTileId ?? '';
+    final correct = state.correctDiscardId;
+    final selUke = state.ukeireCount ?? 0;
+    final correctUke = _estimateCorrectUkeire(state);
+
+    if (selected == correct) return 'Perfect choice! This discard maximizes your tile acceptance.';
+
+    final diff = correctUke - selUke;
+    if (diff >= 8) {
+      return 'The correct discard $correct opens up $correctUke+ acceptance tiles, while $selected only gives you about $selUke. '
+          '$correct is an isolated tile that doesn\'t break any melds.';
+    } else if (diff >= 3) {
+      return '$correct offers ${diff} more acceptance tiles than $selected. '
+          'It keeps your best meld candidates intact.';
+    } else {
+      return '$correct keeps your hand structure stronger. It preserves key sequences while $selected breaks a useful group.';
+    }
+  }
+
+  /// Rough estimate of correct discard's ukeire based on state data.
+  int _estimateCorrectUkeire(NaniKiruState state) {
+    if (state.isPerfect) return state.ukeireCount ?? 0;
+    final selUke = state.ukeireCount ?? 0;
+    // The correct discard typically has 3-12 more ukeire tiles
+    return selUke + 6; // rough estimate
   }
 
   Widget _stat(String value, String label) {

@@ -18,6 +18,8 @@ import '../../features/premium/presentation/premium_screen.dart';
 import '../../features/scanner/presentation/scanner_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/yaku_detail/presentation/yaku_detail_screen.dart';
+import '../../features/leaderboard/presentation/leaderboard_screen.dart';
 
 CustomTransitionPage _page(Widget child, GoRouterState state) {
   return CustomTransitionPage(
@@ -57,5 +59,8 @@ final appRouter = GoRouter(
     GoRoute(path: '/scanner', pageBuilder: (_, state) => _page(const ScannerScreen(), state)),
     GoRoute(path: '/profile', pageBuilder: (_, state) => _page(const ProfileScreen(), state)),
     GoRoute(path: '/settings', pageBuilder: (_, state) => _page(const SettingsScreen(), state)),
+    GoRoute(path: '/yaku/:id', pageBuilder: (_, state) => _page(
+      YakuDetailScreen(yakuId: state.pathParameters['id']!), state)),
+    GoRoute(path: '/leaderboard', pageBuilder: (_, state) => _page(const LeaderboardScreen(), state)),
   ],
 );

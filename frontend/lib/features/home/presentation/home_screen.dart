@@ -233,7 +233,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       ('🔬', 'Scanner', '/scanner'),       ('📚', 'Yaku Guide', '/collection'),
       ('👻', 'Graveyard', '/graveyard'),   ('🔍', 'Tile Browser', '/tiles'),
       ('👤', 'Profile', '/profile'),       ('💎', 'Premium', '/premium'),
-      ('⚙️', 'Settings', '/settings'),
+      ('🏆', 'Rank', '/leaderboard'),       ('⚙️', 'Settings', '/settings'),
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
