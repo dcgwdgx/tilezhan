@@ -70,7 +70,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     });
   }
 
-  /// 弹战绩或 10 连斩促销窗口。付费用户跳过。
+  /// 弹战绩或 10 连斩促销窗口，关闭后返回首页（心已耗尽）。
   void _maybeShowBattleReport() {
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) return;
@@ -80,7 +80,9 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (_) => const TzComboPromo(),
-      );
+      ).then((_) {
+        if (mounted) context.pop();
+      });
       return;
     }
     showModalBottomSheet(
@@ -88,7 +90,9 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => TzBattleReport(),
-    );
+    ).then((_) {
+      if (mounted) context.pop();
+    });
   }
 
   /// 追踪 isFinished 翻转 → 在下一帧记录战绩、扣体力、弹窗。

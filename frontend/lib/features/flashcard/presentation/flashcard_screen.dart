@@ -129,7 +129,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     setState(() {});
   }
 
-  /// 弹战绩或组合促销窗口。付费用户不弹。10 连斩优先展示促销。
+  /// 弹战绩或组合促销窗口，关闭后返回首页（心已耗尽不能再玩）。
   void _maybeShowBattleReport() {
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) return;
@@ -140,7 +140,9 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (_) => const TzComboPromo(),
-      );
+      ).then((_) {
+        if (mounted) context.pop();
+      });
       return;
     }
     showModalBottomSheet(
@@ -148,7 +150,9 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const TzBattleReport(),
-    );
+    ).then((_) {
+      if (mounted) context.pop();
+    });
   }
 
   void _recordSrs(int quality) {
