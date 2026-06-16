@@ -14,15 +14,15 @@ class ScannerScreen extends ConsumerWidget {
 
   static const _yakuList = [
     ('🥪', 'Tanyao', 'All Simples', 'No terminals or honors. Only tiles 2-8.', true, 'tanyao'),
-    ('🛗', 'Pinfu', 'Peace', 'All sequences, pair not a value honor, two-sided wait.', false, 'pinfu'),
-    ('🔫', 'Riichi', 'Ready Hand', 'Declare riichi when in tenpai. 1 han + chance for uradora.', false, 'riichi'),
-    ('🎨', 'Honitsu', 'Half Flush', 'All tiles from one suit + honors. Common intermediate yaku.', false, 'honitsu'),
-    ('🧹', 'Chinitsu', 'Full Flush', 'All tiles from a single suit. 6 han (menzen) or 5 han (open).', false, 'chinitsu'),
+    ('🛗', 'Pinfu', 'Peace', 'All sequences, pair not a value honor, two-sided wait.', true, 'pinfu'),
+    ('🔫', 'Riichi', 'Ready Hand', 'Declare riichi when in tenpai. 1 han + chance for uradora.', true, 'riichi'),
+    ('👑', 'Yakuhai', 'Value Honors', 'Triplet of dragons, seat wind, or round wind.', true, 'yakuhai'),
+    ('🌀', 'Iipeikou', 'Pure Double Sequence', 'Two identical sequences in the same suit. Closed only.', true, 'iipeiko'),
+    ('🎨', 'Honitsu', 'Half Flush', 'All tiles from one suit + honors. Common intermediate yaku.', true, 'honitsu'),
     ('👯', 'Toitoi', 'All Triplets', 'Four triplets + one pair. Open or closed.', false, 'toitoi'),
     ('🚢', 'Chiitoitsu', 'Seven Pairs', 'Seven distinct pairs. Always closed. 2 han.', false, 'chitoitsu'),
-    ('👑', 'Yakuhai', 'Value Honors', 'Triplet of dragons, seat wind, or round wind.', false, 'yakuhai'),
-    ('🌀', 'Iipeikou', 'Pure Double Sequence', 'Two identical sequences in the same suit. Closed only.', false, 'iipeiko'),
     ('🏔️', 'Chanta', 'Terminal in Each Set', 'Every meld and pair contains a terminal or honor.', false, 'chanta'),
+    ('🧹', 'Chinitsu', 'Full Flush', 'All tiles from a single suit. 6 han (menzen) or 5 han (open).', false, 'chinitsu'),
   ];
 
   @override
@@ -86,7 +86,7 @@ class _YakuCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.push('/yaku/$id'),
+      onTap: unlocked ? () => context.push('/yaku/$id') : null,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(14),

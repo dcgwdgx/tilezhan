@@ -11,6 +11,7 @@ void main() {
   late HeartService svc;
 
   setUp(() async {
+    await Hive.openBox('hearts'); // pre-open for sync access
     svc = HeartService();
     await svc.init();
   });
