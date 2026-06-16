@@ -61,28 +61,41 @@ final srsNotifierProvider = NotifierProvider<SrsReviewNotifier, Map<String, SrsI
 /// [recordReview] is immediately flushed to storage via [_save].
 class SrsReviewNotifier extends Notifier<Map<String, SrsItem>> {
   StorageService? _storage;
+  // Pending writes — applied once storage is ready
+  Map<String, SrsItem>? _pendingWrites;
 
-  /// Initialises the notifier: subscribes to [storageServiceProvider] and
-  /// hydrates [state] once the storage backend is ready. Returns an empty
-  /// map while loading.
   @override
   Map<String, SrsItem> build() {
     ref.watch(storageServiceProvider).whenData((s) {
       _storage = s;
       final raw = s.getJson(StorageService.kSrsItems);
       state = raw.map((k, v) => MapEntry(k, SrsItem.fromJson(v as Map<String, dynamic>)));
+      // Apply any writes that arrived before storage was ready
+      if (_pendingWrites != null) {
+        state = {...state, ..._pendingWrites!};
+        _pendingWrites = null;
+        _flush();
+      }
     });
     return {};
   }
 
-  /// Persists current [state] to the storage backend.
-  ///
-  /// No-op if the storage service has not been initialised yet (i.e. during
-  /// the brief window before [build] receives the first async value).
-  void _save() {
+  void _flush() {
     if (_storage == null) return;
     _storage!.setJson(StorageService.kSrsItems,
       state.map((k, v) => MapEntry(k, v.toJson())));
+  }
+
+  /// Merge [item] into state immediately, persist when storage ready.
+  void _upsert(String itemId, SrsItem item) {
+    if (_storage != null) {
+      state = {...state, itemId: item};
+      _flush();
+    } else {
+      // Storage not ready — buffer write
+      _pendingWrites = {...?_pendingWrites, itemId: item};
+      state = {...state, itemId: item}; // still update memory
+    }
   }
 
   /// Record a review and update the SRS schedule for [itemId].
@@ -108,15 +121,11 @@ class SrsReviewNotifier extends Notifier<Map<String, SrsItem>> {
         ? now  // immediate review for wrong answers
         : now + Duration(days: newInterval).inMilliseconds;
 
-    state = {
-      ...state,
-      itemId: SrsItem(
-        itemId: itemId, type: type,
-        ef: newEf, reps: newReps, interval: newInterval,
-        nextReviewAt: nextReviewAt, errors: errors,
-        createdAt: createdAt, lastReviewedAt: now,
-      ),
-    };
-    _save();
+    _upsert(itemId, SrsItem(
+      itemId: itemId, type: type,
+      ef: newEf, reps: newReps, interval: newInterval,
+      nextReviewAt: nextReviewAt, errors: errors,
+      createdAt: createdAt, lastReviewedAt: now,
+    ));
   }
 }

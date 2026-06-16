@@ -1,14 +1,11 @@
-/// 体力 + 每日挑战 + 连斩追踪，Hive 持久化到本地。
+/// Heart/stamina system — 10 hearts/day, daily challenge, combo streaks.
 ///
-/// 核心规则（对齐 tilezhan-pricing.md §四）：
-/// - 每天 10 心，答对扣 1 心，答错不扣（进错题池免费练）
-/// - 每日挑战前 3 题不耗体力，次日重置
-/// - 连续答对 10 题触发组合促销（全时连斩跨会话不重置）
-/// - 错题重练永远免费（调用方在消耗前自行判断）
+/// Uses an in-memory counter backed by Hive for persistence.
+/// The in-memory value avoids Hive read race conditions during
+/// Provider lifecycle; Hive writes ensure survival across restarts.
 import 'package:hive_flutter/hive_flutter.dart';
 
 class HeartService {
-  // ---- Hive key 常量 ----
   static const _boxName = 'hearts';
   static const _keyHearts = 'hearts_remaining';
   static const _keyLastReset = 'last_reset_date';
@@ -19,52 +16,52 @@ class HeartService {
 
   late Box _box;
 
-  // ---- 会话战绩（仅内存，每日重置）----
+  // In-memory counters (Hive-backed)
+  int _hearts = maxHearts;
+  int _dailyUsed = 0;
+  int _allTimeCombo = 0;
+
+  // Session stats (memory only, reset daily)
   int _correct = 0;
   int _wrong = 0;
   int _combo = 0;
   int _maxCombo = 0;
 
-  // ---- 体力的读写 ----
+  // ---- public getters ----
 
-  /// 剩余心数。每日重置回 [maxHearts]。
-  int get hearts => _box.get(_keyHearts, defaultValue: maxHearts);
-  bool get hasHearts => hearts > 0;
-
-  // ---- 会话战绩 ----
-
+  int get hearts => _hearts;
+  bool get hasHearts => _hearts > 0;
   int get correct => _correct;
   int get wrong => _wrong;
   int get combo => _combo;
   int get maxCombo => _maxCombo;
   int get total => _correct + _wrong;
   double get accuracy => total == 0 ? 0 : _correct / total;
-
-  // ---- 每日挑战（每日 3 题免体力）----
-
-  int get dailyChallengeUsed => _box.get(_keyDailyUsed, defaultValue: 0);
   int get dailyChallengeRemaining =>
-      (dailyChallengeMax - dailyChallengeUsed).clamp(0, dailyChallengeMax);
-  bool get canUseDailyChallenge => dailyChallengeRemaining > 0;
+      (dailyChallengeMax - _dailyUsed).clamp(0, dailyChallengeMax);
+  bool get canUseDailyChallenge => _dailyUsed < dailyChallengeMax;
+  int get allTimeCombo => _allTimeCombo;
 
-  // ---- 全时连斩（触发组合促销）----
+  // ---- lifecycle ----
 
-  int get allTimeCombo => _box.get(_keyAllTimeCombo, defaultValue: 0);
-
-  // ---- 生命周期 ----
-
-  /// 同步初始化——main() 中已用 [Hive.openBox] 预打开 'hearts'，
-  /// 此处直接用 [Hive.box] 同步获取已打开的实例。
   Future<void> init() async {
     _box = Hive.box(_boxName);
+    _loadFromBox();
     _checkDailyReset();
   }
 
-  /// 日期变化 → 回满心数、清零每日挑战和会话战绩。
+  void _loadFromBox() {
+    _hearts = _box.get(_keyHearts, defaultValue: maxHearts);
+    _dailyUsed = _box.get(_keyDailyUsed, defaultValue: 0);
+    _allTimeCombo = _box.get(_keyAllTimeCombo, defaultValue: 0);
+  }
+
   void _checkDailyReset() {
     final lastReset = _box.get(_keyLastReset, defaultValue: '');
     final today = DateTime.now().toIso8601String().substring(0, 10);
     if (lastReset != today) {
+      _hearts = maxHearts;
+      _dailyUsed = 0;
       _box.put(_keyHearts, maxHearts);
       _box.put(_keyDailyUsed, 0);
       _box.put(_keyLastReset, today);
@@ -72,39 +69,37 @@ class HeartService {
     }
   }
 
-  // ---- 核心操作 ----
+  // ---- operations ----
 
-  /// 使用一次每日挑战免费机会。成功返回 true，已用完返回 false。
   bool useDailyChallenge() {
-    if (!canUseDailyChallenge) return false;
-    _box.put(_keyDailyUsed, dailyChallengeUsed + 1);
+    if (_dailyUsed >= dailyChallengeMax) return false;
+    _dailyUsed++;
+    _box.put(_keyDailyUsed, _dailyUsed);
     return true;
   }
 
-  /// 消耗 1 心。返回 true 表示心已耗尽 → 触发战绩弹窗。
   bool consume() {
-    final current = hearts;
-    if (current <= 0) return false;
-    _box.put(_keyHearts, current - 1);
-    return hearts <= 0;
+    if (_hearts <= 0) return false;
+    _hearts--;
+    _box.put(_keyHearts, _hearts);
+    return _hearts <= 0;
   }
 
-  /// 记录正确回答 → 更新会话战绩 + 全时连斩 +1。
   void recordCorrect() {
     _correct++;
     _combo++;
     if (_combo > _maxCombo) _maxCombo = _combo;
-    _box.put(_keyAllTimeCombo, allTimeCombo + 1);
+    _allTimeCombo++;
+    _box.put(_keyAllTimeCombo, _allTimeCombo);
   }
 
-  /// 记录错误回答 → 归零当前连斩和全时连斩。
   void recordWrong() {
     _wrong++;
     _combo = 0;
+    _allTimeCombo = 0;
     _box.put(_keyAllTimeCombo, 0);
   }
 
-  /// 每日重置时清零内存战绩。
   void _resetSessionStats() {
     _correct = 0;
     _wrong = 0;
@@ -112,7 +107,8 @@ class HeartService {
     _maxCombo = 0;
   }
 
-  /// 首次打开 App 的时间戳（用于 48h 促销计时），-1 表示已过期。
+  // ---- promo ----
+
   int get firstAppOpenMs {
     final v = _box.get('first_app_open_ms', defaultValue: -1);
     if (v == -1) {
@@ -123,13 +119,12 @@ class HeartService {
     return v;
   }
 
-  /// Lifetime 促销是否有效（首次打开 48h 内且非付费用户时生效）。
   bool isLifetimePromoActive(bool isPremium) {
     if (isPremium) return false;
     final first = firstAppOpenMs;
     if (first == -1) return false;
     final elapsed = DateTime.now().millisecondsSinceEpoch - first;
-    return elapsed < 48 * 3600 * 1000; // 48 hours
+    return elapsed < 48 * 3600 * 1000;
   }
 
   Future<void> dispose() => _box.close();
