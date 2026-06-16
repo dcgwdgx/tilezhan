@@ -1,67 +1,78 @@
-/// Global audio, voice, and haptic feedback service.
-/// Combines [HapticFeedback], [SystemSound], and audioplayers WAV playback.
+/// Global audio + haptic feedback service.
+///
+/// Plays WAV sound effects via [audioplayers] and triggers haptic vibrations
+/// on supported devices. All methods respect [_enabled] flag for user preferences.
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
 import 'haptic_service.dart';
 
-/// Manages all game sound effects, voice playback, and haptic feedback.
-/// Togglable via [setEnabled] — respects user preferences for audio/haptics.
+/// Manages game SFX + haptics. Togglable via [setEnabled].
 class AudioService {
-  static final _voicePlayer = AudioPlayer();
+  static final _player = AudioPlayer();
   static bool _enabled = true;
 
-  /// Enable or disable all audio and haptic feedback.
   static void setEnabled(bool v) => _enabled = v;
-  /// Whether audio and haptic feedback is currently enabled.
   static bool get isEnabled => _enabled;
 
-  /// Play a light tap sound + haptic for generic button presses.
+  /// Light tap: UI button press.
   static void playTap() {
     if (!_enabled) return;
+    _playSfx('tap.wav');
     try { HapticService.lightTap(); } catch (_) {}
-    try { SystemSound.play(SystemSoundType.click); } catch (_) {}
   }
 
-  /// Play a correct-answer feedback: light haptic celebration.
+  /// Correct answer: celebration SFX + haptic.
   static void playCorrect() {
     if (!_enabled) return;
+    _playSfx('correct.wav');
     try { HapticService.correctAnswer(); } catch (_) {}
     try { HapticFeedback.heavyImpact(); } catch (_) {}
   }
 
-  /// Play a wrong-answer feedback: double heavy haptic pulse + system alert sound.
+  /// Wrong answer: alert SFX + double pulse haptic.
   static void playWrong() {
     if (!_enabled) return;
+    _playSfx('wrong.wav');
     try { HapticService.wrongAnswer(); } catch (_) {}
     try { HapticFeedback.heavyImpact(); } catch (_) {}
     Future.delayed(const Duration(milliseconds: 80), () {
       try { HapticFeedback.heavyImpact(); } catch (_) {}
     });
-    try { SystemSound.play(SystemSoundType.alert); } catch (_) {}
   }
 
-  /// Play a completion feedback: heavy haptic impact.
+  /// Quiz completed: completion fanfare.
   static void playComplete() {
     if (!_enabled) return;
+    _playSfx('complete.wav');
     try { HapticService.heavyTap(); } catch (_) {}
     try { HapticFeedback.heavyImpact(); } catch (_) {}
   }
 
-  /// Play a discard/slash feedback: medium haptic impact.
+  /// Discard/slash: blade SFX + medium haptic.
   static void playSlash() {
     if (!_enabled) return;
+    _playSfx('slash.wav');
     try { HapticService.discardSlash(); } catch (_) {}
     try { HapticFeedback.mediumImpact(); } catch (_) {}
   }
 
-  /// Play Chinese pronunciation of a tile
+  /// Chinese TTS voice for a tile.
   static Future<void> playVoice(String tileId) async {
     if (!_enabled) return;
     try {
-      await _voicePlayer.stop();
-      await _voicePlayer.play(AssetSource('sounds/voice/$tileId.wav'));
+      await _player.stop();
+      await _player.play(AssetSource('sounds/voice/$tileId.wav'));
     } catch (_) {
       try { SystemSound.play(SystemSoundType.click); } catch (_) {}
     }
+  }
+
+  // ---- internals ----
+
+  /// Play a WAV sound effect from assets/sounds/.
+  static void _playSfx(String filename) {
+    try {
+      _player.play(AssetSource('sounds/$filename'));
+    } catch (_) { /* SFX failure shouldn't crash */ }
   }
 }
