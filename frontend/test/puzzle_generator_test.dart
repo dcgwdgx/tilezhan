@@ -1,8 +1,11 @@
+/// PuzzleGenerator 题目生成器的单元测试
+/// 测试覆盖：生成有效题目、14 张牌合法性、正确打牌在手牌中、单种牌不超 4 张、目标难度匹配、随机性
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/features/nanikiru/domain/puzzle_generator.dart';
 
 void main() {
   group('PuzzleGenerator', () {
+    // 生成的题目各项字段完整且有效
     test('generates valid puzzle', () {
       final puzzle = PuzzleGenerator.generate();
       expect(puzzle.hand13Ids.length, 13);
@@ -14,6 +17,7 @@ void main() {
       expect(puzzle.difficulty, greaterThanOrEqualTo(800));
     });
 
+    // 手牌 13 张 + 摸牌 = 14 张，且均为有效牌 ID
     test('hand13 + drawnTile = 14 unique valid tile IDs', () {
       final puzzle = PuzzleGenerator.generate();
       final all14 = [...puzzle.hand13Ids, puzzle.drawnTileId];
@@ -23,12 +27,14 @@ void main() {
       }
     });
 
+    // 正确的打出牌必须在手牌 14 张中
     test('correct discard is in the hand', () {
       final puzzle = PuzzleGenerator.generate();
       final all14 = [...puzzle.hand13Ids, puzzle.drawnTileId];
       expect(all14, contains(puzzle.correctDiscardId));
     });
 
+    // 同一种牌最多出现 4 张（麻将物理约束）
     test('no tile appears more than 4 times', () {
       final puzzle = PuzzleGenerator.generate();
       final counts = <String, int>{};
@@ -40,12 +46,14 @@ void main() {
       }
     });
 
+    // 指定目标难度后生成的题目难度在允许误差范围内
     test('target difficulty produces puzzle near target', () {
       final puzzle = PuzzleGenerator.generate(targetDifficulty: 1200);
       // Should be within ~300 of target (allow tolerance due to randomness)
       expect((puzzle.difficulty - 1200).abs(), lessThan(400));
     });
 
+    // 多次调用应生成不同的题目（随机性验证）
     test('multiple calls produce different puzzles', () {
       final puzzles = List.generate(5, (_) => PuzzleGenerator.generate());
       final ids = puzzles.map((p) => p.puzzleId).toSet();
@@ -55,6 +63,7 @@ void main() {
   });
 }
 
+/// 全部 34 种麻将牌的有效 ID 集合
 const _validTileIds = {
   'm1','m2','m3','m4','m5','m6','m7','m8','m9',
   'p1','p2','p3','p4','p5','p6','p7','p8','p9',

@@ -260,7 +260,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Text(item.$1, style: const TextStyle(fontSize: 30)),
                 const SizedBox(height: 4),
-                Text(item.$2, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.jadeWhite)),
+                Text(item.$2, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.jadeWhite)),
               ]),
             ),
           );

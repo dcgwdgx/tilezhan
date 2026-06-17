@@ -1,3 +1,5 @@
+/// FlashcardQuizNotifier 的 Riverpod 状态管理测试
+/// 测试覆盖：初始化测验、花色过滤、答题记录、幂等性、下一张、助记符显示、重新开始
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/features/flashcard/domain/flashcard_provider.dart';
@@ -6,7 +8,7 @@ import 'package:tilezhan/shared/data/tile_repository.dart';
 import 'package:tilezhan/shared/models/tile_model.dart';
 import 'test_utils.dart';
 
-/// Stub TileRepository that returns pre-built tiles without rootBundle.
+/// 桩 TileRepository，返回预构建的牌列表，不依赖 rootBundle
 /// Public so other test files can reuse it.
 class StubTileRepo extends TileRepository {
   final List<TileModel> tiles;
@@ -34,6 +36,7 @@ class StubTileRepo extends TileRepository {
   }
 }
 
+/// 创建注入了 StubTileRepo 的 ProviderContainer
 ProviderContainer _container(List<TileModel> tiles) {
   final container = ProviderContainer(overrides: [
     tileRepositoryProvider.overrideWithValue(StubTileRepo(tiles)),
@@ -50,6 +53,7 @@ void main() {
   });
 
   group('FlashcardQuizNotifier', () {
+    // initQuiz 填充队列并重置所有状态
     test('initQuiz populates queue and resets state', () async {
       final container = _container(tiles);
       final notifier = container.read(flashcardQuizProvider.notifier);
@@ -64,6 +68,7 @@ void main() {
       expect(state.currentTile, isNotNull);
     });
 
+    // 按花色过滤：指定 'man' 后队列中只包含万子牌
     test('initQuiz filters by suite', () async {
       final mixed = [
         ...tiles,
@@ -82,6 +87,7 @@ void main() {
       }
     });
 
+    // 答对时 correctCount +1，记录最后正确的牌 ID
     test('submitAnswer records correct answer', () async {
       final container = _container(tiles);
       final notifier = container.read(flashcardQuizProvider.notifier);
@@ -97,6 +103,7 @@ void main() {
       expect(state.lastWrongId, isNull);
     });
 
+    // 答错时 wrongCount +1，记录最后错误的牌 ID
     test('submitAnswer records wrong answer', () async {
       final container = _container(tiles);
       final notifier = container.read(flashcardQuizProvider.notifier);
@@ -111,6 +118,7 @@ void main() {
       expect(state.lastWrongId, isNotNull);
     });
 
+    // 在答题状态中重复调用 submitAnswer 应被忽略（幂等性）
     test('submitAnswer is idempotent while answering', () async {
       final container = _container(tiles);
       final notifier = container.read(flashcardQuizProvider.notifier);
@@ -125,6 +133,7 @@ void main() {
       expect(state.wrongCount, 0);
     });
 
+    // nextCard 推进索引并重置答题状态
     test('nextCard advances and resets answer state', () async {
       final container = _container(tiles);
       final notifier = container.read(flashcardQuizProvider.notifier);
@@ -139,6 +148,7 @@ void main() {
       expect(state.isShowingMnemonic, false);
     });
 
+    // showMnemonic 仅在已答题状态下才设置标志位
     test('showMnemonic sets flag only when answering', () async {
       final container = _container(tiles);
       final notifier = container.read(flashcardQuizProvider.notifier);
@@ -154,6 +164,7 @@ void main() {
       expect(container.read(flashcardQuizProvider).isShowingMnemonic, true);
     });
 
+    // restart 重新洗牌并重置所有答题进度
     test('restart re-shuffles queue', () async {
       final container = _container(tiles);
       final notifier = container.read(flashcardQuizProvider.notifier);
@@ -175,6 +186,7 @@ void main() {
       expect(state.totalCount, 10);
     });
 
+    // 所有牌答完后 isFinished 为 true
     test('isFinished true when all cards done', () async {
       final container = _container(tiles);
       final notifier = container.read(flashcardQuizProvider.notifier);

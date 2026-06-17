@@ -1,3 +1,5 @@
+/// 何切手牌排序逻辑的单元测试
+/// 测试覆盖：按花色再按数字排序、同花色纯数字排序
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/shared/models/tile_model.dart';
 
@@ -10,6 +12,7 @@ void main() {
       confusedWith: const [],
     );
 
+    // 排序规则：先按花色（万→筒→索→风），同花色内按数字升序
     test('sorts by suit then value', () {
       final hand = [
         t('s7', TileSuit.sou, 7),
@@ -33,6 +36,7 @@ void main() {
       expect(hand[5].id, 'z1');
     });
 
+    // 同一花色内仅按数字升序排列
     test('same suit sorted by value', () {
       final hand = [
         t('m9', TileSuit.man, 9),

@@ -1,10 +1,12 @@
+/// IAP（应用内购买）提供者的 Riverpod 状态管理测试
+/// 测试覆盖：无权益时 isPremium=false、iapStateProvider 在 init 后返回 ready 状态
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/core/iap/iap_provider.dart';
 import 'package:tilezhan/core/iap/iap_service.dart';
 
-/// Fake IapService that doesn't touch StoreKit.
+/// 伪 IapService，不实际连接 StoreKit
 class FakeIapService implements IapService {
   final _stateCtrl = StreamController<IapState>.broadcast();
   IapState _state = const IapState();
@@ -36,6 +38,7 @@ class FakeIapService implements IapService {
 }
 
 void main() {
+  // 没有任何权益时 isPremiumProvider 返回 false
   test('isPremiumProvider returns false with no entitlements', () async {
     final container = ProviderContainer(
       overrides: [iapServiceProvider.overrideWith((ref) => FakeIapService())],
@@ -48,6 +51,7 @@ void main() {
     expect(container.read(isPremiumProvider), isFalse);
   });
 
+  // iapStateProvider 在 init 完成后发出 ready 状态
   test('iapStateProvider emits ready after init', () async {
     final container = ProviderContainer(
       overrides: [iapServiceProvider.overrideWith((ref) => FakeIapService())],

@@ -211,10 +211,10 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                         : AppColors.neonGold,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(plan.badge!, style: TextStyle(
-                      fontSize: 9, fontWeight: FontWeight.w800,
-                      color: plan.id == TzProducts.lifetime
-                        ? AppColors.neonGold : Colors.black,
+                    child: Text(plan.badge!, maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800,
+                        color: plan.id == TzProducts.lifetime
+                          ? AppColors.neonGold : Colors.black,
                     )),
                   ),
               ]),

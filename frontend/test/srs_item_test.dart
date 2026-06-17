@@ -1,8 +1,11 @@
+/// SrsItem 间隔重复数据模型的单元测试
+/// 测试覆盖：默认值、错误权重公式、JSON 序列化往返、部分 JSON 解析、copyWith 更新
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/core/srs/srs_item.dart';
 
 void main() {
   group('SrsItem', () {
+    // 新建 SRS 条目时使用正确的默认值
     test('default values', () {
       const item = SrsItem(itemId: 'm5', type: 'flashcard');
       expect(item.ef, 2.5);
@@ -13,16 +16,19 @@ void main() {
       expect(item.lastReviewedAt, 0);
     });
 
+    // 错误权重 = errors / (reps + 1)，反映该牌的错误密度
     test('errorWeight: errors / (reps + 1)', () {
       final item = SrsItem(itemId: 'm5', type: 'flashcard', errors: 6, reps: 2);
       expect(item.errorWeight, 2.0); // 6/(2+1)
     });
 
+    // reps=0 时错误权重直接等于错误次数
     test('errorWeight: reps=0 returns errors directly', () {
       final item = SrsItem(itemId: 'm5', type: 'flashcard', errors: 5, reps: 0);
       expect(item.errorWeight, 5.0);
     });
 
+    // JSON 序列化然后反序列化：所有字段应恢复原值
     test('toJson → fromJson roundtrip', () {
       final now = DateTime.now().millisecondsSinceEpoch;
       final item = SrsItem(
@@ -43,6 +49,7 @@ void main() {
       expect(restored.lastReviewedAt, now);
     });
 
+    // 部分 JSON 数据解析时缺失字段使用默认值
     test('fromJson with partial data uses defaults', () {
       final item = SrsItem.fromJson({'itemId': 'p1'});
       expect(item.ef, 2.5);
@@ -50,6 +57,7 @@ void main() {
       expect(item.errors, 0);
     });
 
+    // copyWith 只更新指定字段，未指定字段保持原值
     test('copyWith updates only specified fields', () {
       final item = const SrsItem(itemId: 'm5', type: 'flashcard', ef: 2.6, reps: 2, interval: 6);
       final updated = item.copyWith(ef: 2.8, errors: 1);
