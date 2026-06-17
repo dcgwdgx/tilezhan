@@ -1,34 +1,20 @@
-/// TileSlash 应用入口。
-///
-/// 启动流程：初始化 Flutter 引擎 + Hive 本地存储 +
-/// ProviderScope 容器 + MaterialApp.router 声明式路由。
-
+/// TileSlash app entry point — Hive init, Riverpod, routing, l10n.
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
-
-/// TileSlash 应用入口。
-///
-/// 启动流程：
-/// 1. 绑定 Flutter 引擎 + 初始化 Hive 本地存储
-/// 2. 挂载 [ProviderScope] 作为顶层 Riverpod 容器
-/// 3. 启动 [TileSlashApp]（MaterialApp.router + 暗色主题 + 声明式路由）
+import 'l10n/generated/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  // 启动时打开所有 Box，后续代码直接用 Hive.box() 同步取
   await Hive.openBox('prefs');
   await Hive.openBox('hearts');
   runApp(const ProviderScope(child: TileSlashApp()));
 }
 
-/// 应用的根 Widget。
-///
-/// 使用 [MaterialApp.router] 绑定声明式路由（[appRouter]），
-/// 统一暗色主题 ([AppTheme.dark])，关闭 debug 横幅。
 class TileSlashApp extends StatelessWidget {
   const TileSlashApp({super.key});
 
@@ -39,6 +25,19 @@ class TileSlashApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
       routerConfig: appRouter,
+      // l10n
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en'),
+        Locale('fr'),
+        Locale('de'),
+      ],
+      locale: const Locale('en'), // default to English
     );
   }
 }

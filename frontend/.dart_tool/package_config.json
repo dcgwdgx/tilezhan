@@ -236,6 +236,12 @@
       "languageVersion": "3.1"
     },
     {
+      "name": "flutter_localizations",
+      "rootUri": "file:///C:/flutter/packages/flutter_localizations",
+      "packageUri": "lib/",
+      "languageVersion": "3.10"
+    },
+    {
       "name": "flutter_riverpod",
       "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_riverpod-2.6.1",
       "packageUri": "lib/",
@@ -366,6 +372,12 @@
       "rootUri": "file:///C:/flutter/packages/integration_test",
       "packageUri": "lib/",
       "languageVersion": "3.10"
+    },
+    {
+      "name": "intl",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/intl-0.20.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
     },
     {
       "name": "io",
