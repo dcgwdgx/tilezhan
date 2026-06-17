@@ -10,6 +10,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/hearts/heart_provider.dart';
 import '../../../core/iap/iap_provider.dart';
 import '../../../core/srs/srs_provider.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../shared/widgets/tz_battle_report.dart';
 import '../../../shared/widgets/tz_button.dart';
 
@@ -48,6 +49,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.jadeDeep,
       body: SafeArea(
@@ -60,11 +62,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               const SizedBox(height: 16),
               _buildQuestCard(),
               const SizedBox(height: 16),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('QUICK ACCESS', style: TextStyle(
+                  child: Text(l10n.homeQuickAccess, style: const TextStyle(
                     fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5,
                     color: AppColors.jadeWhiteMuted,
                   )),
@@ -82,6 +84,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildTopBar() {
+    final l10n = AppLocalizations.of(context)!;
     final hearts = ref.watch(heartServiceProvider).hearts;
     final isPremium = ref.watch(isPremiumProvider);
 
@@ -115,7 +118,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              isPremium ? '👑 PRO' : '👑 UPGRADE',
+              isPremium ? '👑 ${l10n.homePro}' : '👑 ${l10n.homeUpgrade}',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800,
                 color: isPremium ? AppColors.neonGold : AppColors.jadeWhiteMuted),
             ),
@@ -130,11 +133,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   String _rankName(WidgetRef ref) {
     final srs = ref.watch(srsItemsProvider);
     final total = srs.values.fold<int>(0, (s, i) => s + i.reps);
-    if (total < 5) return 'Novice';
-    if (total < 20) return 'Apprentice';
-    if (total < 50) return 'Adept';
-    if (total < 100) return 'Expert';
-    return 'Master';
+    final l10n = AppLocalizations.of(context)!;
+    if (total < 5) return l10n.rankNovice;
+    if (total < 20) return l10n.rankApprentice;
+    if (total < 50) return l10n.rankAdept;
+    if (total < 100) return l10n.rankExpert;
+    return l10n.rankMaster;
   }
 
   /// SRS 总复习次数。
@@ -144,6 +148,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildBadgeCard() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -174,7 +179,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               Text(_rankName(ref), style: const TextStyle(fontSize: 18,
                 fontWeight: FontWeight.w700, color: AppColors.jadeWhite)),
               const SizedBox(height: 2),
-              Text('${_totalReviews(ref)} reviews',
+              Text(l10n.rankReviews(_totalReviews(ref)),
                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
                   color: AppColors.neonGold)),
             ]),
@@ -185,6 +190,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildQuestCard() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -205,7 +211,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 color: AppColors.neonGold.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text('✨ DAILY CHALLENGE', style: TextStyle(
+              child: Text(l10n.homeDailyChallenge, style: TextStyle(
                 fontSize: 11, fontWeight: FontWeight.w800,
                 color: AppColors.neonGold, letterSpacing: 1)),
             ),
@@ -214,11 +220,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               style: const TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)),
           ]),
           const SizedBox(height: 16),
-          const Text('3 puzzles. No stamina cost. Claim your daily reward.',
+          Text(l10n.homeDailyDesc,
             style: TextStyle(fontSize: 14, color: AppColors.jadeWhiteDim)),
           const SizedBox(height: 16),
           TzButton(
-            label: '⚡ START CHALLENGE',
+            label: l10n.homeStartChallenge,
             style: TzButtonStyle.gold,
             onPressed: () => context.push('/nanikiru'),
           ),
@@ -228,12 +234,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildQuickGrid() {
+    final l10n = AppLocalizations.of(context)!;
     final items = [
-      ('🃏', 'Flashcards', '/flashcard'), ('⚔️', 'Nani-Kiru', '/nanikiru'),
-      ('🔬', 'Scanner', '/scanner'),       ('📚', 'Yaku Guide', '/collection'),
-      ('👻', 'Graveyard', '/graveyard'),   ('🔍', 'Tile Browser', '/tiles'),
-      ('👤', 'Profile', '/profile'),       ('💎', 'Premium', '/premium'),
-      ('🏆', 'Rank', '/leaderboard'),       ('⚙️', 'Settings', '/settings'),
+      ('🃏', l10n.homeFlashcards, '/flashcard'), ('⚔️', l10n.homeNanikiru, '/nanikiru'),
+      ('🔬', l10n.homeScanner, '/scanner'),       ('📚', l10n.homeCollection, '/collection'),
+      ('👻', l10n.homeGraveyard, '/graveyard'),   ('🔍', l10n.homeTileBrowser, '/tiles'),
+      ('👤', l10n.homeProfile, '/profile'),       ('💎', l10n.homePremium, '/premium'),
+      ('🏆', l10n.homeRank, '/leaderboard'),       ('⚙️', l10n.homeSettings, '/settings'),
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -263,11 +270,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildBottomTabBar() {
+    final l10n = AppLocalizations.of(context)!;
     final tabs = [
-      ('🏠', 'Home', 0, '/'),
-      ('🀄', 'Tiles', 1, '/tiles'),
-      ('📚', 'Yaku', 2, '/collection'),
-      ('👻', 'Review', 3, '/graveyard'),
+      ('🏠', l10n.navHome, 0, '/'),
+      ('🀄', l10n.navTiles, 1, '/tiles'),
+      ('📚', l10n.navYaku, 2, '/collection'),
+      ('👻', l10n.navReview, 3, '/graveyard'),
     ];
     return Container(
       height: 72,
