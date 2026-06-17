@@ -11,14 +11,19 @@ void main() {
   late HeartService svc;
 
   setUp(() async {
-    await Hive.openBox('hearts'); // pre-open for sync access
+    if (!Hive.isBoxOpen('hearts')) {
+      await Hive.openBox('hearts');
+    }
     svc = HeartService();
     await svc.init();
   });
 
   tearDown(() async {
-    await svc.dispose();
-    await Hive.deleteBoxFromDisk('hearts');
+    svc.dispose();
+    if (Hive.isBoxOpen('hearts')) {
+      await Hive.box('hearts').close();
+      await Hive.deleteBoxFromDisk('hearts');
+    }
   });
 
   group('HeartService', () {

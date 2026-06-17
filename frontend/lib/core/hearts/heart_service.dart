@@ -127,5 +127,7 @@ class HeartService {
     return elapsed < 48 * 3600 * 1000;
   }
 
-  Future<void> dispose() => _box.close();
+  /// 释放引用。Box 由 main() 管理生命周期，此处不关闭，避免
+  /// Provider 重建时 [Hive.box] 找不到已关闭的 Box。
+  void dispose() {}
 }
