@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/features/nanikiru/domain/puzzle_generator.dart';
 
 void main() {
+  /// 题目生成器测试组：验证题目生成逻辑的正确性、合法性、难度匹配与随机性
   group('PuzzleGenerator', () {
     // 生成的题目各项字段完整且有效
     test('generates valid puzzle', () {

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/core/srs/srs_item.dart';
 
 void main() {
+  /// SrsItem 测试组：覆盖默认值、错误权重计算、JSON 序列化/反序列化、部分 JSON 解析、copyWith 更新
   group('SrsItem', () {
     // 新建 SRS 条目时使用正确的默认值
     test('default values', () {

@@ -5,6 +5,8 @@ import 'package:tilezhan/core/srs/srs_item.dart';
 import 'package:tilezhan/core/srs/srs_engine.dart';
 
 void main() {
+    /// SRS 提供者逻辑的单元测试
+    /// 测试覆盖：首次复习创建条目、质量 4/5 的差异、待复习项按错误权重排序、错误权重公式、正误答案调度
   group('SRS provider logic', () {
     // 质量 1（错误）的首次复习：reps=0, interval=1, nextReviewAt=0（立即重考）
     test('recordReview creates new item with correct defaults', () {

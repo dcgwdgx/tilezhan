@@ -11,6 +11,7 @@ TileModel _t(String id, TileSuit suit) => TileModel(
 );
 
 void main() {
+  /// FlashcardQuizState 测试组：覆盖初始状态、进度计算、当前牌获取、copyWith 部分更新、正确/错误计数追踪
   group('FlashcardQuizState', () {
     // 验证初始状态默认值：队列为空、未在答题、未显示助记符
     test('initial state defaults', () {

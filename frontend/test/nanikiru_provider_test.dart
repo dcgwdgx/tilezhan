@@ -22,7 +22,7 @@ void main() {
   late List<TileModel> tiles;
 
   setUp(() {
-    // Build all 34 tiles so PuzzleGenerator has full coverage
+    // 构建全部 34 种牌，确保 PuzzleGenerator 有完整的牌池
     final suits = ['m','p','s','z'];
     tiles = [];
     for (final s in suits) {
@@ -34,6 +34,7 @@ void main() {
     }
   });
 
+  /// NanikiruNotifier 核心逻辑测试组：覆盖题目生成、倒计时、选牌交互、正确/错误判定
   group('NanikiruNotifier', () {
     // initPuzzle 生成 14 张手牌并重置所有状态
     test('initPuzzle populates hand and state', () async {

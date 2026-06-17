@@ -1,26 +1,69 @@
-"""Mahjong Tile Constants — 34 tiles with full mnemonic data."""
+"""
+麻将牌常量定义 — 34 张牌及其完整助记数据。
+
+本模块是 TileZhan 项目的牌数据库唯一权威来源（Single Source of Truth）。
+包含三类核心数据：
+  1. 牌的 ID 列表（ALL_TILE_IDS / VALID_TILE_IDS）
+  2. 牌的枚举与数据结构定义（TileSuit / TileDefinition）
+  3. 34 张牌的完整助记数据库（TILES_DATA → ALL_TILES）
+
+花色体系：
+  - 万子 (Manzu, m1–m9): 九张数字牌，花色 man
+  - 筒子 (Pinzu, p1–p9): 九张数字牌，花色 pin
+  - 条子 (Souzu, s1–s9): 九张数字牌，花色 sou
+  - 风牌 (Winds, z1–z4):  东南西北，花色 wind
+  - 三元牌 (Dragons, z5–z7): 中發白，花色 dragon
+
+共计 9+9+9+4+3 = 34 张牌，与标准麻将一致。
+"""
 
 from enum import Enum
 from dataclasses import dataclass, field
 
+# ── 牌 ID 列表 ──────────────────────────────────────────────
+# 按麻将花色顺序排列：万子→筒子→条子→字牌
+# 用于遍历、验证、生成牌墙等场景
 ALL_TILE_IDS = [
-    *(f"m{i}" for i in range(1, 10)),
-    *(f"p{i}" for i in range(1, 10)),
-    *(f"s{i}" for i in range(1, 10)),
-    "z1", "z2", "z3", "z4", "z5", "z6", "z7",
+    *(f"m{i}" for i in range(1, 10)),  # 万子 1–9
+    *(f"p{i}" for i in range(1, 10)),  # 筒子 1–9
+    *(f"s{i}" for i in range(1, 10)),  # 条子 1–9
+    "z1", "z2", "z3", "z4",            # 风牌：东南西北
+    "z5", "z6", "z7",                  # 三元牌：中發白
 ]
 
 
 class TileSuit(str, Enum):
-    MAN = "man"
-    PIN = "pin"
-    SOU = "sou"
-    WIND = "wind"
-    DRAGON = "dragon"
+    """
+    麻将牌花色枚举。
+
+    继承 str 以便直接序列化为 JSON 字符串值。
+    共五种花色：万子、筒子、条子、风牌、三元牌。
+    """
+    MAN = "man"        # 万子 (Characters / 10,000s)
+    PIN = "pin"        # 筒子 (Dots / Coins)
+    SOU = "sou"        # 条子 (Bamboos / Sticks)
+    WIND = "wind"      # 风牌 (Winds): 东南西北
+    DRAGON = "dragon"  # 三元牌 (Dragons): 中發白
 
 
 @dataclass(frozen=True)
 class TileDefinition:
+    """
+    单张麻将牌的完整定义（不可变数据类）。
+
+    frozen=True 确保牌数据创建后不可修改，保证全局唯一实例的安全性。
+    每张牌包含：标识信息、花色、汉字/印章、面值、标签、助记数据、易混淆牌列表。
+
+    Attributes:
+        id:             牌的唯一标识符，如 "m1", "p5", "z7"
+        suit:           花色，见 TileSuit 枚举
+        character:      牌面的核心汉字，如 "一"、"東"、"中"
+        seal:           牌角印章文字，如 "萬"、"筒"、"条"、"風"、"龍"
+        value:          牌的面值。数字牌为 int (1-9)，字牌为 str ("E"/"S"/"W"/"N"/"D-R"/"D-G"/"D-W")
+        label:          人类可读的英文标签，如 "5-Pin", "East"
+        mnemonic:       助记数据字典，包含 emoji/name/slogan/desc/chinese/anchor 六个字段
+        confused_with:  外观相似、容易混淆的其他牌 ID 列表，用于训练和提示
+    """
     id: str
     suit: TileSuit
     character: str
@@ -31,9 +74,20 @@ class TileDefinition:
     confused_with: list[str] = field(default_factory=list)
 
 
-# 34-tile mnemonic database — single source of truth
+# ── 34 牌助记原始数据库 — 项目唯一权威数据源 ─────────────────
+# 每条记录是一张牌的完整原始数据。
+# 通过下方的 ALL_TILES 字典转换为不可变的 TileDefinition 对象。
+# 数据字段说明：
+#   id:           牌的唯一标识符 (m1–m9, p1–p9, s1–s9, z1–z7)
+#   suit:         花色字符串，对应 TileSuit 枚举值
+#   char:         牌面核心汉字
+#   seal:         牌角印章文字（萬/筒/条/風/龍）
+#   value:        面值 — 数字牌为 int，字牌为 str (方向/三元缩写)
+#   label:        英文标签
+#   mnemonic:     助记六元组 {emoji, name, slogan, desc, chinese, anchor}
+#   confused_with:容易与此牌混淆的其他牌 ID 列表
 TILES_DATA: list[dict] = [
-    # ── MANZU (万子) ──
+    # ── MANZU (万子) — Wand-Scooter (魔法滑板车) 主题 ────────
     {"id":"m1","suit":"man","char":"一","seal":"萬","value":1,"label":"1-Man",
      "mnemonic":{"emoji":"🪵","name":"The Lone Log","slogan":"Delivery time!",
      "desc":"One lonely log on the Wand-Scooter. Magic multiplies it into 10,000 paper rolls!",
@@ -79,7 +133,7 @@ TILES_DATA: list[dict] = [
      "desc":"Flying off a Nine-meter high diving board, the Wand-Scooter makes a splash worth 90,000 points!",
      "chinese":"\"九\"字形高空跳水台→凌空飞跃","anchor":"🧹 Wand-Scooter"},
      "confused_with":["m7","m8","p9"]},
-    # ── PINZU (筒子) ──
+    # ── PINZU (筒子) — Everyday Objects (日常物品) 主题 ──────
     {"id":"p1","suit":"pin","char":"一","seal":"筒","value":1,"label":"1-Pin",
      "mnemonic":{"emoji":"🛡️","name":"The Giant Shield","slogan":"The One and Only.",
      "desc":"A single massive circle — the Giant Shield. \"The Big Boss\" of all Pinzu tiles.",
@@ -125,7 +179,7 @@ TILES_DATA: list[dict] = [
      "desc":"A 3×3 perfect square — like one face of a Rubik's Cube, or a full Tic-Tac-Toe board. 9 dots aligned!",
      "chinese":"3×3完美正方形=魔方切面=井字棋","anchor":"🟡 Everyday Objects"},
      "confused_with":["p8","m9","s9"]},
-    # ── SOUZU (条子) ──
+    # ── SOUZU (条子) — Pop Culture Icons (流行文化) 主题 ─────
     {"id":"s1","suit":"sou","char":"一","seal":"条","value":1,"label":"1-Bam",
      "mnemonic":{"emoji":"🐦","name":"The Spy Bird","slogan":"I'm a bird, but I identify as a bamboo.",
      "desc":"Why is a bird in the bamboo suit? It's the #1 Spy of the bamboo forest — the only non-plant infiltrator!",
@@ -171,7 +225,7 @@ TILES_DATA: list[dict] = [
      "desc":"A flawless 3×3 grid — like your phone's App Home Screen, a Sudoku board, or Tic-Tac-Toe. Mission accomplished!",
      "chinese":"完美3×3=App桌面=数独=井字棋","anchor":"🎋 Pop Culture Icons"},
      "confused_with":["s8","p9","m9"]},
-    # ── WINDS (风牌) ──
+    # ── WINDS (风牌) — Nautical Compass (航海罗盘) 主题 ────
     {"id":"z1","suit":"wind","char":"東","seal":"風","value":"E","label":"East",
      "mnemonic":{"emoji":"🎈","name":"The Sunrise Balloon","slogan":"Rise with the East!",
      "desc":"The sun rises in the East! The character looks like a hot air balloon — basket below, balloon above.",
@@ -192,7 +246,7 @@ TILES_DATA: list[dict] = [
      "desc":"The freezing North! Two polar explorers sit back-to-back to survive the arctic blizzard.",
      "chinese":"北=两个背靠背的人→极地冰人🧊","anchor":"🧭 Nautical Compass"},
      "confused_with":["z1","z2","z3","m2"]},
-    # ── DRAGONS (三元牌) ──
+    # ── DRAGONS (三元牌) — Mystical Alchemy (神秘炼金) 主题 ─
     {"id":"z5","suit":"dragon","char":"中","seal":"龍","value":"D-R","label":"Red Dragon",
      "mnemonic":{"emoji":"🎯","name":"The Bullseye Arrow","slogan":"Arrow through the center!",
      "desc":"The Red Dragon never misses! A rectangle pierced straight through its center by an arrow — the universal bullseye symbol!",
@@ -210,7 +264,10 @@ TILES_DATA: list[dict] = [
      "confused_with":["z5","z6","p1"]},
 ]
 
-# Build lookup
+# ── 牌对象查询字典 ───────────────────────────────────────────
+# 将 TILES_DATA 原始字典列表转换为不可变的 TileDefinition 对象字典。
+# key = 牌 ID (如 "m1")，value = TileDefinition 实例。
+# 这是项目中查询牌信息的唯一入口，外部模块不应直接访问 TILES_DATA。
 ALL_TILES: dict[str, TileDefinition] = {
     d["id"]: TileDefinition(
         id=d["id"],
@@ -225,4 +282,6 @@ ALL_TILES: dict[str, TileDefinition] = {
     for d in TILES_DATA
 }
 
+# 合法牌 ID 的冻结集合 — 用于 O(1) 成员资格验证
+# 例如：判断用户输入是否为合法牌 ID、过滤非法牌等场景
 VALID_TILE_IDS: frozenset[str] = frozenset(ALL_TILES.keys())

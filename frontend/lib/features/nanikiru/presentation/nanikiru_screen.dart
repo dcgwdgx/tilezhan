@@ -22,20 +22,32 @@ import '../../../core/providers/tile_data_provider.dart';
 import '../domain/nanikiru_provider.dart';
 import '../domain/nanikiru_state.dart';
 
+/// 何切牌效率选择屏幕——Riverpod ConsumerStatefulWidget 顶层入口。
+///
+/// 核心玩法：从14张手牌中选出最优切牌，系统根据有效牌接受数（ukeire）判定对错。
+/// 正确：更新战绩连击 + 扣心 + SRS间隔复习记录（质量=5）。
+/// 错误：入错题池免费重试，不扣心（质量=1）；跳过也计为一次尝试（质量=2）。
 class NanikiruScreen extends ConsumerStatefulWidget {
   const NanikiruScreen({super.key});
 
+  // 创建与该 Widget 绑定的状态对象——Flutter 框架在 inflate 时调用
   @override
   ConsumerState<NanikiruScreen> createState() => _NanikiruScreenState();
 }
 
+// 何切屏幕的界面状态管理类。
+// 混入 SingleTickerProviderStateMixin 为 TzSlashPainter 斜切动画提供 vsync 信号。
+// 职责：倒计时定时器、斜切动画、对局计数、游戏结束判定、所有子组件构建。
 class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     with SingleTickerProviderStateMixin {
-  Timer? _timer;
-  late AnimationController _slashCtrl;
-  int _sessionCount = 0;
+  Timer? _timer; // 50ms 周期倒计时定时器——每 tick 调用 tickCountdown(0.05) 递减 0.05 秒
+  late AnimationController _slashCtrl; // 切牌确认后的斜切动画控制器（1000ms 时长，由 TzSlashPainter 消费）
+  int _sessionCount = 0; // 本次会话已对局计数，驱动导航栏 ⚔️N 显示
   bool _gameOver = false; // 心耗尽封锁后续答题
 
+  // 初始化斜切动画控制器，随后在微任务中检查玩家状态：
+  // - 心耗尽/每日挑战用尽 → 弹出 TzBattleReport 战报
+  // - 正常状态 → 初始化谜题并启动倒计时
   @override
   void initState() {
     super.initState();
@@ -51,6 +63,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     });
   }
 
+  // 清理定时器和动画控制器，防止内存泄漏和回调在 dispose 后触发
   @override
   void dispose() {
     _timer?.cancel();
@@ -101,6 +114,10 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
       'nanikiru_${state.correctDiscardId}', 'nanikiru', quality);
   }
 
+  // 主构建方法：监听 nanikiruProvider 状态变化，协调三个关键流程：
+  // 1. 答题确认副作用（isFinished 上升沿检测）：播放音效/动画/埋点/扣心/SRS记录
+  // 2. 空手牌守卫：数据未加载时显示加载指示器
+  // 3. 主游戏布局：导航栏 → 摸牌提示 → 倒计时条 → 手牌区 → 工具栏 → 反馈浮层
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(nanikiruProvider);
@@ -134,6 +151,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
         }
       });
     }
+    // 谜题未完成时重置 _wasFinished 标记，为下一题的上升沿检测做准备
     if (!state.isFinished) {
       _wasFinished = false;
     }
@@ -217,6 +235,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
 
   /// Drawn-tile card showing the tile the player just picked up.
   Widget _buildPrompt(NaniKiruState state) {
+    // 从牌库查询当前摸到的牌数据（用于渲染牌面文字和新牌标签）
     final drawnTile = ref.read(tileRepositoryProvider)
         .getById(state.drawnTileId, []);
     return Padding(
@@ -274,6 +293,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
 
   /// Countdown progress bar. Turns red and urgent below 3 seconds.
   Widget _buildCountdownBar(NaniKiruState state) {
+    // 将倒计时秒数归一化为 0.0–1.0 的进度值（10秒为满值），小于等于3秒触发紧急态
     final progress = state.countdownValue / 10.0;
     final isUrgent = state.countdownValue <= 3;
     return Padding(
@@ -320,6 +340,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
               child: Wrap(
                 spacing: 5, runSpacing: 5,
                 alignment: WrapAlignment.center,
+                // 将手牌列表转为带索引的 Map，根据选中状态渲染 TzTile（选中 ⇄ 高亮）
                 children: state.handTiles.asMap().entries.map((entry) {
                   final tile = entry.value;
                   final isSelected = state.selectedTileId == tile.id;
@@ -363,14 +384,15 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
           }),
           const SizedBox(width: 8),
           _toolBtn('🏳️ Skip', () {
+            // 跳过流程：播放音效+动画 → 埋点上报 → 确认丢弃（isSkip=true）→ SRS记录 → 扣心
             AudioService.playSlash();
             _slashCtrl.forward(from: 0);
             AnalyticsService.answered('nanikiru', false);
             notifier.confirmDiscard(state.correctDiscardId, isSkip: true);
-            _recordSrs(true);
+            _recordSrs(true); // SRS 记录：跳过计为质量=2
             // Skip still counts as an attempt — consumes stamina
             final hearts = ref.read(heartServiceProvider);
-            hearts.recordWrong(); // Reset streak
+            hearts.recordWrong(); // 重置连击统计
             bool depleted = false;
             if (!hearts.useDailyChallenge()) {
               depleted = hearts.consume();
@@ -408,12 +430,14 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
   Widget _buildFeedbackSheet(NaniKiruState state, NanikiruNotifier notifier) {
     final isPerfect = state.isPerfect;
     return GestureDetector(
+      // 点击反馈面板任意位置：递增对局计数 → 加载下一题 → 重启倒计时
       onTap: () {
         _sessionCount++;
         notifier.nextPuzzle();
         _startCountdown();
       },
       child: Container(
+        // 半透明黑色渐变遮罩：顶部透明→中部70%黑→底部87%黑，将视觉焦点引导至底部反馈卡片
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter, end: Alignment.bottomCenter,
@@ -426,6 +450,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(28),
+              // 根据答题结果切换配色：正确=深绿底+绿顶边，错误=深红底+红顶边
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter, end: Alignment.bottomCenter,
@@ -443,6 +468,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                 )],
               ),
               child: Column(children: [
+                // 结果标题：完美或失误，带发光阴影效果
                 Text(isPerfect ? '🎯 PERFECT!' : '💥 BLUNDER!', style: TextStyle(
                   fontSize: 40, fontWeight: FontWeight.w900,
                   color: isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion,
@@ -452,12 +478,13 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                   )],
                 )),
                 const SizedBox(height: 16),
+                // 统计数据行：有效牌数 / 牌种数 / 向听数
                 Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
                   _stat('${state.ukeireCount}', isPerfect ? 'Acceptance Tiles' : 'Your Pick'),
                   _stat('${state.ukeireTypes}', 'Types'),
                   _stat(isPerfect ? 'Tenpai!' : '-7 tiles', 'Shanten'),
                 ]),
-                // --- Wrong-answer review panel ---
+                // --- 错误答案复盘面板：对比玩家选择和最优解，附带牌效率文字解析 ---
                 if (!isPerfect) ...[
                   const SizedBox(height: 16),
                   Container(
@@ -493,7 +520,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                     ]),
                   ),
                 ],
-                // --- Correct-answer tip ---
+                // --- 正确答案提示卡片：展示牌效率原理说明 ---
                 if (isPerfect) ...[
                   const SizedBox(height: 16),
                   Container(
@@ -513,7 +540,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                     ]),
                   ),
                 ],
-                // --- Dismiss hint ---
+                // --- 关闭提示文字：引导玩家点击任意位置继续 ---
                 const SizedBox(height: 20),
                 Text('Tap anywhere to continue', style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteMuted.withOpacity(0.5))),
               ]),
@@ -538,16 +565,21 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     final selUke = state.ukeireCount ?? 0;
     final correctUke = _estimateCorrectUkeire(state);
 
+    // 边缘情况：玩家恰好选择了正确答案（如跳过后触发）
     if (selected == correct) return 'Perfect choice! This discard maximizes your tile acceptance.';
 
+    // 根据有效牌差距分级生成解析文本（三档：大差距/中差距/小差距）
     final diff = correctUke - selUke;
     if (diff >= 8) {
+      // 大差距（≥8张）：最优切牌是孤张，不破坏任何面子组合
       return 'The correct discard $correct opens up $correctUke+ acceptance tiles, while $selected only gives you about $selUke. '
           '$correct is an isolated tile that doesn\'t break any melds.';
     } else if (diff >= 3) {
+      // 中差距（3-7张）：量化说明最优切牌多几张有效牌
       return '$correct offers ${diff} more acceptance tiles than $selected. '
           'It keeps your best meld candidates intact.';
     } else {
+      // 小差距（<3张）：归因于手牌结构保持
       return '$correct keeps your hand structure stronger. It preserves key sequences while $selected breaks a useful group.';
     }
   }

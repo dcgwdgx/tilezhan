@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/shared/models/tile_model.dart';
 
 void main() {
+  /// 何切手牌排序测试组：验证按花色→数字的二级排序逻辑
   group('Nani-Kiru hand sort', () {
     TileModel t(String id, TileSuit suit, int value) => TileModel(
       id: id, suit: suit, character: id, seal: '',

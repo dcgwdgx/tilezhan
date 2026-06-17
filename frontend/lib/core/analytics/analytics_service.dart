@@ -15,7 +15,9 @@
 ///
 /// Per design spec: lib/core/analytics/analytics_service.dart
 class AnalyticsService {
+  // 内存事件缓冲 — 暂存尚未批量上报的 [_Event]，由 [flush] 清空取走。
   static final List<_Event> _buffer = [];
+  // 埋点开关 — 为 false 时 [log] 静默丢弃所有事件，由 [disable]/[enable] 控制。
   static bool _enabled = true;
 
   /// 记录一个埋点事件。
@@ -56,7 +58,12 @@ class AnalyticsService {
   static void enable() => _enabled = true;
 
   /// 取出当前缓冲中的所有事件并清空缓冲。
-  static List<_Event> flush() { final b = List<_Event>.from(_buffer); _buffer.clear(); return b; }
+  static List<_Event> flush() {
+    // 先复制再清空 — 避免调用方在遍历缓冲时因清空而产生并发修改异常。
+    final b = List<_Event>.from(_buffer);
+    _buffer.clear();
+    return b;
+  }
 
   /// 重置到默认状态 — 清空缓冲并启用埋点。仅用于测试。
   static void reset() { _buffer.clear(); _enabled = true; }
@@ -76,8 +83,12 @@ class AnalyticsService {
 ///
 /// 包含事件名称、可选参数及自动捕获的时间戳。
 class _Event {
+  // 事件名称，如 "answer", "level_up", "screen_view"。
   final String name;
+  // 事件携带的可选键值对参数，如 {'module': 'sima_yi', 'correct': true}。
   final Map<String, dynamic>? params;
+  // 事件创建时刻的时间戳，构造时自动捕获当前时间。
   final DateTime timestamp = DateTime.now();
+  // 构造一个埋点事件，[name] 必填，[params] 可选。
   _Event(this.name, this.params);
 }

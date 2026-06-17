@@ -19,8 +19,10 @@ import '../domain/graveyard_provider.dart';
 /// flashcard and nanikiru items, and a "Review All" button that launches
 /// the flashcard session. 所有数据通过 Riverpod providers 驱动。
 class GraveyardScreen extends ConsumerWidget {
+  /// 构造无状态的错题墓地屏幕实例。
   const GraveyardScreen({super.key});
 
+  /// 构建屏幕 UI：顶部导航栏 + 弱点雷达图 + 待复习列表 + 一键复习按钮。
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
@@ -42,7 +44,9 @@ class GraveyardScreen extends ConsumerWidget {
         ),
       ),
       body: Consumer(
+        // 监听 Riverpod provider 状态变化，自动重建 UI。
         builder: (context, ref, _) {
+          // dueItems: SRS 到期错题列表；suitRates: 五种牌的加权错误率(man/pin/sou/wind/dragon)。
           final dueItems = ref.watch(graveyardDueProvider);
           final suitRates = ref.watch(suitErrorRatesProvider);
           return Column(
@@ -60,6 +64,7 @@ class GraveyardScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 8),
+              // 待复习列表（可滚动）；为空时展示庆祝空状态。
               Expanded(child: _buildReviewList(context, dueItems)),
               const SizedBox(height: 16),
               Padding(
@@ -67,6 +72,7 @@ class GraveyardScreen extends ConsumerWidget {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
+                    // 无待复习项时按钮禁用（null onPressed），有则跳转到闪卡复习页。
                     onPressed: dueItems.isEmpty ? null : () => context.push('/flashcard'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.neonGold,
@@ -87,9 +93,15 @@ class GraveyardScreen extends ConsumerWidget {
     );
   }
 
+  /// 构建弱点雷达卡片。展示五芒星雷达图，标注错误率最高的花色。
+  ///
+  /// [suitRates] key 为花色名('man'/'pin'/'sou'/'wind'/'dragon')，value 为 0~1 的错误率。
+  /// 返回一个 [TzCard] 包裹的雷达图组件（含 CustomPaint 五边形图 + 最弱项高亮文本）。
   Widget _buildRadarCard(Map<String, double> suitRates) {
+    // 五种麻将花色的内部键名与展示标签。
     final suits = ['man', 'pin', 'sou', 'wind', 'dragon'];
     final labels = ['Man', 'Pin', 'Sou', 'Wind', 'Dgn'];
+    // 找出错误率最高的花色，高亮为"最弱项"。
     final worst = suits.reduce((a, b) => (suitRates[a] ?? 0) > (suitRates[b] ?? 0) ? a : b);
 
     return Padding(
@@ -118,7 +130,13 @@ class GraveyardScreen extends ConsumerWidget {
     );
   }
 
+  /// 构建待复习列表。
+  ///
+  /// [dueItems] 为 SRS 到期项列表，每项为 ([SRS条目数据], [TileModel]?) 的 record。
+  /// 列表为空时展示庆祝空状态("🎉 Nothing due!")；否则构建可滚动的错题卡片列表，
+  /// 每张卡片显示牌面 emoji、题目名称、类型、错误次数、逾期天数，点击跳转到对应复习页面。
   Widget _buildReviewList(BuildContext context, List<(dynamic, TileModel?)> dueItems) {
+    // 无待复习项：展示庆祝空状态。
     if (dueItems.isEmpty) {
       return const Center(
         child: Column(
@@ -135,10 +153,15 @@ class GraveyardScreen extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       itemCount: dueItems.length,
       itemBuilder: (_, i) {
+        // 解构 SRS 条目：item 为 SRS 元数据(类型/错误数/到期时间)，tile 为关联的牌模型(可为空)。
         final (item, tile) = dueItems[i];
+        // 优先使用牌面的助记 emoji，无牌面时降级为万用麻将 emoji。
         final emoji = tile?.mnemonic.emoji ?? '🀄';
+        // 优先使用助记名称，降级使用 itemId 作为标题。
         final name = tile?.mnemonic.name ?? item.itemId;
+        // 计算逾期天数 = (当前毫秒时间戳 - SRS 预定复习时间戳) / 一天毫秒数，四舍五入取整。
         final daysAgo = ((DateTime.now().millisecondsSinceEpoch - item.nextReviewAt) / 86400000).round();
+        // nanikiru 类型跳转到何切(局面判断)页面，flashcard 类型跳转闪卡页并携带花色参数。
         final route = item.type == 'nanikiru'
             ? '/nanikiru'
             : '/flashcard?suite=${tile?.suit.name ?? 'all'}';
@@ -180,24 +203,33 @@ class GraveyardScreen extends ConsumerWidget {
   }
 }
 
+/// 五芒星弱点雷达绘制器。
+///
+/// 在给定画布上绘制三层同心五边形参考网格、五条轴线，并根据 [data] 的值
+/// 绘制填充的弱点数据多边形（红色区域）。data 为 5 个 0~1 的错误率浮点数，
+/// 索引 0~4 分别对应 man/pin/sou/wind/dragon。
 class _RadarPainter extends CustomPainter {
+  /// 五元素的错误率数据列表，每个值在 [0.0, 1.0] 区间，值越大表示该花色错误率越高。
   final List<double> data;
   const _RadarPainter({required this.data});
 
+  /// 绘制雷达图：先画三层参考网格(同心五边形)，再画五条轴线，最后画数据多边形（填充+描边）。
   @override
   void paint(Canvas canvas, Size size) {
+    // 画布中心点与绘图半径（减去 8px 边距防止溢出）。
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2 - 8;
+    // 画笔初始化为描边模式。
     final paint = Paint()..style = PaintingStyle.stroke;
 
-    // Grid rings
+    // 绘制三层同心五边形参考网格（30%/60%/100% 径向刻度），透明度逐层递增。
     for (int i = 1; i <= 3; i++) {
       paint.color = AppColors.jadeHover.withOpacity(0.3 + i * 0.15);
       paint.strokeWidth = 0.5;
       _drawPentagon(canvas, center, radius * i / 3, paint);
     }
 
-    // Axes
+    // 绘制五条轴线：从中心指向五边形各顶点，每条间隔 72°（2π/5），起始角度 -90°（正上方）。
     paint.color = AppColors.jadeHover.withOpacity(0.5);
     paint.strokeWidth = 0.5;
     for (int i = 0; i < 5; i++) {
@@ -207,27 +239,34 @@ class _RadarPainter extends CustomPainter {
       ), paint);
     }
 
-    // Data polygon
+    // 绘制弱点数据多边形：根据各花色的错误率按比例确定顶点到中心的距离。
     final path = Path();
     for (int i = 0; i < 5; i++) {
-      final angle = -3.14159 / 2 + i * 2 * 3.14159 / 5;
+      final angle = -3.14159 / 2 + i * 2 * 3.14159 / 5; // 每条轴线的角度（-90° 起顺时针）。
+      // 顶点半径 = 最大半径 × 错误率（clamp 到 [0,1]），数据不足时退化为 0。
       final r = radius * (data.length > i ? data[i].clamp(0.0, 1.0) : 0.0);
       final point = Offset(center.dx + r * cos(angle), center.dy + r * sin(angle));
       if (i == 0) path.moveTo(point.dx, point.dy);
       else path.lineTo(point.dx, point.dy);
     }
     path.close();
+    // 多边形描边：深红色半透明，线宽 2px。
     paint.color = AppColors.vermillion.withOpacity(0.6);
     paint.strokeWidth = 2;
     canvas.drawPath(path, paint);
+    // 多边形填充：浅红色半透明覆层。
     paint.color = AppColors.vermillion.withOpacity(0.15);
     paint.style = PaintingStyle.fill;
     canvas.drawPath(path, paint);
   }
 
+  /// 绘制正五边形路径。用于雷达图的参考网格层（三层同心五边形）。
+  ///
+  /// [canvas] 画布，[center] 五边形中心点，[r] 外接圆半径，[paint] 画笔样式。
   void _drawPentagon(Canvas canvas, Offset center, double r, Paint paint) {
     final path = Path();
     for (int i = 0; i < 5; i++) {
+      // 五边形顶点角度：-90° + i * 72°，确保顶点朝上。
       final angle = -3.14159 / 2 + i * 2 * 3.14159 / 5;
       final point = Offset(center.dx + r * cos(angle), center.dy + r * sin(angle));
       if (i == 0) path.moveTo(point.dx, point.dy);
@@ -237,6 +276,7 @@ class _RadarPainter extends CustomPainter {
     canvas.drawPath(path, paint);
   }
 
+  /// 静态雷达图数据不变时无需重绘，始终返回 false 以提升渲染性能。
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

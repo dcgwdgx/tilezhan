@@ -52,6 +52,7 @@ void main() {
     tiles = List.generate(10, (i) => makeTile('m$i', TileSuit.man, '${i + 1}'));
   });
 
+  /// FlashcardQuizNotifier 测试组：验证测验状态机的全部核心行为（初始化、答题、翻页、助记符、重新开始、完成判定）
   group('FlashcardQuizNotifier', () {
     // initQuiz 填充队列并重置所有状态
     test('initQuiz populates queue and resets state', () async {

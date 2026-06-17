@@ -11,6 +11,7 @@ TileModel _t(String id, TileSuit suit) => TileModel(
 );
 
 void main() {
+  /// NaniKiruState 不可变状态类的单元测试：覆盖初始默认值、copyWith 部分更新、打出后阶段切换、牌有效率相关字段
   group('NaniKiruState', () {
     // 初始状态：空手牌、ready 阶段、倒计时 10 秒、未结束
     test('initial state defaults', () {

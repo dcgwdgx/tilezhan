@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/core/srs/srs_engine.dart';
 
 void main() {
+  /// SrsEngine SM-2 间隔重复算法单元测试分组
+  /// 覆盖：首次完美回忆、失败重置、渐进递增、EF 下限保护、质量等级映射、确定性验证
   group('SrsEngine — SM-2 algorithm', () {
     // ── 新牌首次完美回忆 ──
     // 质量 5（完美+助记符）：interval=1, reps=1, EF 从 2.5 提升
@@ -70,6 +72,7 @@ void main() {
 
     // ── EF 下限保护 ──
     // 连续 20 次质量 3 的复习后 EF 不得低于 1.3
+    // 模拟连续低质量回忆场景，验证 EF 下限 1.3 的硬保护
     test('EF never drops below 1.3', () {
       // Simulate repeated poor-but-passing reviews
       var ef = 2.5;

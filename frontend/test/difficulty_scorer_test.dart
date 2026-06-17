@@ -18,6 +18,7 @@ Puzzle _makePuzzle({int ukeireCount = 10, int ukeireTypes = 5}) {
 }
 
 void main() {
+  /// DifficultyScorer 测试组：覆盖评分范围校验、牌有效率与难度关系、目标分数映射、基础分加权叠加四大场景
   group('DifficultyScorer', () {
     // 评分结果应在 800-1600 的有效范围内
     test('returns score in valid range', () {

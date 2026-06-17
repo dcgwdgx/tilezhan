@@ -1,57 +1,54 @@
-/// Immutable state model for the flashcard quiz session.
+/// 闪卡测验会话的不可变状态模型。
 ///
-/// Tracks the full lifecycle of a card-matching quiz: a queue of [TileModel] cards,
-/// the user's progress through the queue, correctness tallies, answer-animation
-/// flags, and the mnemonic-reveal toggle.  Designed to be updated exclusively via
-/// [FlashcardQuizState.copyWith] so callers always receive a fresh snapshot.
+/// 追踪卡牌匹配测验的完整生命周期：一组 [TileModel] 卡牌队列、
+/// 用户在队列中的进度、正确/错误计数、答案动画标志以及助记词显示开关。
+/// 设计为仅通过 [FlashcardQuizState.copyWith] 进行更新，确保调用方始终获取全新快照。
 import '../../../shared/models/tile_model.dart';
 
-/// The complete mutable-free state of a single flashcard quiz run.
+/// 单次闪卡测验运行的完整不可变状态。
 ///
-/// Each instance captures a fixed point in time: which card is active, how many
-/// answers were right or wrong, whether a mnemonic helper is visible, and the
-/// pre-shuffled [options] offered for the current card.  No public setters exist;
-/// consumers call [copyWith] to derive the next frame.
+/// 每个实例捕获一个固定的时间快照：当前激活哪张卡、已答对和答错多少题、
+/// 助记词辅助面板是否可见，以及当前卡牌的预洗牌 [options] 选项列表。
+/// 本类不提供任何公共 setter；调用方通过 [copyWith] 派生下一个状态帧。
 class FlashcardQuizState {
-  /// The ordered list of cards remaining in the quiz.
+  /// 测验中剩余卡牌的有序列表（队列）。
   final List<TileModel> queue;
 
-  /// Zero-based index of the card currently presented to the user.
+  /// 当前展示给用户的卡牌在队列中的零基索引。
   final int currentIndex;
 
-  /// Running tally of cards answered correctly so far.
+  /// 截至目前答对的卡牌累计数量。
   final int correctCount;
 
-  /// Running tally of cards answered incorrectly so far.
+  /// 截至目前答错的卡牌累计数量。
   final int wrongCount;
 
-  /// Whether the UI is waiting for the user to pick an answer for the current card.
+  /// 是否处于等待用户为当前卡牌选择答案的状态。
   final bool isAnswering;
 
-  /// Whether the mnemonic helper panel is currently expanded.
+  /// 助记词辅助面板当前是否展开显示。
   final bool isShowingMnemonic;
 
-  /// ID of the most-recently correctly-answered card, if any.
+  /// 最近一次答对的卡牌 ID，无则为 `null`。
   ///
-  /// Used by the UI to drive brief success feedback without needing
-  /// an extra timer-based flag.
+  /// 供 UI 驱动简短的答题成功反馈动画使用，
+  /// 无需额外引入基于定时器的标志。
   final String? lastCorrectId;
 
-  /// ID of the most-recently incorrectly-answered card, if any.
+  /// 最近一次答错的卡牌 ID，无则为 `null`。
   ///
-  /// Paired with [lastCorrectId] to drive error-feedback animations.
+  /// 与 [lastCorrectId] 配合使用，驱动答题错误反馈动画。
   final String? lastWrongId;
 
-  /// The card suite (category) the quiz is currently scoped to (`'all'` for
-  /// every available card).
+  /// 当前测验所限定的卡牌套系（分类），`'all'` 表示包含所有可用卡牌。
   final String suite;
-  /// Pre-shuffled options for the current card (4 items).
+  /// 当前卡牌的预洗牌选项列表（4 项）。
   final List<TileModel> options;
 
-  /// Creates a const snapshot of the quiz state.
+  /// 创建一个测验状态的 const 快照。
   ///
-  /// Every parameter is optional with a sensible default so callers can
-  /// construct the initial pre-quiz state as `FlashcardQuizState()`.
+  /// 所有参数均为可选的，且具有合理的默认值，
+  /// 因此调用方可以直接通过 `FlashcardQuizState()` 构造测验前的初始状态。
   const FlashcardQuizState({
     this.queue = const [],
     this.currentIndex = 0,
@@ -65,24 +62,23 @@ class FlashcardQuizState {
     this.options = const [],
   });
 
-  /// The card the user is currently answering, or `null` when the quiz is
-  /// finished or the queue is empty.
+  /// 用户当前正在作答的卡牌；如果测验已结束或队列为空则返回 `null`。
   TileModel? get currentTile =>
       currentIndex < queue.length ? queue[currentIndex] : null;
 
-  /// Total number of cards in the quiz queue.
+  /// 测验队列中的卡牌总数。
   int get totalCount => queue.length;
 
-  /// Whether every card in the queue has been presented.
+  /// 队列中的每一张卡牌是否都已被展示过（即测验是否已完成）。
   bool get isFinished => currentIndex >= totalCount;
 
-  /// Progress through the queue expressed as a fraction in [0, 1].
+  /// 以 [0, 1] 区间的小数表示的队列进度。
   double get progress => totalCount > 0 ? currentIndex / totalCount : 0;
 
-  /// Returns a new [FlashcardQuizState] with the given fields replaced.
+  /// 返回一个新的 [FlashcardQuizState]，其中指定字段已替换为新值。
   ///
-  /// Every parameter is optional; omitted parameters keep their current value.
-  /// This is the only way to mutate quiz state — no public setters exist.
+  /// 所有参数均为可选的；未传入的参数将保留当前值不变。
+  /// 这是变更测验状态的唯一途径——本类不提供任何公共 setter。
   FlashcardQuizState copyWith({
     List<TileModel>? queue,
     int? currentIndex,

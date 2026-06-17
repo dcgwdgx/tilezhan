@@ -4,14 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/shared/engine/ukeire_calculator.dart';
 
 void main() {
+  /// UkeireCalculator 计算器单元测试组 — 验证牌有效率的计算逻辑
   group('UkeireCalculator', () {
-    // 必须恰好传入 14 张牌，1 张或 15 张都应抛出异常
+    // 边界条件：手牌数量必须恰好为 14 张，传入 1 张或 15 张都应抛出 ArgumentError
     test('requires exactly 14 tiles', () {
       expect(() => UkeireCalculator(['m1']), throwsArgumentError);
       expect(() => UkeireCalculator(List.filled(15, 'm1')), throwsArgumentError);
     });
 
-    // 计算结果包含每种唯一牌的打出分析
+    // 功能验证：计算结果应按每种唯一牌面分类，返回对应的打出分析条目
     test('returns results for each unique discard', () {
       final hand = ['m1','m1','m2','m3','m3','m4','m5','m5','m6','m7','m8','m8','m9','s7'];
       final results = UkeireCalculator(hand).calculate();
@@ -20,7 +21,7 @@ void main() {
       expect(results.keys, contains('m1'));
     });
 
-    // 每条结果包含向听数、有效牌种类列表、有效牌总数
+    // 字段完整性：每条结果必须包含向听数(shantenAfter)、有效牌种类列表(ukeireTypes)和有效牌总数(ukeireCount)
     test('result has shanten, ukeire types and count', () {
       final hand = ['m1','m1','m2','m3','m3','m4','m5','m5','m6','m7','m8','m8','m9','s7'];
       final results = UkeireCalculator(hand).calculate();
@@ -30,7 +31,7 @@ void main() {
       expect(first.ukeireCount, isNonNegative);
     });
 
-    // 含有 4 张相同牌的手牌能正常处理不崩溃
+    // 鲁棒性：手牌中含有 4 张相同牌（杠子）时，计算器应正常处理而不崩溃
     test('handles hands with duplicates correctly', () {
       // Hand with 4 copies of one tile
       final hand = ['m1','m1','m1','m1','m2','m3','m4','m5','m6','p1','p2','p3','p4','p5'];
@@ -39,7 +40,7 @@ void main() {
       expect(results, isNotEmpty);
     });
 
-    // 有效牌总数不会超过牌山中剩余牌的数量
+    // 上限校验：有效牌总数不应超过牌山中剩余牌的数量（34种×4张−14张手牌=122张）
     test('ukeire count never exceeds max available tiles', () {
       final hand = ['m1','m1','m2','m3','m3','m4','m5','m5','m6','m7','m8','m8','m9','s7'];
       final results = UkeireCalculator(hand).calculate();
