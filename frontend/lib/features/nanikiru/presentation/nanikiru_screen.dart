@@ -77,22 +77,11 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
   void _maybeShowBattleReport() {
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) return;
-    if (ref.read(showComboPromoProvider)) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) => const TzComboPromo(),
-      ).then((_) {
-        if (mounted) context.pop();
-      });
-      return;
-    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => TzBattleReport(),
+      builder: (_) => const TzBattleReport(),
     ).then((_) {
       if (mounted) context.pop();
     });

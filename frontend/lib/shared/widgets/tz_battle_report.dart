@@ -104,7 +104,43 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
         ),
         const SizedBox(height: 16),
 
-        // Share button
+        // Combo promo banner (10+ streak → discount)
+        if (ref.watch(showComboPromoProvider))
+          Container(
+            padding: const EdgeInsets.all(14),
+            margin: const EdgeInsets.only(bottom: 4),
+            decoration: BoxDecoration(
+              color: AppColors.neonGold.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.neonGold.withOpacity(0.3)),
+            ),
+            child: Row(children: [
+              const Text('🔥', style: TextStyle(fontSize: 22)),
+              const SizedBox(width: 10),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('COMBO ×10!', style: TextStyle(fontSize: 14,
+                  fontWeight: FontWeight.w800, color: AppColors.neonGold)),
+                const Text('Annual 20% OFF — \$23.99/yr',
+                  style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)),
+              ])),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/premium');
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.neonGold,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text('UNLOCK', style: TextStyle(fontSize: 11,
+                    fontWeight: FontWeight.w800, color: Colors.black)),
+                ),
+              ),
+            ]),
+          ),
+        // Action buttons
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           _actionBtn(Icons.share, 'Share', () => _shareResults(report)),
           const SizedBox(width: 24),
