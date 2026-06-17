@@ -11,6 +11,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/hearts/heart_provider.dart';
 import '../../../core/iap/iap_provider.dart';
 import '../../../core/iap/iap_service.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../shared/widgets/tz_button.dart';
 import '../../../shared/widgets/tz_card.dart';
 
@@ -32,6 +33,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final iapAsync = ref.watch(iapStateProvider);
 
     return Scaffold(
@@ -57,17 +59,19 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
   }
 
   Widget _buildLoading() {
-    return const Center(
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        CircularProgressIndicator(color: AppColors.neonGold),
-        SizedBox(height: 16),
-        Text('Connecting to App Store...',
+        const CircularProgressIndicator(color: AppColors.neonGold),
+        const SizedBox(height: 16),
+        Text(l10n.premiumConnecting,
           style: TextStyle(fontSize: 14, color: AppColors.jadeWhiteDim)),
       ]),
     );
   }
 
   Widget _buildContent(IapState state) {
+    final l10n = AppLocalizations.of(context)!;
     final error = state.error;
     final isPurchasing = state.status == IapStatus.purchasing;
 
@@ -76,7 +80,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
       child: Column(children: [
         const Text('💎', style: TextStyle(fontSize: 48)),
         const SizedBox(height: 8),
-        const Text('Choose Your Plan',
+        Text(l10n.premiumTitle,
           style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900,
             color: AppColors.neonGold, letterSpacing: 1)),
         const SizedBox(height: 16),
@@ -93,7 +97,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
             child: Row(children: [
               const Text('🚀', style: TextStyle(fontSize: 18)),
               const SizedBox(width: 8),
-              const Expanded(child: Text('Launch Special: Lifetime 20% OFF — Limited Time',
+              Expanded(child: Text(l10n.premiumLaunchBanner,
                 style: TextStyle(fontSize: 12, color: AppColors.neonGold))),
             ]),
           ),
@@ -106,8 +110,8 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
 
         TzButton(
           label: isPurchasing
-            ? 'PURCHASING...'
-            : (_selectedId != null ? 'CONTINUE' : 'SELECT A PLAN'),
+            ? l10n.premiumPurchasing
+            : (_selectedId != null ? l10n.premiumContinue : l10n.premiumSelectPlan),
           style: TzButtonStyle.gold,
           onPressed: _selectedId != null && !isPurchasing
             ? () => _purchase(_selectedId!)
@@ -123,6 +127,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
   }
 
   List<Widget> _buildPlanCards(IapState state, bool disabled) {
+    final l10n = AppLocalizations.of(context)!;
     final products = Map<String, ProductDetails>.fromEntries(
       state.products.map((p) => MapEntry(p.id, p)),
     );
@@ -130,7 +135,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
     final plans = [
       _Plan(
         id: 'free',
-        title: 'FREE',
+        title: l10n.premiumFree,
         price: '\$0',
         subtitle: '10/day',
         badge: null,
@@ -139,26 +144,26 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
       ),
       _Plan(
         id: TzProducts.monthly,
-        title: 'MONTHLY',
+        title: l10n.premiumMonthly,
         price: products[TzProducts.monthly]?.price ?? '\$4.99',
         subtitle: '/month',
-        badge: '★ POPULAR',
+        badge: l10n.premiumPopular,
         features: const ['Unlimited puzzles', 'SRS mistake tracking', 'Full stats & analytics', 'All difficulties'],
       ),
       _Plan(
         id: TzProducts.yearly,
-        title: 'ANNUAL',
+        title: l10n.premiumAnnual,
         price: products[TzProducts.yearly]?.price ?? '\$29.99',
         subtitle: '/year',
-        badge: 'BEST VALUE — Save 50%',
+        badge: l10n.premiumBestValue,
         features: const ['Everything in Monthly', 'ELO deep analysis', 'Exclusive skins', 'Priority support'],
       ),
       _Plan(
         id: TzProducts.lifetime,
-        title: 'LIFETIME',
+        title: l10n.premiumLifetime,
         price: products[TzProducts.lifetime]?.price ?? '\$49.99',
         subtitle: 'one time',
-        badge: 'PAY ONCE',
+        badge: l10n.premiumPayOnce,
         features: const ['Everything forever', 'All future features', 'Founder badge', 'No subscriptions'],
       ),
     ];
@@ -256,26 +261,28 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
   }
 
   Widget _buildRestoreButton() {
+    final l10n = AppLocalizations.of(context)!;
     return TextButton(
       onPressed: () => ref.read(iapServiceProvider).restore(),
-      child: const Text('Restore Purchases',
+      child: Text(l10n.premiumRestore,
         style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteMuted,
           decoration: TextDecoration.underline)),
     );
   }
 
   Widget _buildAllPlansFooter() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         color: AppColors.jadeCard.withOpacity(0.5),
       ),
-      child: const Column(children: [
-        Text('All paid plans include:',
-          style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted)),
-        SizedBox(height: 6),
-        Text('✅ Unlimited puzzle replay   ✅ Ghost Mode (mistake review)   ✅ Cancel anytime',
+      child: Column(children: [
+        Text(l10n.premiumAllPlansHeader,
+          style: const TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted)),
+        const SizedBox(height: 6),
+        Text(l10n.premiumAllPlansFooter,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 11, color: AppColors.jadeWhiteDim)),
       ]),

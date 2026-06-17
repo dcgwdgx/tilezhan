@@ -7,6 +7,8 @@ import 'package:tilezhan/core/hearts/heart_service.dart';
 import 'package:tilezhan/core/hearts/heart_provider.dart';
 import 'package:tilezhan/core/iap/iap_provider.dart';
 import 'package:tilezhan/core/iap/iap_service.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:tilezhan/l10n/generated/app_localizations.dart';
 import 'package:tilezhan/features/premium/presentation/premium_screen.dart';
 
 /// Fake HeartService — returns no promo, always ready.
@@ -76,7 +78,15 @@ Widget _wrap(Widget child) {
       iapServiceProvider.overrideWith((ref) => _FakeIapService()),
       heartServiceProvider.overrideWith((ref) => _FakeHeartService()),
     ],
-    child: MaterialApp(home: child),
+    child: MaterialApp(
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('en')],
+      home: child,
+    ),
   );
 }
 

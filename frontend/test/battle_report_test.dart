@@ -6,6 +6,8 @@ import 'package:tilezhan/core/hearts/heart_provider.dart';
 import 'package:tilezhan/core/hearts/heart_service.dart';
 import 'package:tilezhan/core/iap/iap_provider.dart';
 import 'package:tilezhan/core/iap/iap_service.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:tilezhan/l10n/generated/app_localizations.dart';
 import 'package:tilezhan/shared/widgets/tz_battle_report.dart';
 
 class _FakeHeartService extends HeartService {
@@ -36,7 +38,15 @@ Widget _wrap(Widget child) {
   return ProviderScope(overrides: [
     heartServiceProvider.overrideWith((ref) => _FakeHeartService()),
     iapServiceProvider.overrideWith((ref) => _FakeIap()),
-  ], child: MaterialApp(home: child));
+  ], child: MaterialApp(
+    localizationsDelegates: const [
+      AppLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+    ],
+    supportedLocales: const [Locale('en')],
+    home: child,
+  ));
 }
 
 void main() {

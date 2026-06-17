@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/hearts/heart_provider.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../widgets/tz_button.dart';
 
 class TzBattleReport extends ConsumerStatefulWidget {
@@ -21,15 +22,19 @@ class TzBattleReport extends ConsumerStatefulWidget {
 
 class _TzBattleReportState extends ConsumerState<TzBattleReport> {
   /// Share results as text via system share sheet.
+  /// Closes modal first — share_plus fails when called from inside a modal on iOS.
   Future<void> _shareResults(BattleReport report) async {
     final text = '🎯 ${report.total} puzzles today · '
         '${(report.accuracy * 100).toInt()}% accuracy · '
         '${report.maxCombo}× max combo on TileZhan! tilezhan.app';
-    await Share.share(text);
+    Navigator.pop(context);
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (context.mounted) await Share.share(text);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final report = ref.watch(battleReportProvider);
 
     return Container(
@@ -60,17 +65,17 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
             child: Column(children: [
               const Text('🎯', style: TextStyle(fontSize: 36)),
               const SizedBox(height: 4),
-              const Text('Today\'s Battle Report',
+              Text(l10n.battleTitle,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900,
                   color: AppColors.neonGold)),
               const SizedBox(height: 20),
               Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                _stat('Total', '${report.total}'),
-                _stat('Accuracy', '${(report.accuracy * 100).toInt()}%'),
-                _stat('Max Combo', '${report.maxCombo}×'),
+                _stat(l10n.battleTotal, '${report.total}'),
+                _stat(l10n.battleAccuracy, '${(report.accuracy * 100).toInt()}%'),
+                _stat(l10n.battleMaxCombo, '${report.maxCombo}×'),
               ]),
               const SizedBox(height: 12),
-              Text('tilezhan.app',
+              Text(l10n.battleDomain,
                 style: TextStyle(fontSize: 11, color: AppColors.neonGold.withOpacity(0.6))),
             ]),
           ),
@@ -90,9 +95,9 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
               const Text('🔥', style: TextStyle(fontSize: 22)),
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('COMBO ×10!', style: TextStyle(fontSize: 14,
+                Text(l10n.battleComboBanner, style: const TextStyle(fontSize: 14,
                   fontWeight: FontWeight.w800, color: AppColors.neonGold)),
-                const Text('Annual 20% OFF — \$23.99/yr',
+                Text(l10n.battleComboSub,
                   style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)),
               ])),
               GestureDetector(
@@ -106,7 +111,7 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
                     color: AppColors.neonGold,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text('UNLOCK', style: TextStyle(fontSize: 11,
+                  child: Text(l10n.battleComboUnlock, style: const TextStyle(fontSize: 11,
                     fontWeight: FontWeight.w800, color: Colors.black)),
                 ),
               ),
@@ -114,14 +119,14 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
           ),
         // Action buttons
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          _actionBtn(Icons.share, 'Share', () => _shareResults(report)),
+          _actionBtn(Icons.share, l10n.battleShare, () => _shareResults(report)),
           const SizedBox(width: 24),
-          _actionBtn(Icons.auto_fix_high, 'Mistakes', () {
+          _actionBtn(Icons.auto_fix_high, l10n.battleMistakesBtn, () {
             Navigator.pop(context);
             context.push('/graveyard');
           }),
           const SizedBox(width: 24),
-          _actionBtn(Icons.person_add, 'Invite', () {
+          _actionBtn(Icons.person_add, l10n.battleInvite, () {
             _shareInviteLink();
           }),
         ]),
@@ -129,7 +134,7 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
 
         // Premium CTA
         TzButton(
-          label: '\$4.99/mo  —  Unlimited Play',
+          label: l10n.battlePremiumCTA,
           style: TzButtonStyle.gold,
           onPressed: () => context.push('/premium'),
         ),
@@ -158,10 +163,12 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
   }
 
   void _shareInviteLink() {
-    Share.share(
-      '🀄 Join me on TileZhan — master Mahjong tile recognition! '
-      'Free daily puzzles. Get it at tilezhan.app',
-    );
+    final text = '🀄 Join me on TileZhan — master Mahjong tile recognition! '
+        'Free daily puzzles. Get it at tilezhan.app';
+    Navigator.pop(context);
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (context.mounted) Share.share(text);
+    });
   }
 
   Widget _stat(String label, String value) {
