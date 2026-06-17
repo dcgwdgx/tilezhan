@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// Full-screen onboarding walkthrough widget.
 ///
@@ -27,27 +28,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _step = 0;
   static const _totalSteps = 3;
 
-  final _steps = const [
+  List<Map<String, String>> _buildSteps(AppLocalizations l10n) => [
     {
       'emoji': '🀄',
-      'title': 'Master Tile\nRecognition',
-      'desc': '4-choice flashcard quiz for all 34 tiles.\nCorrect = use a heart.\nWrong = review free forever.',
+      'title': l10n.onboarding1Title,
+      'desc': l10n.onboarding1Desc,
     },
     {
       'emoji': '⚔️',
-      'title': 'Train Tile\nEfficiency',
-      'desc': 'Draw a tile, then choose the\noptimal discard from your hand.\nPerfect answers get visual rewards.',
+      'title': l10n.onboarding2Title,
+      'desc': l10n.onboarding2Desc,
     },
     {
       'emoji': '💎',
-      'title': 'Start Free',
-      'desc': 'No sign-up required.\n10 free puzzles every day.\nUnlock unlimited with Pro.',
+      'title': l10n.onboarding3Title,
+      'desc': l10n.onboarding3Desc,
     },
   ];
 
   @override
   Widget build(BuildContext context) {
-    final step = _steps[_step];
+    final l10n = AppLocalizations.of(context)!;
+    final steps = _buildSteps(l10n);
+    final step = steps[_step];
     return Scaffold(
       backgroundColor: AppColors.jadeDeep,
       body: SafeArea(
@@ -95,7 +98,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       Hive.box('prefs').put('onboarding_complete', true);
                       context.go('/');
                     },
-                    child: const Text('Skip', style: TextStyle(color: AppColors.jadeWhiteMuted)),
+                    child: Text(l10n.onboardingSkip, style: const TextStyle(color: AppColors.jadeWhiteMuted)),
                   ),
                   const Spacer(),
                   ElevatedButton(
@@ -113,7 +116,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
                     child: Text(
-                      _step == _totalSteps - 1 ? 'GET STARTED' : 'NEXT →',
+                      _step == _totalSteps - 1 ? l10n.onboardingStart : l10n.onboardingNext,
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
