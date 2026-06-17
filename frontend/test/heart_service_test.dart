@@ -129,6 +129,48 @@ void main() {
     });
   });
 
+  group('Persistence across recreation', () {
+    test('hearts survive provider dispose/recreate (simulates app navigation)', () async {
+      // Simulate main() opening the box
+      await Hive.openBox('hearts');
+
+      // First "provider" — consume 3 hearts
+      var svc = HeartService();
+      svc.consume();
+      svc.consume();
+      svc.consume();
+      expect(svc.hearts, 7);
+      svc.dispose();
+
+      // "Provider disposed" — recreate
+      svc = HeartService();
+      expect(svc.hearts, 7, reason: 'hearts should persist across recreation');
+      svc.consume();
+      expect(svc.hearts, 6);
+      svc.dispose();
+
+      await Hive.box('hearts').close();
+    });
+
+    test('daily challenge uses persist across recreation', () async {
+      await Hive.openBox('hearts');
+      var svc = HeartService();
+      // Use all 3 daily challenges
+      expect(svc.useDailyChallenge(), isTrue);
+      expect(svc.useDailyChallenge(), isTrue);
+      expect(svc.useDailyChallenge(), isTrue);
+      expect(svc.dailyChallengeRemaining, 0);
+      svc.dispose();
+
+      // Recreate — daily challenge should still be used up
+      svc = HeartService();
+      expect(svc.dailyChallengeRemaining, 0);
+      expect(svc.canUseDailyChallenge, isFalse);
+      svc.dispose();
+      await Hive.box('hearts').close();
+    });
+  });
+
   group('LifetimePromo', () {
     test('isLifetimePromoActive true for free user within 48h', () {
       expect(svc.isLifetimePromoActive(false), isTrue);

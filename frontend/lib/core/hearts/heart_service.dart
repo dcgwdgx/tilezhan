@@ -24,16 +24,16 @@ class HeartService {
   int _correct = 0, _wrong = 0, _combo = 0, _maxCombo = 0;
 
   int get hearts { _ensureInit(); return _hearts; }
-  bool get hasHearts => hearts > 0;
+  bool get hasHearts { _ensureInit(); return _hearts > 0; }
+  int get dailyChallengeRemaining { _ensureInit(); return (dailyChallengeMax - _dailyUsed).clamp(0, dailyChallengeMax); }
+  bool get canUseDailyChallenge { _ensureInit(); return _dailyUsed < dailyChallengeMax; }
+  int get allTimeCombo { _ensureInit(); return _allTimeCombo; }
   int get correct => _correct;
   int get wrong => _wrong;
   int get combo => _combo;
   int get maxCombo => _maxCombo;
   int get total => _correct + _wrong;
   double get accuracy => total == 0 ? 0 : _correct / total;
-  int get dailyChallengeRemaining => (dailyChallengeMax - _dailyUsed).clamp(0, dailyChallengeMax);
-  bool get canUseDailyChallenge => _dailyUsed < dailyChallengeMax;
-  int get allTimeCombo => _allTimeCombo;
 
   void _ensureInit() {
     if (_initialized) return;
