@@ -3,15 +3,11 @@
 /// Displays session stats (accuracy, combo, total) with premium CTA,
 /// mistake review link, and a share button to post results on social media.
 /// Premium users never see this.
-import 'dart:typed_data';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'dart:io';
 import '../../core/constants/app_colors.dart';
 import '../../core/hearts/heart_provider.dart';
 import '../widgets/tz_button.dart';
@@ -24,33 +20,12 @@ class TzBattleReport extends ConsumerStatefulWidget {
 }
 
 class _TzBattleReportState extends ConsumerState<TzBattleReport> {
-  final _captureKey = GlobalKey();
-
-  /// Capture the battle report card as a PNG and share it.
+  /// Share results as text via system share sheet.
   Future<void> _shareResults(BattleReport report) async {
-    try {
-      final boundary = _captureKey.currentContext?.findRenderObject()
-          as RenderRepaintBoundary?;
-      if (boundary == null) return;
-
-      final image = await boundary.toImage(pixelRatio: 2.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData == null) return;
-
-      final dir = await getTemporaryDirectory();
-      final file = File(
-        '${dir.path}/tilezhan_report_${DateTime.now().millisecondsSinceEpoch}.png');
-      await file.writeAsBytes(byteData.buffer.asUint8List());
-
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: '🎯 ${report.total} puzzles today · '
-            '${(report.accuracy * 100).toInt()}% accuracy · '
-            '${report.maxCombo}× max combo on TileZhan!',
-      );
-    } catch (e) {
-      // Share failed — non-critical
-    }
+    final text = '🎯 ${report.total} puzzles today · '
+        '${(report.accuracy * 100).toInt()}% accuracy · '
+        '${report.maxCombo}× max combo on TileZhan! tilezhan.app';
+    await Share.share(text);
   }
 
   @override
@@ -72,9 +47,7 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
         const SizedBox(height: 20),
 
         // Sharable card (captured as image)
-        RepaintBoundary(
-          key: _captureKey,
-          child: Container(
+        Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
@@ -101,7 +74,6 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
                 style: TextStyle(fontSize: 11, color: AppColors.neonGold.withOpacity(0.6))),
             ]),
           ),
-        ),
         const SizedBox(height: 16),
 
         // Combo promo banner (10+ streak → discount)
