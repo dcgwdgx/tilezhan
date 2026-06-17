@@ -23,11 +23,14 @@ jobs:
       - run: flutter pub get
 
       # ——— iPhone-only: remove iPad support to skip iPad screenshot requirement ———
+      # Must modify both Info.plist AND project.pbxproj (flutter build ipa regenerates Info.plist from pbxproj)
       - name: Set iPhone only (no iPad)
         run: |
           /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" ios/Runner/Info.plist 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" ios/Runner/Info.plist
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = "1"/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = 1,2/TARGETED_DEVICE_FAMILY = 1/g' ios/Runner.xcodeproj/project.pbxproj
 
       # ——— Install cert + profile ———
       - name: Setup code signing
