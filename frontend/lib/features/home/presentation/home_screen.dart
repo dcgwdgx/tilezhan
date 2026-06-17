@@ -128,7 +128,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   /// 从 SRS 数据推算段位名称——根据总复习次数递进。
   String _rankName(WidgetRef ref) {
-    final srs = ref.watch(srsItemsProvider).valueOrNull ?? {};
+    final srs = ref.watch(srsItemsProvider);
     final total = srs.values.fold<int>(0, (s, i) => s + i.reps);
     if (total < 5) return 'Novice';
     if (total < 20) return 'Apprentice';
@@ -139,7 +139,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   /// SRS 总复习次数。
   int _totalReviews(WidgetRef ref) {
-    final srs = ref.watch(srsItemsProvider).valueOrNull ?? {};
+    final srs = ref.watch(srsItemsProvider);
     return srs.values.fold<int>(0, (s, i) => s + i.reps);
   }
 

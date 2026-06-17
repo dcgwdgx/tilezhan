@@ -34,6 +34,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
   Timer? _timer;
   late AnimationController _slashCtrl;
   int _sessionCount = 0;
+  bool _gameOver = false; // 心耗尽封锁后续答题
 
   @override
   void initState() {
@@ -127,7 +128,10 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
         if (!hearts.useDailyChallenge()) {
           depleted = hearts.consume();
         }
-        if (depleted) _maybeShowBattleReport();
+        if (depleted) {
+          _gameOver = true;
+          _maybeShowBattleReport();
+        }
       });
     }
     if (!state.isFinished) {
@@ -371,7 +375,10 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
             if (!hearts.useDailyChallenge()) {
               depleted = hearts.consume();
             }
-            if (depleted) _maybeShowBattleReport();
+            if (depleted) {
+          _gameOver = true;
+          _maybeShowBattleReport();
+        }
           }),
         ],
       ),

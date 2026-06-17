@@ -21,8 +21,8 @@ class CollectionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final itemsAsync = ref.watch(srsItemsProvider);
-    final totalReviews = (itemsAsync.valueOrNull ?? {}).values
+    final items = ref.watch(srsItemsProvider);
+    final totalReviews = items.values
         .fold(0, (sum, item) => sum + item.reps + 1);
     final unlocked = (totalReviews ~/ 5).clamp(0, 7);
     return Scaffold(

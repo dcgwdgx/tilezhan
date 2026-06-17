@@ -97,6 +97,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   /// 费用逻辑：每日挑战 3 题免费 → 心数消耗 → 心耗尽弹窗。
   /// 错误回答不耗心（进错题池），但会归零连斩。
   void _handleAnswer(bool isCorrect) {
+    if (_gameOver) return; // 心已耗尽，禁止继续答题
     AnalyticsService.answered('flashcard', isCorrect);
     _feedbackCtrl.forward(from: 0);
     final hearts = ref.read(heartServiceProvider);
@@ -110,7 +111,10 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
       if (!hearts.useDailyChallenge()) {
         depleted = hearts.consume();
       }
-      if (depleted) _maybeShowBattleReport();
+      if (depleted) {
+        _gameOver = true;
+        _maybeShowBattleReport();
+      }
     } else {
       AudioService.playWrong();
       hearts.recordWrong(); // 错误不耗心，但归零连斩
@@ -129,8 +133,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     setState(() {});
   }
 
-  /// 弹战绩分享窗口（含组合促销横幅），关闭后返回首页。
-  /// 付费用户跳过。战绩弹窗始终显示 Share 按钮。
+  /// 弹战绩分享窗口。关闭后留在本页——gate 封堵不让答题。
   void _maybeShowBattleReport() {
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) return;
@@ -139,9 +142,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const TzBattleReport(),
-    ).then((_) {
-      if (mounted) context.pop();
-    });
+    );
   }
 
   void _recordSrs(int quality) {
@@ -216,6 +217,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   }
 
   bool _countdownStarted = false;
+  bool _gameOver = false; // 心耗尽封锁后续答题
   void _startCountdownIfNeeded() {
     final state = ref.read(flashcardQuizProvider);
     if (!state.isAnswering && !_countdownStarted) {

@@ -39,8 +39,7 @@ final graveyardDueProvider = Provider<List<(SrsItem, TileModel?)>>((ref) {
 /// mahjong suit (man, pin, sou, wind, dragon). The error rate for each suit
 /// is `errors / (repetitions + 1)`. Suits with no flashcard data default to 0.0.
 final suitErrorRatesProvider = Provider<Map<String, double>>((ref) {
-  final itemsAsync = ref.watch(srsItemsProvider);
-  final items = itemsAsync.valueOrNull ?? {};
+  final items = ref.watch(srsItemsProvider);
   final tilesAsync = ref.watch(tileDataProvider);
   final tiles = tilesAsync.valueOrNull ?? [];
   final errorsBySuit = <String, int>{};

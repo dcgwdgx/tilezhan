@@ -32,18 +32,23 @@ Future<(bool, int)> syncSrsToCloud(List<SrsItem> items) async {
   }
 }
 
-/// All known SRS items loaded from storage.
-/// Per design: FutureProvider for async load from Hive/Firestore.
-final srsItemsProvider = FutureProvider<Map<String, SrsItem>>((ref) async {
-  final storage = await ref.watch(storageServiceProvider.future);
-  final raw = storage.getJson(StorageService.kSrsItems);
-  return raw.map((k, v) => MapEntry(k, SrsItem.fromJson(v as Map<String, dynamic>)));
+/// All known SRS items — merges storage-loaded items with in-memory notifier state.
+/// This way new reviews are visible immediately (graveyard, etc.) without waiting
+/// for the next storage sync.
+final srsItemsProvider = Provider<Map<String, SrsItem>>((ref) {
+  // Watch the notifier for live in-memory updates
+  final notifierState = ref.watch(srsNotifierProvider);
+  // Also load persisted items from storage
+  final storageAsync = ref.watch(storageServiceProvider);
+  final stored = storageAsync.valueOrNull?.getJson(StorageService.kSrsItems) ?? {};
+  final fromStorage = stored.map((k, v) => MapEntry(k, SrsItem.fromJson(v as Map<String, dynamic>)));
+  // Merge: notifier (live) overrides storage (persisted)
+  return {...fromStorage, ...notifierState};
 });
 
 /// Items due for review, sorted by errorWeight descending (design spec §6.2).
 final dueItemsProvider = Provider<List<SrsItem>>((ref) {
-  final itemsAsync = ref.watch(srsItemsProvider);
-  final items = itemsAsync.valueOrNull ?? {};
+  final items = ref.watch(srsItemsProvider);
   final now = DateTime.now().millisecondsSinceEpoch;
   return items.values
       .where((i) => i.nextReviewAt <= now)
