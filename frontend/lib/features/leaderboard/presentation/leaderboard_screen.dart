@@ -27,6 +27,11 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     _fetch();
   }
 
+  /// Fetch top-50 leaderboard from backend.
+  ///
+  /// Resets loading/error state on each call. On success, decodes the
+  /// JSON response and stores the rankings list. On failure, sets a
+  /// user-facing error message so [_buildBody] can show a retry button.
   Future<void> _fetch() async {
     setState(() { _loading = true; _error = null; });
     try {
@@ -46,6 +51,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     }
   }
 
+  /// Scaffold with jade-themed AppBar + state-driven body.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,10 +66,14 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     );
   }
 
+  /// State-machine body: loading spinner → error + retry → empty CTA → ranked list.
   Widget _buildBody() {
+    // --- Loading state ---
     if (_loading) {
       return const Center(child: CircularProgressIndicator(color: AppColors.neonGold));
     }
+
+    // --- Error state with retry ---
     if (_error != null) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         Text(_error!, style: const TextStyle(color: AppColors.jadeWhiteDim)),
@@ -73,6 +83,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           child: const Text('Retry', style: TextStyle(color: Colors.black))),
       ]));
     }
+
+    // --- Empty state: no rankings yet ---
     if (_rankings == null || _rankings!.isEmpty) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Text('🏆', style: TextStyle(fontSize: 48)),
@@ -85,15 +97,18 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
       ]));
     }
 
+    // --- Ranked list ---
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _rankings!.length,
       itemBuilder: (_, i) {
         final r = _rankings![i];
+        // Fall back to 1-based index if 'rank' field is missing.
         final rank = r['rank'] ?? i + 1;
         final isTop3 = rank <= 3;
         final medals = ['🥇', '🥈', '🥉'];
 
+        // --- Ranking card: gold-tinted for top 3, standard card otherwise ---
         return Container(
           margin: const EdgeInsets.only(bottom: 6),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -103,17 +118,20 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             border: isTop3 ? Border.all(color: AppColors.neonGold.withOpacity(0.2)) : null,
           ),
           child: Row(children: [
+            // Rank badge — medal emoji for top 3, hash-prefixed number otherwise.
             SizedBox(width: 30, child: Text(
               isTop3 ? medals[rank - 1] : '#$rank',
               style: TextStyle(fontSize: isTop3 ? 20 : 14, color: AppColors.jadeWhite),
             )),
             const SizedBox(width: 12),
+            // Player name + streak.
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(r['name'] ?? 'Anonymous',
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.jadeWhite)),
               Text('${r['streak'] ?? 0} streak',
                 style: const TextStyle(fontSize: 11, color: AppColors.jadeWhiteDim)),
             ])),
+            // ELO score — gold, bold.
             Text('${r['elo'] ?? 800} ELO',
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.neonGold)),
           ]),

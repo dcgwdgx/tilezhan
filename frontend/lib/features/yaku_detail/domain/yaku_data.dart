@@ -1,16 +1,30 @@
-/// 日麻常见役种数据 — 12 个入门级役种。
-/// 结构对齐 tilezhan-design-spec.md §4.8: 番型详情。
+/// 日麻常见役种数据 — 12 个入门到高级役种。
+///
+/// 每个役种包含：名称(英/日)、番数(门清/副露)、难度、成立条件、
+/// 示例牌型、常见组合、实战口诀。供 [YakuDetailScreen] 渲染详情页。
+/// 结构对齐 tilezhan-design-spec.md §4.8 番型详情。
 class YakuData {
+  /// 唯一 ID，对应 Scanner 列表中的路由参数 /yaku/:id。
   final String id;
+  /// English name of the yaku.
   final String nameEn;
+  /// Japanese name in kanji.
   final String nameJp;
+  /// Base han value (open or closed).
   final int han;
-  final int hanClosed; // 门前清时
-  final String difficulty; // Beginner / Intermediate / Advanced
+  /// Han value when the hand is fully closed (menzen).
+  final int hanClosed;
+  /// Difficulty tier: Beginner / Intermediate / Advanced.
+  final String difficulty;
+  /// Explanation of how the yaku is formed and scored.
   final String description;
+  /// Requirements that must be satisfied for the yaku to count.
   final List<String> conditions;
+  /// Example hand strings showing the tile pattern.
   final List<String> examples;
+  /// Common compound yaku combinations and their total han.
   final List<YakuCombo> combos;
+  /// Practical advice for forming this yaku in real play.
   final String tip;
 
   const YakuData({
@@ -23,13 +37,17 @@ class YakuData {
 }
 
 class YakuCombo {
+  /// Human-readable name of the compound (e.g. "Riichi + Ippatsu").
   final String name;
+  /// Combined han value of the compound.
   final int totalHan;
   const YakuCombo(this.name, this.totalHan);
 }
 
 /// All available yaku for the detail page.
 const List<YakuData> allYaku = [
+  /// Riichi: closed-hand declaration yaku. Deposit a 1,000-point stick when
+  /// in tenpai; unlocks ippatsu and ura-dora bonuses.
   YakuData(
     id: 'riichi', nameEn: 'Riichi', nameJp: '立直',
     han: 1, hanClosed: 1, difficulty: 'Beginner',
@@ -43,6 +61,8 @@ const List<YakuData> allYaku = [
       YakuCombo('Riichi + Pinfu', 2), YakuCombo('Riichi + Menzen Tsumo', 2)],
     tip: 'Always declare Riichi when you can. The extra han plus the chance of Ippatsu or Ura Dora makes it one of the most powerful yaku.',
   ),
+  /// Tanyao: simple tiles only (numbered 2-8). No terminals, no honors.
+  /// The most common yaku in modern mahjong — fast and reliable.
   YakuData(
     id: 'tanyao', nameEn: 'Tanyao (All Simples)', nameJp: '断幺九',
     han: 1, hanClosed: 1, difficulty: 'Beginner',
@@ -55,6 +75,8 @@ const List<YakuData> allYaku = [
     combos: [YakuCombo('Tanyao + Pinfu', 2), YakuCombo('Tanyao + Menzen Tsumo', 2)],
     tip: 'Tanyao is the most common yaku in modern mahjong. When your hand has no terminals or honors, go for it — it\'s fast and reliable.',
   ),
+  /// Pinfu: all-sequences closed hand with a two-sided wait and a non-value
+  /// pair. Adds no fu beyond the base 20 — a "zero-cost" yaku.
   YakuData(
     id: 'pinfu', nameEn: 'Pinfu (Peaceful Hand)', nameJp: '平和',
     han: 1, hanClosed: 1, difficulty: 'Beginner',
@@ -68,6 +90,8 @@ const List<YakuData> allYaku = [
     combos: [YakuCombo('Pinfu + Tanyao', 2), YakuCombo('Pinfu + Menzen Tsumo', 2)],
     tip: 'Pinfu is a "zero-cost" yaku — you can build it naturally while going for other yaku. Focus on making sequences and a safe pair.',
   ),
+  /// Yakuhai: triplet of a dragon tile, the round wind, or your seat wind.
+  /// The fastest way to secure 1 han and meet the minimum yaku requirement.
   YakuData(
     id: 'yakuhai', nameEn: 'Yakuhai (Value Honor)', nameJp: '役牌',
     han: 1, hanClosed: 1, difficulty: 'Beginner',
@@ -80,6 +104,8 @@ const List<YakuData> allYaku = [
     combos: [YakuCombo('Yakuhai + Tanyao', 2), YakuCombo('Yakuhai + Honitsu', 4)],
     tip: 'If you draw a pair of dragons or seat winds early, keep them. A quick yakuhai triplet is the fastest way to get 1 han.',
   ),
+  /// Iipeiko: two identical sequences in the same suit. Must be fully closed.
+  /// Pairs of the same numbered tiles in one suit are the seed for this yaku.
   YakuData(
     id: 'iipeiko', nameEn: 'Iipeiko (Double Sequence)', nameJp: '一盃口',
     han: 1, hanClosed: 1, difficulty: 'Beginner',
@@ -90,6 +116,8 @@ const List<YakuData> allYaku = [
     combos: [YakuCombo('Iipeiko + Pinfu', 2), YakuCombo('Iipeiko + Menzen Tsumo', 2)],
     tip: 'When you have two pairs of the same numbers in one suit, keep both — they can become an Iipeiko if you draw the third tile for each pair.',
   ),
+  /// Chanta: every set (and the pair) must contain at least one terminal (1/9)
+  /// or honor tile. Often pairs naturally with Honitsu.
   YakuData(
     id: 'chanta', nameEn: 'Chanta (Mixed Outside)', nameJp: '混全帯么九',
     han: 2, hanClosed: 1, difficulty: 'Intermediate',
@@ -101,6 +129,8 @@ const List<YakuData> allYaku = [
     combos: [YakuCombo('Chanta + Honitsu', 5), YakuCombo('Chanta + Sanshoku', 4)],
     tip: 'Chanta often pairs with Honitsu. If your hand has mostly terminals and honors in one suit, go for both.',
   ),
+  /// Honitsu: one number suit plus any honor tiles. Half flush — worth 3 han
+  /// closed, 2 han open. Pivot when you have 7+ tiles of the same suit.
   YakuData(
     id: 'honitsu', nameEn: 'Honitsu (Half Flush)', nameJp: '混一色',
     han: 3, hanClosed: 2, difficulty: 'Intermediate',
@@ -113,6 +143,8 @@ const List<YakuData> allYaku = [
     combos: [YakuCombo('Honitsu + Toitoi', 5), YakuCombo('Honitsu + Yakuhai', 4)],
     tip: 'When you have 7+ tiles of the same suit, consider Honitsu. Discard tiles from other suits and keep honors for extra value.',
   ),
+  /// Chitoitsu: seven unique pairs. Closed-only special hand — a classic
+  /// "plan B" when you keep drawing pairs instead of sequences.
   YakuData(
     id: 'chitoitsu', nameEn: 'Chitoitsu (Seven Pairs)', nameJp: '七対子',
     han: 2, hanClosed: 2, difficulty: 'Intermediate',
@@ -124,6 +156,8 @@ const List<YakuData> allYaku = [
     combos: [YakuCombo('Chitoitsu + Tanyao', 3)],
     tip: 'Chitoitsu is a "plan B" hand. If you keep drawing pairs instead of sequences, switch to 7 pairs instead of fighting it.',
   ),
+  /// Toitoi: all four sets are triplets (koutsu). No sequences. Works well
+  /// when you start with multiple pairs — call pon aggressively.
   YakuData(
     id: 'toitoi', nameEn: 'Toitoi (All Triplets)', nameJp: '対々和',
     han: 2, hanClosed: 2, difficulty: 'Intermediate',
@@ -135,6 +169,8 @@ const List<YakuData> allYaku = [
     combos: [YakuCombo('Toitoi + Honitsu', 5), YakuCombo('Toitoi + Yakuhai', 3)],
     tip: 'Toitoi works best when you already have two or more pairs. Call pon on any tile you can to speed up the hand.',
   ),
+  /// Sanshoku: the same number sequence in all three suits (e.g. 2-3-4 in
+  /// Bamboo, Characters, and Dots). Worth 2 han closed, 1 han open.
   YakuData(
     id: 'sanshoku', nameEn: 'Sanshoku (Mixed Triple)', nameJp: '三色同順',
     han: 2, hanClosed: 1, difficulty: 'Intermediate',
@@ -146,6 +182,8 @@ const List<YakuData> allYaku = [
     combos: [YakuCombo('Sanshoku + Pinfu', 3), YakuCombo('Sanshoku + Tanyao', 3)],
     tip: 'If you get the same sequence in two suits, keep tiles of that number in the third suit — you\'re one sequence away.',
   ),
+  /// Ikkitsukan: three consecutive sequences in one suit — 1-2-3, 4-5-6,
+  /// 7-8-9. A pure straight of nine tiles. Hard to plan, powerful when hit.
   YakuData(
     id: 'ikkitsukan', nameEn: 'Ikkitsukan (Pure Straight)', nameJp: '一気通貫',
     han: 2, hanClosed: 1, difficulty: 'Advanced',
@@ -157,6 +195,8 @@ const List<YakuData> allYaku = [
     combos: [YakuCombo('Ikkitsukan + Pinfu', 3), YakuCombo('Ikkitsukan + Honitsu', 6)],
     tip: 'Ikkitsukan is hard to plan. If you naturally get 1-2-3 and 4-5-6 in one suit, pivot your hand to chase 7-8-9.',
   ),
+  /// Chinitsu: all tiles from a single number suit. No honors permitted.
+  /// Full flush — the highest-scoring common yaku at 6 han closed, 5 han open.
   YakuData(
     id: 'chinitsu', nameEn: 'Chinitsu (Full Flush)', nameJp: '清一色',
     han: 6, hanClosed: 5, difficulty: 'Advanced',
@@ -170,6 +210,7 @@ const List<YakuData> allYaku = [
   ),
 ];
 
+/// Looks up a yaku by its [id] in [allYaku]. Returns `null` if no match is found.
 YakuData? getYakuById(String id) {
   try {
     return allYaku.firstWhere((y) => y.id == id);

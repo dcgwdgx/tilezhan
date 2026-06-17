@@ -7,8 +7,13 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../domain/yaku_data.dart';
 
+/// Full-screen detail card for a single yaku, rendered as five scrollable
+/// card sections: basic info, conditions, example hand, common combos, and
+/// a pro tip.
 class YakuDetailScreen extends StatelessWidget {
+  /// The route-parameter yaku identifier used to look up data from [staticYakuList].
   final String yakuId;
+
   const YakuDetailScreen({super.key, required this.yakuId});
 
   @override
@@ -42,7 +47,8 @@ class YakuDetailScreen extends StatelessWidget {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Basic info
+          /// Section 1 — Basic info: name, Japanese name badge, han count,
+          /// difficulty tag, and a short prose description.
           _card([
             Row(children: [
               Expanded(child: Text(yaku.nameEn, style: const TextStyle(fontSize: 24,
@@ -65,7 +71,8 @@ class YakuDetailScreen extends StatelessWidget {
           ]),
           const SizedBox(height: 16),
 
-          // Conditions
+          /// Section 2 — Conditions: checklist of must-have and must-not-have
+          /// requirements, each prefixed with ✅ or ❌ for quick scanning.
           _sectionTitle('Conditions'),
           _card(yaku.conditions.map((c) => Padding(
             padding: const EdgeInsets.only(bottom: 6),
@@ -79,7 +86,8 @@ class YakuDetailScreen extends StatelessWidget {
           )).toList()),
           const SizedBox(height: 16),
 
-          // Example
+          /// Section 3 — Example: one or more tile-layout strings showing
+          /// what a winning hand with this yaku looks like.
           _sectionTitle('Example'),
           _card(yaku.examples.map((e) => Padding(
             padding: const EdgeInsets.only(bottom: 6),
@@ -88,7 +96,8 @@ class YakuDetailScreen extends StatelessWidget {
           )).toList()),
           const SizedBox(height: 16),
 
-          // Common combos
+          /// Section 4 — Common combinations: yaku that frequently appear
+          /// together with this one, each showing the combined han total.
           _sectionTitle('Common Combinations'),
           _card(yaku.combos.map((c) => Padding(
             padding: const EdgeInsets.only(bottom: 6),
@@ -101,7 +110,8 @@ class YakuDetailScreen extends StatelessWidget {
           )).toList()),
           const SizedBox(height: 16),
 
-          // Pro tip
+          /// Section 5 — Pro tip: a single actionable piece of strategy advice
+          /// (prefixed with 💡) to help the player pursue or avoid this yaku.
           _sectionTitle('Pro Tip'),
           _card([Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('💡', style: TextStyle(fontSize: 18)),
@@ -115,6 +125,8 @@ class YakuDetailScreen extends StatelessWidget {
     );
   }
 
+  /// Renders a gold, uppercase section heading with letter-spacing,
+  /// used to label each of the five info cards.
   Widget _sectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, left: 4),
@@ -124,6 +136,8 @@ class YakuDetailScreen extends StatelessWidget {
     );
   }
 
+  /// Wraps [children] in a full-width rounded container with the
+  /// standard card background, border, and 16 px inner padding.
   Widget _card(List<Widget> children) {
     return Container(width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -136,6 +150,8 @@ class YakuDetailScreen extends StatelessWidget {
     );
   }
 
+  /// Returns a small rounded pill label for han counts and difficulty
+  /// badges, styled with a muted background consistent with the theme.
   Widget _tag(String text) {
     return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(color: AppColors.jadeHover,

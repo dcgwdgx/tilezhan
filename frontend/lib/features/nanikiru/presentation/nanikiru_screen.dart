@@ -40,7 +40,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     super.initState();
     _slashCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
     Future.microtask(() {
-      // 免费用户体力/每日挑战耗尽时弹窗，不生成新题
+      // Show battle report if the player is out of hearts / daily challenges
       if (!ref.read(canPlayProvider)) {
         _maybeShowBattleReport();
         return;
@@ -57,6 +57,8 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     super.dispose();
   }
 
+  /// Start a 50 ms periodic timer that ticks the countdown by 0.05 s per frame.
+  /// Cancels automatically when the puzzle is finished.
   void _startCountdown() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(milliseconds: 50), (_) {
@@ -70,7 +72,8 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     });
   }
 
-  /// 弹战绩或 10 连斩促销窗口，关闭后返回首页（心已耗尽）。
+  /// Show the battle report or a 10-win streak promo when hearts are depleted.
+  /// Closes back to the home screen after dismissal.
   void _maybeShowBattleReport() {
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) return;
@@ -95,9 +98,12 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     });
   }
 
-  /// 追踪 isFinished 翻转 → 在下一帧记录战绩、扣体力、弹窗。
+  /// Tracks the isFinished rising edge so side effects (analytics, hearts, SRS)
+  /// fire exactly once per puzzle when the player confirms a discard.
   bool _wasFinished = false;
 
+  /// Record a spaced-repetition review for the current puzzle.
+  /// Quality: 5 = perfect, 2 = skip, 1 = wrong answer.
   void _recordSrs(bool isSkip) {
     final state = ref.read(nanikiruProvider);
     final quality = state.isPerfect ? 5 : (isSkip ? 2 : 1);
@@ -110,7 +116,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     final state = ref.watch(nanikiruProvider);
     final notifier = ref.read(nanikiruProvider.notifier);
 
-    // 手动确认打出牌 → 战绩 + 扣体力 + 弹窗
+    // --- Side effects on answer confirmation ---
     if (state.isFinished && !_wasFinished) {
       _wasFinished = true;
       Future.microtask(() {
@@ -121,13 +127,13 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
 
         final hearts = ref.read(heartServiceProvider);
         if (s.isPerfect) {
-          hearts.recordCorrect(); // 正确：更新战绩 + 连斩
+          hearts.recordCorrect(); // Correct: update stats + streak
           ref.read(srsNotifierProvider.notifier).recordReview(
             'nanikiru_${s.correctDiscardId}', 'nanikiru', 5);
         } else {
-          hearts.recordWrong(); // 错误：归零连斩，不耗心（进错题池免费重练）
+          hearts.recordWrong(); // Wrong: reset streak, no heart cost (wrong-answer pool for free retry)
         }
-        // 每日挑战优先（免费），其次消耗心数
+        // Daily challenge first (free), then consume hearts
         bool depleted = false;
         if (!hearts.useDailyChallenge()) {
           depleted = hearts.consume();
@@ -139,12 +145,14 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
       _wasFinished = false;
     }
 
+    // --- Empty / loading guard ---
     if (state.handTiles.isEmpty) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
+    // --- Main game layout: nav → prompt → countdown → hand → toolbar ---
     return Scaffold(
       backgroundColor: AppColors.jadeDeep,
       body: SafeArea(
@@ -163,6 +171,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                 _buildToolbar(state, notifier),
               ],
             ),
+            // --- Post-answer slash animation overlay ---
             if (state.isFinished) ...[
               Positioned.fill(
                 child: IgnorePointer(
@@ -190,6 +199,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     );
   }
 
+  /// Top navigation bar: back button, title, and session counter.
   Widget _buildNavBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 4, 12, 0),
@@ -212,6 +222,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     );
   }
 
+  /// Drawn-tile card showing the tile the player just picked up.
   Widget _buildPrompt(NaniKiruState state) {
     final drawnTile = ref.read(tileRepositoryProvider)
         .getById(state.drawnTileId, []);
@@ -268,6 +279,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     );
   }
 
+  /// Countdown progress bar. Turns red and urgent below 3 seconds.
   Widget _buildCountdownBar(NaniKiruState state) {
     final progress = state.countdownValue / 10.0;
     final isUrgent = state.countdownValue <= 3;
@@ -298,6 +310,8 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     );
   }
 
+  /// 14-tile hand display with tappable TzTile widgets.
+  /// Selected tile is highlighted; tapping a tile toggles selection.
   Widget _buildHandArea(NaniKiruState state, NanikiruNotifier notifier) {
     return Expanded(
       child: Padding(
@@ -332,6 +346,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     );
   }
 
+  /// Bottom toolbar: Sort, Hint, and Skip buttons. Hidden after answer.
   Widget _buildToolbar(NaniKiruState state, NanikiruNotifier notifier) {
     if (state.isFinished) return const SizedBox.shrink();
     return Padding(
@@ -360,9 +375,9 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
             AnalyticsService.answered('nanikiru', false);
             notifier.confirmDiscard(state.correctDiscardId, isSkip: true);
             _recordSrs(true);
-            // 跳过也算尝试，消耗体力
+            // Skip still counts as an attempt — consumes stamina
             final hearts = ref.read(heartServiceProvider);
-            hearts.recordWrong(); // 归零连斩
+            hearts.recordWrong(); // Reset streak
             bool depleted = false;
             if (!hearts.useDailyChallenge()) {
               depleted = hearts.consume();
@@ -374,6 +389,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     );
   }
 
+  /// Styled pill button with an outlined border.
   Widget _toolBtn(String text, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -390,6 +406,9 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     );
   }
 
+  /// Full-width bottom sheet shown after answering.
+  /// Displays PERFECT or BLUNDER header, stats row, and a review panel
+  /// explaining why the correct discard is better.
   Widget _buildFeedbackSheet(NaniKiruState state, NanikiruNotifier notifier) {
     final isPerfect = state.isPerfect;
     return GestureDetector(
@@ -442,9 +461,9 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                   _stat('${state.ukeireTypes}', 'Types'),
                   _stat(isPerfect ? 'Tenpai!' : '-7 tiles', 'Shanten'),
                 ]),
+                // --- Wrong-answer review panel ---
                 if (!isPerfect) ...[
                   const SizedBox(height: 16),
-                  // Review panel: show what went wrong
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -478,6 +497,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                     ]),
                   ),
                 ],
+                // --- Correct-answer tip ---
                 if (isPerfect) ...[
                   const SizedBox(height: 16),
                   Container(
@@ -497,6 +517,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                     ]),
                   ),
                 ],
+                // --- Dismiss hint ---
                 const SizedBox(height: 20),
                 Text('Tap anywhere to continue', style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteMuted.withOpacity(0.5))),
               ]),
@@ -507,7 +528,14 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     );
   }
 
-  /// Generate a short explanation for why the correct discard is better.
+  /// Builds the review-panel explanation text shown after a wrong answer.
+  ///
+  /// Compares the player's selected discard against the correct one using
+  /// ukeire (tile-acceptance count) as the metric. The explanation text
+  /// scales with the gap size:
+  /// - Large gap (>=8): points out the isolated-tile nature of the best discard.
+  /// - Medium gap (>=3): quantifies the acceptance difference.
+  /// - Small gap (<3): attributes the difference to hand-structure preservation.
   String _getWhyExplanation(NaniKiruState state) {
     final selected = state.selectedTileId ?? '';
     final correct = state.correctDiscardId;
@@ -528,7 +556,13 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     }
   }
 
-  /// Rough estimate of correct discard's ukeire based on state data.
+  /// Estimates the correct discard's ukeire count from available state fields.
+  ///
+  /// When the player chose correctly, returns the exact ukeire from state.
+  /// Otherwise, adds a heuristic offset of +6 to the selected tile's ukeire,
+  /// reflecting the typical range (3-12 more acceptance tiles) for optimal
+  /// discards in two-sided-wait puzzles. Used by [_getWhyExplanation] to
+  /// quantify the gap between the player's pick and the best move.
   int _estimateCorrectUkeire(NaniKiruState state) {
     if (state.isPerfect) return state.ukeireCount ?? 0;
     final selUke = state.ukeireCount ?? 0;
@@ -536,6 +570,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     return selUke + 6; // rough estimate
   }
 
+  /// Small stat column: large value text above a muted label.
   Widget _stat(String value, String label) {
     return Column(
       children: [
