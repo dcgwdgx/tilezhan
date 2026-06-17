@@ -9,8 +9,9 @@ import 'package:tilezhan/features/home/presentation/home_screen.dart';
 
 /// Fake HeartService — returns preset values, never touches Hive.
 class _FakeHeartService extends HeartService {
-  @override int get hearts => 8;
-  @override bool get hasHearts => true;
+  int h = 8;
+  @override int get hearts => h;
+  @override bool get hasHearts => h > 0;
   @override int get correct => 3;
   @override int get wrong => 1;
   @override int get combo => 0;
@@ -98,6 +99,34 @@ void main() {
       await tester.pumpWidget(_wrap(const HomeScreen()));
       await settle(tester);
       expect(find.textContaining('UPGRADE'), findsOneWidget);
+    });
+
+    testWidgets('shows daily challenge start button', (tester) async {
+      await tester.pumpWidget(_wrap(const HomeScreen()));
+      await settle(tester);
+      expect(find.text('⚡ START CHALLENGE'), findsOneWidget);
+    });
+  });
+
+  group('Heart display integration', () {
+    testWidgets('hearts from service shown on home', (tester) async {
+      final fake = _FakeHeartService()..h = 3;
+      await tester.pumpWidget(ProviderScope(overrides: [
+        heartServiceProvider.overrideWith((r) => fake),
+        iapServiceProvider.overrideWith((r) => _FakeIapService()),
+      ], child: const MaterialApp(home: HomeScreen())));
+      await settle(tester);
+      expect(find.text('3/10'), findsOneWidget);
+    });
+
+    testWidgets('zero hearts shown as depleted', (tester) async {
+      final fake = _FakeHeartService()..h = 0;
+      await tester.pumpWidget(ProviderScope(overrides: [
+        heartServiceProvider.overrideWith((r) => fake),
+        iapServiceProvider.overrideWith((r) => _FakeIapService()),
+      ], child: const MaterialApp(home: HomeScreen())));
+      await settle(tester);
+      expect(find.text('0/10'), findsOneWidget);
     });
   });
 }

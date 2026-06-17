@@ -17,9 +17,9 @@ void main() {
     testWidgets('shows all 10 basic yaku', (tester) async {
       await tester.pumpWidget(_wrap(const ScannerScreen()));
       await tester.pump();
-      // First 6 are unlocked, last 4 are locked
       expect(find.byType(ScannerScreen), findsOneWidget);
       expect(find.text('Yaku Scanner'), findsOneWidget);
     });
+
   });
 }
