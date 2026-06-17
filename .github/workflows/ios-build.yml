@@ -22,6 +22,13 @@ jobs:
 
       - run: flutter pub get
 
+      # ——— iPhone-only: remove iPad support to skip iPad screenshot requirement ———
+      - name: Set iPhone only (no iPad)
+        run: |
+          /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" ios/Runner/Info.plist 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" ios/Runner/Info.plist
+
       # ——— Install cert + profile ———
       - name: Setup code signing
         id: signing
