@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/providers/locale_provider.dart';
 
 /// A scrollable settings page with sections for Learning, Account, and About.
 ///
@@ -43,6 +44,10 @@ class SettingsScreen extends ConsumerWidget {
             _tile(Icons.restore, 'Restore Purchases', 'Coming soon'),
           ]),
           const SizedBox(height: 24),
+          _section('Language', [
+            _languageTile(context, ref),
+          ]),
+          const SizedBox(height: 24),
           _section('About', [
             _tile(Icons.info_outline, 'Version', '1.0.0+1'),
             _tile(Icons.shield_outlined, 'Privacy Policy', ''),
@@ -50,6 +55,44 @@ class SettingsScreen extends ConsumerWidget {
           ]),
         ],
       ),
+    );
+  }
+
+  Widget _languageTile(BuildContext context, WidgetRef ref) {
+    final currentLocale = ref.watch(localeProvider);
+    final currentName = supportedLanguages
+        .firstWhere((l) => l.$1 == currentLocale.languageCode,
+            orElse: () => const ('en', 'English'))
+        .$2;
+    return ListTile(
+      leading: const Icon(Icons.language, color: AppColors.neonGold),
+      title: const Text('App Language', style: TextStyle(color: AppColors.jadeWhite)),
+      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+        Text(currentName, style: const TextStyle(color: AppColors.neonGold, fontSize: 13)),
+        const Icon(Icons.chevron_right, color: AppColors.jadeWhiteMuted),
+      ]),
+      onTap: () => _showLanguagePicker(context, ref, currentLocale),
+    );
+  }
+
+  void _showLanguagePicker(BuildContext context, WidgetRef ref, Locale current) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.jadeCard,
+      builder: (_) => Column(mainAxisSize: MainAxisSize.min, children: [
+        ...supportedLanguages.map((lang) => ListTile(
+          leading: Radio<Locale>(
+            value: Locale(lang.$1),
+            groupValue: current,
+            activeColor: AppColors.neonGold,
+            onChanged: (v) {
+              setAppLocale(ref, lang.$1);
+              Navigator.pop(context);
+            },
+          ),
+          title: Text(lang.$2, style: const TextStyle(color: AppColors.jadeWhite)),
+        )),
+      ]),
     );
   }
 

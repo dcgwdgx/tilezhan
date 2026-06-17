@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
+import 'core/providers/locale_provider.dart';
 import 'l10n/generated/app_localizations.dart';
 
 void main() async {
@@ -15,17 +16,17 @@ void main() async {
   runApp(const ProviderScope(child: TileSlashApp()));
 }
 
-class TileSlashApp extends StatelessWidget {
+class TileSlashApp extends ConsumerWidget {
   const TileSlashApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
     return MaterialApp.router(
       title: 'TileSlash',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
       routerConfig: appRouter,
-      // l10n
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -37,7 +38,7 @@ class TileSlashApp extends StatelessWidget {
         Locale('fr'),
         Locale('de'),
       ],
-      locale: const Locale('en'), // default to English
+      locale: locale,
     );
   }
 }
