@@ -1,119 +1,107 @@
-/// Heart/stamina system — 10 hearts/day, daily challenge, combo streaks.
+/// Heart/stamina system — 10/day, daily challenge, combo streaks.
 ///
-/// Uses an in-memory counter backed by Hive for persistence.
-/// The in-memory value avoids Hive read race conditions during
-/// Provider lifecycle; Hive writes ensure survival across restarts.
+/// Uses simple `int` fields for immediate reads/writes,
+/// backed by Hive for persistence across app restarts.
+/// Box lifecycle: opened once in main(), never closed during app lifetime.
 import 'package:hive_flutter/hive_flutter.dart';
 
 class HeartService {
   static const _boxName = 'hearts';
-  static const _keyHearts = 'hearts_remaining';
-  static const _keyLastReset = 'last_reset_date';
-  static const _keyDailyUsed = 'daily_challenge_used';
-  static const _keyAllTimeCombo = 'all_time_combo';
+  static const _kH = 'hearts_remaining';
+  static const _kDate = 'last_reset_date';
+  static const _kDC = 'daily_challenge_used';
+  static const _kCombo = 'all_time_combo';
   static const int maxHearts = 10;
   static const int dailyChallengeMax = 3;
 
-  late Box _box;
-
-  // In-memory counters (Hive-backed)
+  // Simple fields — always correct, no Hive dependency for reads
   int _hearts = maxHearts;
   int _dailyUsed = 0;
   int _allTimeCombo = 0;
+  bool _initialized = false;
 
-  // Session stats (memory only, reset daily)
-  int _correct = 0;
-  int _wrong = 0;
-  int _combo = 0;
-  int _maxCombo = 0;
+  // Session stats
+  int _correct = 0, _wrong = 0, _combo = 0, _maxCombo = 0;
 
-  // ---- public getters ----
-
-  int get hearts => _hearts;
-  bool get hasHearts => _hearts > 0;
+  int get hearts { _ensureInit(); return _hearts; }
+  bool get hasHearts => hearts > 0;
   int get correct => _correct;
   int get wrong => _wrong;
   int get combo => _combo;
   int get maxCombo => _maxCombo;
   int get total => _correct + _wrong;
   double get accuracy => total == 0 ? 0 : _correct / total;
-  int get dailyChallengeRemaining =>
-      (dailyChallengeMax - _dailyUsed).clamp(0, dailyChallengeMax);
+  int get dailyChallengeRemaining => (dailyChallengeMax - _dailyUsed).clamp(0, dailyChallengeMax);
   bool get canUseDailyChallenge => _dailyUsed < dailyChallengeMax;
   int get allTimeCombo => _allTimeCombo;
 
-  // ---- lifecycle ----
-
-  Future<void> init() async {
-    _box = Hive.box(_boxName);
-    _loadFromBox();
-    _checkDailyReset();
-  }
-
-  void _loadFromBox() {
-    _hearts = _box.get(_keyHearts, defaultValue: maxHearts);
-    _dailyUsed = _box.get(_keyDailyUsed, defaultValue: 0);
-    _allTimeCombo = _box.get(_keyAllTimeCombo, defaultValue: 0);
-  }
-
-  void _checkDailyReset() {
-    final lastReset = _box.get(_keyLastReset, defaultValue: '');
+  void _ensureInit() {
+    if (_initialized) return;
+    _initialized = true;
+    final box = Hive.box(_boxName);
+    _hearts = box.get(_kH, defaultValue: maxHearts);
+    _dailyUsed = box.get(_kDC, defaultValue: 0);
+    _allTimeCombo = box.get(_kCombo, defaultValue: 0);
+    // Check daily reset
+    final last = box.get(_kDate, defaultValue: '');
     final today = DateTime.now().toIso8601String().substring(0, 10);
-    if (lastReset != today) {
+    if (last != today) {
       _hearts = maxHearts;
       _dailyUsed = 0;
-      _box.put(_keyHearts, maxHearts);
-      _box.put(_keyDailyUsed, 0);
-      _box.put(_keyLastReset, today);
-      _resetSessionStats();
+      box.put(_kH, maxHearts);
+      box.put(_kDC, 0);
+      box.put(_kDate, today);
+      _correct = _wrong = _combo = _maxCombo = 0;
     }
   }
 
-  // ---- operations ----
+  Future<void> init() async {}
+  void dispose() {}
 
   bool useDailyChallenge() {
+    _ensureInit();
     if (_dailyUsed >= dailyChallengeMax) return false;
     _dailyUsed++;
-    _box.put(_keyDailyUsed, _dailyUsed);
+    _ensurePersist();
     return true;
   }
 
   bool consume() {
+    _ensureInit();
     if (_hearts <= 0) return false;
     _hearts--;
-    _box.put(_keyHearts, _hearts);
+    _ensurePersist();
     return _hearts <= 0;
   }
 
   void recordCorrect() {
-    _correct++;
-    _combo++;
+    _ensureInit();
+    _correct++; _combo++;
     if (_combo > _maxCombo) _maxCombo = _combo;
     _allTimeCombo++;
-    _box.put(_keyAllTimeCombo, _allTimeCombo);
+    _ensurePersist();
   }
 
   void recordWrong() {
+    _ensureInit();
     _wrong++;
-    _combo = 0;
-    _allTimeCombo = 0;
-    _box.put(_keyAllTimeCombo, 0);
+    _combo = 0; _allTimeCombo = 0;
+    _ensurePersist();
   }
 
-  void _resetSessionStats() {
-    _correct = 0;
-    _wrong = 0;
-    _combo = 0;
-    _maxCombo = 0;
+  void _ensurePersist() {
+    final box = Hive.box(_boxName);
+    box.put(_kH, _hearts);
+    box.put(_kDC, _dailyUsed);
+    box.put(_kCombo, _allTimeCombo);
   }
-
-  // ---- promo ----
 
   int get firstAppOpenMs {
-    final v = _box.get('first_app_open_ms', defaultValue: -1);
+    final box = Hive.box(_boxName);
+    final v = box.get('first_app_open_ms', defaultValue: -1);
     if (v == -1) {
       final now = DateTime.now().millisecondsSinceEpoch;
-      _box.put('first_app_open_ms', now);
+      box.put('first_app_open_ms', now);
       return now;
     }
     return v;
@@ -121,13 +109,8 @@ class HeartService {
 
   bool isLifetimePromoActive(bool isPremium) {
     if (isPremium) return false;
-    final first = firstAppOpenMs;
-    if (first == -1) return false;
-    final elapsed = DateTime.now().millisecondsSinceEpoch - first;
-    return elapsed < 48 * 3600 * 1000;
+    final f = firstAppOpenMs;
+    if (f == -1) return false;
+    return DateTime.now().millisecondsSinceEpoch - f < 48 * 3600 * 1000;
   }
-
-  /// 释放引用。Box 由 main() 管理生命周期，此处不关闭，避免
-  /// Provider 重建时 [Hive.box] 找不到已关闭的 Box。
-  void dispose() {}
 }
