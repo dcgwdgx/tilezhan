@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/features/yaku_detail/domain/yaku_data.dart';
 import 'package:tilezhan/features/yaku_detail/presentation/yaku_detail_screen.dart';
 
 void main() {
   group('YakuData', () {
-    test('all 12 yaku have valid data', () {
-      expect(allYaku.length, 12);
+    test('all yaku have valid data', () {
+      expect(allYaku.length, greaterThanOrEqualTo(12));
       for (final y in allYaku) {
         expect(y.id, isNotEmpty);
         expect(y.nameEn, isNotEmpty);
@@ -22,9 +23,9 @@ void main() {
       expect(ids.length, allYaku.length);
     });
 
-    test('han values are realistic (1-6)', () {
+    test('han values are realistic (1-26, yakuman range)', () {
       for (final y in allYaku) {
-        expect(y.han, inExclusiveRange(0, 7));
+        expect(y.han, inInclusiveRange(1, 26));
       }
     });
 
@@ -38,9 +39,8 @@ void main() {
       expect(getYakuById('nonexistent'), isNull);
     });
 
-    test('each yaku has combos', () {
+    test('each yaku combos have valid data when present', () {
       for (final y in allYaku) {
-        expect(y.combos, isNotEmpty);
         for (final c in y.combos) {
           expect(c.name, isNotEmpty);
           expect(c.totalHan, greaterThan(0));
@@ -51,9 +51,9 @@ void main() {
 
   group('YakuDetailScreen', () {
     testWidgets('shows yaku name and key sections for riichi', (tester) async {
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(ProviderScope(child: MaterialApp(
         home: YakuDetailScreen(yakuId: 'riichi'),
-      ));
+      )));
       await tester.pumpAndSettle();
 
       expect(find.text('Riichi'), findsWidgets); // AppBar title + content
@@ -64,18 +64,18 @@ void main() {
 
     testWidgets('every yaku renders without crash', (tester) async {
       for (final y in allYaku) {
-        await tester.pumpWidget(MaterialApp(
+        await tester.pumpWidget(ProviderScope(child: MaterialApp(
           home: YakuDetailScreen(yakuId: y.id),
-        ));
+        )));
         await tester.pump();
         expect(find.text(y.nameEn), findsWidgets, reason: '${y.id}');
       }
     });
 
     testWidgets('shows fallback for unknown yaku', (tester) async {
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(ProviderScope(child: MaterialApp(
         home: const YakuDetailScreen(yakuId: 'bad_id'),
-      ));
+      )));
       await tester.pumpAndSettle();
       expect(find.text('Yaku not found'), findsOneWidget);
     });

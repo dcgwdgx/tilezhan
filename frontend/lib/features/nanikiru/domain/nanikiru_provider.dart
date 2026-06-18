@@ -32,6 +32,7 @@ import '../../../shared/data/tile_repository.dart';
 import '../../../core/providers/tile_data_provider.dart';
 import '../../../core/providers/storage_provider.dart';
 import '../../../core/storage/storage_service.dart';
+import '../../../shared/engine/ukeire_calculator.dart' show UkeireCalculator;
 import 'nanikiru_state.dart';
 import 'puzzle_generator.dart';
 import 'difficulty_scorer.dart';
@@ -126,6 +127,18 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
     _puzzleCounter++;
     final puzzleId = 'nanikiru_$_puzzleCounter';
 
+    // Compute per-discard ukeire data for the full 14-tile hand.
+    // This feeds the review panel with real acceptance counts for every
+    // possible discard (not just the optimal one).
+    final hand14Ids = [...puzzle.hand13Ids, puzzle.drawnTileId];
+    final ukeireResults = UkeireCalculator(hand14Ids).calculate();
+    final allDiscardUkeire = <String, int>{};
+    final allDiscardUkeireTiles = <String, List<String>>{};
+    for (final entry in ukeireResults.entries) {
+      allDiscardUkeire[entry.key] = entry.value.ukeireCount;
+      allDiscardUkeireTiles[entry.key] = entry.value.ukeireTypes;
+    }
+
     state = NaniKiruState(
       handTiles: [...handTiles, if (drawnTile != null) drawnTile],
       drawnTileId: puzzle.drawnTileId,
@@ -136,6 +149,8 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
       ukeireTypes: puzzle.ukeireTypes,
       ukeireTiles: puzzle.ukeireTileIds,
       puzzleId: puzzleId,
+      allDiscardUkeire: allDiscardUkeire,
+      allDiscardUkeireTiles: allDiscardUkeireTiles,
     );
   }
 

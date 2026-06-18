@@ -10,8 +10,11 @@ import 'package:go_router/go_router.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/analytics/analytics_service.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/elo/elo_provider.dart';
+import '../../../core/providers/player_name_provider.dart';
 import '../../../core/utils/audio_service.dart';
 import '../../../core/srs/srs_provider.dart';
+import '../../../core/hearts/heart_provider.dart';
 import '../../../core/hearts/heart_provider.dart';
 import '../../../core/iap/iap_provider.dart';
 import '../../../shared/widgets/tz_battle_report.dart';
@@ -20,6 +23,7 @@ import '../../../shared/widgets/tz_progress_bar.dart';
 import '../../../shared/widgets/tz_slash_painter.dart';
 import '../../../shared/widgets/tz_tile.dart';
 import '../../../core/providers/tile_data_provider.dart';
+import '../../leaderboard/domain/leaderboard_service.dart';
 import '../domain/nanikiru_provider.dart';
 import '../domain/nanikiru_state.dart';
 
@@ -43,16 +47,21 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     with SingleTickerProviderStateMixin {
   Timer? _timer; // 50ms 周期倒计时定时器——每 tick 调用 tickCountdown(0.05) 递减 0.05 秒
   late AnimationController _slashCtrl; // 切牌确认后的斜切动画控制器（1000ms 时长，由 TzSlashPainter 消费）
+  late AnimationController _panelCtrl; // 复盘面板滑入动画控制器（350ms，easeOutCubic 减速收尾）
+  late Animation<Offset> _panelSlide; // 面板从底部滑入的位移动画（Offset(0,1)→Offset.zero）
   int _sessionCount = 0; // 本次会话已对局计数，驱动导航栏 ⚔️N 显示
   bool _gameOver = false; // 心耗尽封锁后续答题
 
-  // 初始化斜切动画控制器，随后在微任务中检查玩家状态：
+  // 初始化斜切动画控制器和面板滑入动画控制器，随后在微任务中检查玩家状态：
   // - 心耗尽/每日挑战用尽 → 弹出 TzBattleReport 战报
   // - 正常状态 → 初始化谜题并启动倒计时
   @override
   void initState() {
     super.initState();
     _slashCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
+    _panelCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 350));
+    _panelSlide = Tween<Offset>(begin: const Offset(0, 1.0), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _panelCtrl, curve: Curves.easeOutCubic));
     Future.microtask(() {
       // Show battle report if the player is out of hearts / daily challenges
       if (!ref.read(canPlayProvider)) {
@@ -69,6 +78,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
   void dispose() {
     _timer?.cancel();
     _slashCtrl.dispose();
+    _panelCtrl.dispose();
     super.dispose();
   }
 
@@ -128,6 +138,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     // --- Side effects on answer confirmation ---
     if (state.isFinished && !_wasFinished) {
       _wasFinished = true;
+      _panelCtrl.forward(from: 0); // 面板从底部滑入
       Future.microtask(() {
         final s = ref.read(nanikiruProvider);
         AudioService.playSlash();
@@ -135,12 +146,15 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
         AnalyticsService.answered('nanikiru', s.isPerfect);
 
         final hearts = ref.read(heartServiceProvider);
+        final eloNotifier = ref.read(eloProvider.notifier);
         if (s.isPerfect) {
           hearts.recordCorrect(); // Correct: update stats + streak
+          eloNotifier.recordResult(isCorrect: true, isSkip: false);
           ref.read(srsNotifierProvider.notifier).recordReview(
             'nanikiru_${s.correctDiscardId}', 'nanikiru', 5);
         } else {
           hearts.recordWrong(); // Wrong: reset streak, no heart cost (wrong-answer pool for free retry)
+          eloNotifier.recordResult(isCorrect: false, isSkip: false);
         }
         // Daily challenge first (free), then consume hearts
         bool depleted = false;
@@ -151,6 +165,10 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
           _gameOver = true;
           _maybeShowBattleReport();
         }
+        // Report to leaderboard (fire-and-forget)
+        final name = ref.read(playerNameProvider);
+        final elo = ref.read(eloProvider);
+        LeaderboardService.reportScore(name: name, elo: elo, streak: hearts.allTimeCombo);
       });
     }
     // 谜题未完成时重置 _wasFinished 标记，为下一题的上升沿检测做准备
@@ -388,12 +406,13 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
           }),
           const SizedBox(width: 8),
           _toolBtn(l10n.nanikiruSkip, () {
-            // 跳过流程：播放音效+动画 → 埋点上报 → 确认丢弃（isSkip=true）→ SRS记录 → 扣心
+            // 跳过流程：播放音效+动画 → 埋点上报 → 确认丢弃（isSkip=true）→ SRS记录 → ELO → 扣心
             AudioService.playSlash();
             _slashCtrl.forward(from: 0);
             AnalyticsService.answered('nanikiru', false);
             notifier.confirmDiscard(state.correctDiscardId, isSkip: true);
             _recordSrs(true); // SRS 记录：跳过计为质量=2
+            ref.read(eloProvider.notifier).recordResult(isCorrect: false, isSkip: true);
             // Skip still counts as an attempt — consumes stamina
             final hearts = ref.read(heartServiceProvider);
             hearts.recordWrong(); // 重置连击统计
@@ -428,21 +447,24 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     );
   }
 
-  /// Full-width bottom sheet shown after answering.
-  /// Displays PERFECT or BLUNDER header, stats row, and a review panel
-  /// explaining why the correct discard is better.
+  /// Full-width feedback panel shown after answering.
+  ///
+  /// Slides up from the bottom via [_panelSlide] animation (350ms easeOutCubic).
+  /// Displays PERFECT or BLUNDER header, stats row using real ukeire data,
+  /// a comparison bar, acceptance tile grid, explanation text, and explicit
+  /// [Next Puzzle] / [Review Again] buttons (replaces the old auto-advance tap).
   Widget _buildFeedbackSheet(NaniKiruState state, NanikiruNotifier notifier) {
     final l10n = AppLocalizations.of(context)!;
     final isPerfect = state.isPerfect;
-    return GestureDetector(
-      // 点击反馈面板任意位置：递增对局计数 → 加载下一题 → 重启倒计时
-      onTap: () {
-        _sessionCount++;
-        notifier.nextPuzzle();
-        _startCountdown();
-      },
+
+    // Read per-discard ukeire from state for real-data comparison.
+    final allUkeire = state.allDiscardUkeire ?? {};
+    final selUkeire = allUkeire[state.selectedTileId] ?? 0;
+    final correctUkeire = allUkeire[state.correctDiscardId] ?? state.ukeireCount ?? 0;
+
+    return SlideTransition(
+      position: _panelSlide,
       child: Container(
-        // 半透明黑色渐变遮罩：顶部透明→中部70%黑→底部87%黑，将视觉焦点引导至底部反馈卡片
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter, end: Alignment.bottomCenter,
@@ -455,7 +477,6 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(28),
-              // 根据答题结果切换配色：正确=深绿底+绿顶边，错误=深红底+红顶边
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter, end: Alignment.bottomCenter,
@@ -473,7 +494,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                 )],
               ),
               child: Column(children: [
-                // 结果标题：完美或失误，带发光阴影效果
+                // ── 结果标题 ──
                 Text(isPerfect ? l10n.nanikiruPerfect : l10n.nanikiruBlunder, style: TextStyle(
                   fontSize: 40, fontWeight: FontWeight.w900,
                   color: isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion,
@@ -483,48 +504,34 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                   )],
                 )),
                 const SizedBox(height: 16),
-                // 统计数据行：有效牌数 / 牌种数 / 向听数
+
+                // ── 统计数据行：使用真实进张数据 ──
                 Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                  _stat('${state.ukeireCount}', isPerfect ? l10n.nanikiruAcceptanceTiles : 'Your Pick'),
-                  _stat('${state.ukeireTypes}', 'Types'),
-                  _stat(isPerfect ? 'Tenpai!' : '-7 tiles', 'Shanten'),
+                  _stat('${isPerfect ? correctUkeire : selUkeire}',
+                    isPerfect ? l10n.nanikiruAcceptanceTiles : l10n.nanikiruYourDiscardLabel),
+                  _stat('${state.ukeireTypes ?? 0}', 'Types'),
+                  _stat(isPerfect ? 'Tenpai!' : '$correctUkeire best', l10n.nanikiruBestDiscardLabel),
                 ]),
-                // --- 错误答案复盘面板：对比玩家选择和最优解，附带牌效率文字解析 ---
+
+                // ── 进张对比条（答错时显示）──
                 if (!isPerfect) ...[
                   const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.vermillion.withOpacity(0.2)),
-                    ),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Row(children: [
-                        Container(width: 8, height: 8, decoration: const BoxDecoration(
-                          shape: BoxShape.circle, color: AppColors.vermillion)),
-                        const SizedBox(width: 8),
-                        Text(l10n.nanikiruYourDiscard(state.selectedTileId ?? "—"),
-                          style: const TextStyle(fontSize: 14, color: AppColors.vermillion)),
-                      ]),
-                      const SizedBox(height: 8),
-                      Row(children: [
-                        Container(width: 8, height: 8, decoration: const BoxDecoration(
-                          shape: BoxShape.circle, color: Color(0xFF2CE574))),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(
-                          l10n.nanikiruBestDiscard(state.correctDiscardId, state.ukeireCount ?? 0, state.ukeireTypes ?? 0),
-                          style: const TextStyle(fontSize: 14, color: Color(0xFF2CE574)))),
-                      ]),
-                      const SizedBox(height: 12),
-                      Text(
-                        _getWhyExplanation(state),
-                        style: const TextStyle(fontSize: 13, color: AppColors.jadeWhiteDim, height: 1.5),
-                      ),
-                    ]),
-                  ),
+                  _buildComparisonBar(selUkeire, correctUkeire, allUkeire),
                 ],
-                // --- 正确答案提示卡片：展示牌效率原理说明 ---
+
+                // ── 复盘面板：对比用户选择与最优解 ──
+                if (!isPerfect) ...[
+                  const SizedBox(height: 12),
+                  _buildReviewCard(state),
+                ],
+
+                // ── 进张牌网格 ──
+                if ((isPerfect || !isPerfect) && correctUkeire > 0) ...[
+                  const SizedBox(height: 12),
+                  _buildUkeireTileGrid(state),
+                ],
+
+                // ── 正确答案提示（答对时）──
                 if (isPerfect) ...[
                   const SizedBox(height: 16),
                   Container(
@@ -534,19 +541,40 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: const Color(0xFF2CE574).withOpacity(0.2)),
                     ),
-                    child: const Row(children: [
-                      Icon(Icons.lightbulb_outline, color: AppColors.neonGold, size: 18),
-                      SizedBox(width: 10),
-                      Expanded(child: Text(
-                        'Maximizing tile acceptance — this discard gives you '
-                        'the most ways to complete your hand.',
-                        style: TextStyle(fontSize: 13, color: AppColors.jadeWhiteDim, height: 1.5))),
+                    child: Row(children: [
+                      const Icon(Icons.lightbulb_outline, color: AppColors.neonGold, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(l10n.nanikiruPerfectExplain,
+                        style: const TextStyle(fontSize: 13, color: AppColors.jadeWhiteDim, height: 1.5))),
                     ]),
                   ),
                 ],
-                // --- 关闭提示文字：引导玩家点击任意位置继续 ---
+
+                // ── 操作按钮：Next Puzzle / Review Again ──
                 const SizedBox(height: 20),
-                Text(l10n.nanikiruTapToContinue, style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteMuted.withOpacity(0.5))),
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  _toolBtn(l10n.nanikiruReviewAgain, () {
+                    // Keep the panel visible — no state change, user re-reads feedback
+                  }),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      _panelCtrl.reverse().then((_) {
+                        _sessionCount++;
+                        notifier.nextPuzzle();
+                        _startCountdown();
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.neonGold,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
+                    child: Text(l10n.nanikiruNextPuzzle,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                  ),
+                ]),
               ]),
             ),
           ],
@@ -555,51 +583,150 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
     );
   }
 
-  /// Builds the review-panel explanation text shown after a wrong answer.
+  /// Visual comparison bar: user's ukeire (red) vs correct discard (green)
+  /// normalized against the max ukeire across all possible discards.
+  Widget _buildComparisonBar(int selUkeire, int correctUkeire, Map<String, int> allUkeire) {
+    final maxUkeire = allUkeire.values.isNotEmpty
+        ? allUkeire.values.reduce((a, b) => a > b ? a : b).toDouble()
+        : correctUkeire.toDouble();
+    final selRatio = maxUkeire > 0 ? (selUkeire / maxUkeire).clamp(0.0, 1.0) : 0.0;
+    final correctRatio = maxUkeire > 0 ? (correctUkeire / maxUkeire).clamp(0.0, 1.0) : 1.0;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(l10n.nanikiruAcceptanceComparison,
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.jadeWhiteDim)),
+        const SizedBox(height: 10),
+        // User discard bar
+        Row(children: [
+          SizedBox(width: 48, child: Text(l10n.nanikiruYourDiscardLabel,
+            style: const TextStyle(fontSize: 10, color: AppColors.vermillion))),
+          Expanded(child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: selRatio, minHeight: 14,
+              backgroundColor: AppColors.vermillion.withOpacity(0.15),
+              valueColor: const AlwaysStoppedAnimation(AppColors.vermillion),
+            ),
+          )),
+          const SizedBox(width: 8),
+          Text('$selUkeire', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.vermillion)),
+        ]),
+        const SizedBox(height: 6),
+        // Best discard bar
+        Row(children: [
+          SizedBox(width: 48, child: Text(l10n.nanikiruBestDiscardLabel,
+            style: const TextStyle(fontSize: 10, color: Color(0xFF2CE574)))),
+          Expanded(child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: correctRatio, minHeight: 14,
+              backgroundColor: const Color(0xFF2CE574).withOpacity(0.15),
+              valueColor: const AlwaysStoppedAnimation(Color(0xFF2CE574)),
+            ),
+          )),
+          const SizedBox(width: 8),
+          Text('$correctUkeire', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF2CE574))),
+        ]),
+      ]),
+    );
+  }
+
+  /// Comparison card showing user's discard vs correct discard with
+  /// data-driven explanation text (uses real ukeire from state).
+  Widget _buildReviewCard(NaniKiruState state) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.vermillion.withOpacity(0.2)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(width: 8, height: 8, decoration: const BoxDecoration(
+            shape: BoxShape.circle, color: AppColors.vermillion)),
+          const SizedBox(width: 8),
+          Text(l10n.nanikiruYourDiscard(state.selectedTileId ?? "—"),
+            style: const TextStyle(fontSize: 14, color: AppColors.vermillion)),
+        ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          Container(width: 8, height: 8, decoration: const BoxDecoration(
+            shape: BoxShape.circle, color: Color(0xFF2CE574))),
+          const SizedBox(width: 8),
+          Expanded(child: Text(
+            l10n.nanikiruBestDiscard(state.correctDiscardId, state.allDiscardUkeire?[state.correctDiscardId] ?? state.ukeireCount ?? 0, state.ukeireTypes ?? 0),
+            style: const TextStyle(fontSize: 14, color: Color(0xFF2CE574)))),
+        ]),
+        const SizedBox(height: 12),
+        Text(
+          _getWhyExplanation(state),
+          style: const TextStyle(fontSize: 13, color: AppColors.jadeWhiteDim, height: 1.5),
+        ),
+      ]),
+    );
+  }
+
+  /// Grid of mini TzTile widgets showing the acceptance tiles for the correct discard.
+  Widget _buildUkeireTileGrid(NaniKiruState state) {
+    final allTiles = state.allDiscardUkeireTiles ?? {};
+    final correctTiles = allTiles[state.correctDiscardId] ?? state.ukeireTiles ?? [];
+    if (correctTiles.isEmpty) return const SizedBox.shrink();
+
+    final repo = ref.read(tileRepositoryProvider);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Acceptance Tiles',
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.jadeWhiteDim)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 3, runSpacing: 3,
+          children: correctTiles.map((id) {
+            final tile = repo.getById(id, []);
+            return tile != null
+                ? TzTile(tile: tile, size: TileSize.sm, state: TileState.normal)
+                : const SizedBox.shrink();
+          }).toList(),
+        ),
+      ]),
+    );
+  }
+
+  /// Data-driven explanation for why the correct discard is better.
   ///
-  /// Compares the player's selected discard against the correct one using
-  /// ukeire (tile-acceptance count) as the metric. The explanation text
-  /// scales with the gap size:
-  /// - Large gap (>=8): points out the isolated-tile nature of the best discard.
-  /// - Medium gap (>=3): quantifies the acceptance difference.
-  /// - Small gap (<3): attributes the difference to hand-structure preservation.
+  /// Uses real per-discard ukeire from [NaniKiruState.allDiscardUkeire]
+  /// instead of the old +6 heuristic. Categorizes the gap into three tiers.
   String _getWhyExplanation(NaniKiruState state) {
     final selected = state.selectedTileId ?? '';
     final correct = state.correctDiscardId;
-    final selUke = state.ukeireCount ?? 0;
-    final correctUke = _estimateCorrectUkeire(state);
-
-    // 边缘情况：玩家恰好选择了正确答案（如跳过后触发）
     if (selected == correct) return 'Perfect choice! This discard maximizes your tile acceptance.';
 
-    // 根据有效牌差距分级生成解析文本（三档：大差距/中差距/小差距）
+    final allUkeire = state.allDiscardUkeire ?? {};
+    final selUke = allUkeire[selected] ?? 0;
+    final correctUke = allUkeire[correct] ?? state.ukeireCount ?? 0;
     final diff = correctUke - selUke;
+
     if (diff >= 8) {
-      // 大差距（≥8张）：最优切牌是孤张，不破坏任何面子组合
-      return 'The correct discard $correct opens up $correctUke+ acceptance tiles, while $selected only gives you about $selUke. '
+      return 'The correct discard $correct opens up $correctUke acceptance tiles, while $selected only gives $selUke. '
           '$correct is an isolated tile that doesn\'t break any melds.';
     } else if (diff >= 3) {
-      // 中差距（3-7张）：量化说明最优切牌多几张有效牌
       return '$correct offers ${diff} more acceptance tiles than $selected. '
           'It keeps your best meld candidates intact.';
     } else {
-      // 小差距（<3张）：归因于手牌结构保持
       return '$correct keeps your hand structure stronger. It preserves key sequences while $selected breaks a useful group.';
     }
-  }
-
-  /// Estimates the correct discard's ukeire count from available state fields.
-  ///
-  /// When the player chose correctly, returns the exact ukeire from state.
-  /// Otherwise, adds a heuristic offset of +6 to the selected tile's ukeire,
-  /// reflecting the typical range (3-12 more acceptance tiles) for optimal
-  /// discards in two-sided-wait puzzles. Used by [_getWhyExplanation] to
-  /// quantify the gap between the player's pick and the best move.
-  int _estimateCorrectUkeire(NaniKiruState state) {
-    if (state.isPerfect) return state.ukeireCount ?? 0;
-    final selUke = state.ukeireCount ?? 0;
-    // The correct discard typically has 3-12 more ukeire tiles
-    return selUke + 6; // rough estimate
   }
 
   /// Small stat column: large value text above a muted label.

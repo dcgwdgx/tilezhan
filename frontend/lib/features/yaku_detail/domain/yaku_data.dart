@@ -224,6 +224,373 @@ const List<YakuData> allYaku = [
     combos: [YakuCombo('Chinitsu + Pinfu', 7), YakuCombo('Chinitsu + Tanyao', 7)],
     tip: 'If you start with 9+ tiles of one suit, go Chinitsu. Discard EVERYTHING from other suits — the 6 han payout is worth it.',
   ),
+
+  // ═══ 1-Han Yaku (Continued) ═══
+
+  /// 門前清自摸和（Menzen Tsumo）：完全门清状态下自摸和牌，奖励 1 番。
+  /// 日麻中最常见的额外番来源之一，几乎每局都会出现。
+  YakuData(
+    id: 'menzen_tsumo', nameEn: 'Menzen Tsumo (Self-Draw)', nameJp: '門前清自摸和',
+    han: 1, hanClosed: 1, difficulty: 'Beginner',
+    description: 'Win by drawing the winning tile yourself with a fully closed hand. Awards 1 extra han on top of any other yaku.',
+    conditions: ['Hand must be fully closed (no open melds)',
+      'Must draw the winning tile yourself (tsumo)',
+      'Cannot be combined with a ron (discard) win'],
+    examples: ['🀇🀈🀉 🀐🀑🀒 🀛🀜🀝 🀅🀅 + 🀆 → Self-draw win with closed hand'],
+    combos: [YakuCombo('Menzen Tsumo + Riichi', 2), YakuCombo('Menzen Tsumo + Pinfu', 2)],
+    tip: 'Menzen Tsumo is a "free" han when you keep your hand closed. Combined with Riichi, it\'s a reliable 2-han minimum.',
+  ),
+
+  /// 一発（Ippatsu）：立直宣言后一巡内和牌。稀有但高回报的奖励番。
+  YakuData(
+    id: 'ippatsu', nameEn: 'Ippatsu (One-Shot)', nameJp: '一発',
+    han: 1, hanClosed: 1, difficulty: 'Intermediate',
+    description: 'Win within one full turn (4 discards) after declaring riichi, before anyone else calls a tile.',
+    conditions: ['Must have declared riichi',
+      'Win must occur within one turn after riichi declaration',
+      'If anyone calls pon/chi/kan before your win, ippatsu is lost'],
+    examples: ['Riichi + immediate tsumo next turn → 2 han total (Riichi 1 + Ippatsu 1)'],
+    combos: [YakuCombo('Riichi + Ippatsu', 2), YakuCombo('Riichi + Ippatsu + Tsumo', 3)],
+    tip: 'Ippatsu is pure luck — you can\'t plan for it. But when you get it, the psychological damage to opponents is real.',
+  ),
+
+  /// 海底摸月（Haitei Raoyue）：牌山最后一巡自摸和牌。
+  YakuData(
+    id: 'haitei', nameEn: 'Haitei Raoyue (Last Draw)', nameJp: '海底摸月',
+    han: 1, hanClosed: 1, difficulty: 'Intermediate',
+    description: 'Win on the very last tile drawn from the wall (the haitei tile). A rare, dramatic finish.',
+    conditions: ['Must win on the absolute last draw from the wall',
+      'The haitei tile is the final tile before the dead wall',
+      'Cannot be combined with houtei (last discard) in the same hand'],
+    examples: ['Wall exhausts → draw last tile → Tsumo! → 1 extra han'],
+    combos: [YakuCombo('Haitei + Menzen Tsumo', 2), YakuCombo('Haitei + any closed yaku', 2)],
+    tip: 'If you\'re tenpai when the wall is almost exhausted, don\'t give up. The last draw can save your hand with an extra han.',
+  ),
+
+  /// 河底撈魚（Houtei Raoyui）：牌山最后一巡以他人舍牌和牌。
+  YakuData(
+    id: 'houtei', nameEn: 'Houtei Raoyui (Last Discard)', nameJp: '河底撈魚',
+    han: 1, hanClosed: 1, difficulty: 'Intermediate',
+    description: 'Win on the very last discard of the hand (the houtei tile). The last defensive chance for the dealer.',
+    conditions: ['Must win on the final discard before the exhaustive draw',
+      'The tile that completes your hand must be the last one discarded',
+      'Cannot be combined with haitei'],
+    examples: ['Last turn → opponent discards your winning tile → Ron! → 1 extra han'],
+    combos: [YakuCombo('Houtei + any open yaku', 2)],
+    tip: 'When the wall is almost empty and you need just one tile, watch the final discards carefully. Someone may deal into your hand.',
+  ),
+
+  /// 嶺上開花（Rinshan Kaihou）：开杠后从岭上牌自摸和牌。
+  YakuData(
+    id: 'rinshan_kaihou', nameEn: 'Rinshan Kaihou (After Kan)', nameJp: '嶺上開花',
+    han: 1, hanClosed: 1, difficulty: 'Intermediate',
+    description: 'Win by drawing the replacement tile from the dead wall after declaring a kan. Turns a defensive move into a surprise attack.',
+    conditions: ['Must declare a kan (open or closed)',
+      'Draw the replacement tile from the dead wall',
+      'The drawn tile must complete your hand'],
+    examples: ['Declare kan → draw from dead wall → Tsumo! → 1 extra han'],
+    combos: [YakuCombo('Rinshan Kaihou + Menzen Tsumo', 2), YakuCombo('Rinshan + Toitoi', 3)],
+    tip: 'Kanning when you\'re tenpai is a high-risk, high-reward play. If you draw the winning tile from the dead wall, it\'s a legendary Rinshan Kaihou.',
+  ),
+
+  /// 搶槓（Chankan / Robbing a Kan）：当对手将手中刻子加杠为杠子时，以该牌和牌。
+  YakuData(
+    id: 'chankan', nameEn: 'Chankan (Robbing a Kan)', nameJp: '搶槓',
+    han: 1, hanClosed: 1, difficulty: 'Intermediate',
+    description: 'Win by calling ron on a tile that an opponent adds to an open triplet to make a kan. The rarest of the 1-han yaku.',
+    conditions: ['Opponent must add a tile to an open triplet (daiminkan)',
+      'The tile they add must be your winning tile',
+      'Only applies to open kan upgrades — not closed or concealed kan'],
+    examples: ['Opponent ponned 5m → later adds 4th 5m to kan → you call Ron on that 5m!'],
+    combos: [],
+    tip: 'Chankan is extremely rare — you may play hundreds of games without seeing one. But when it happens, it\'s a moment to remember.',
+  ),
+
+  // ═══ 2-Han Yaku ═══
+
+  /// 両立直（Double Riichi）：第一巡即宣告立直，奖励 2 番。
+  YakuData(
+    id: 'double_riichi', nameEn: 'Double Riichi', nameJp: '両立直',
+    han: 2, hanClosed: 2, difficulty: 'Advanced',
+    description: 'Declare riichi on your very first turn, before anyone has discarded. Worth 2 han instead of 1 — a rare and powerful opening move.',
+    conditions: ['Must declare riichi on your first discard turn',
+      'No player may have called pon/chi/kan before your declaration',
+      'Hand must be fully closed and in tenpai from the initial deal'],
+    examples: ['Initial 13 tiles form tenpai → declare Double Riichi → 2 han immediately'],
+    combos: [YakuCombo('Double Riichi + Ippatsu', 3), YakuCombo('Double Riichi + Tsumo', 3)],
+    tip: 'Double Riichi is a gift from the tile gods. If you get tenpai on the first turn, declare immediately — the 2 han + psychological pressure is devastating.',
+  ),
+
+  /// 三色同刻（Sanshoku Doukou）：万、筒、索三色中各有同一数字的刻子。
+  YakuData(
+    id: 'sanshoku_doukou', nameEn: 'Sanshoku Doukou (Triple Triplets)', nameJp: '三色同刻',
+    han: 2, hanClosed: 2, difficulty: 'Intermediate',
+    description: 'Three triplets of the same number across all three suits. Less common than Sanshoku (sequences version) but worth more han.',
+    conditions: ['Same-number triplet in all three suits (e.g. 3m triplet + 3p triplet + 3s triplet)',
+      'The fourth set and pair can be anything',
+      'Can be open or closed'],
+    examples: ['🀊🀊🀊 + 🀒🀒🀒 + 🀚🀚🀚 → 3 of the same number in m, p, s'],
+    combos: [YakuCombo('Sanshoku Doukou + Toitoi', 4)],
+    tip: 'If you have the same number pair in two suits, call pon on the third suit to complete Sanshoku Doukou. It pairs naturally with Toitoi.',
+  ),
+
+  /// 三槓子（San Kantsu）：手中持有三个杠子。
+  YakuData(
+    id: 'san_kantsu', nameEn: 'San Kantsu (Three Quads)', nameJp: '三槓子',
+    han: 2, hanClosed: 2, difficulty: 'Advanced',
+    description: 'Declare three kans during the hand. Extremely rare — declaring even one kan is risky, let alone three.',
+    conditions: ['Must have declared three kans',
+      'Kans can be open or closed',
+      'Each kan reveals a new dora indicator'],
+    examples: ['Kan ×3 + remaining set + pair → 2 han + 3 extra dora indicators revealed'],
+    combos: [YakuCombo('San Kantsu + Toitoi', 4)],
+    tip: 'Three kans is a double-edged sword — you get 2 han but reveal 3 extra dora indicators that benefit everyone. Only pursue this if you\'re already far ahead.',
+  ),
+
+  /// 三暗刻（San Ankou）：手中持有三个暗刻（未碰出的刻子）。
+  YakuData(
+    id: 'san_ankou', nameEn: 'San Ankou (Three Concealed Triplets)', nameJp: '三暗刻',
+    han: 2, hanClosed: 2, difficulty: 'Intermediate',
+    description: 'Three concealed triplets (formed without calling pon). Must be fully closed to qualify all three as ankou.',
+    conditions: ['Three triplets formed without calling pon',
+      'Must be fully closed if all three are to count as concealed',
+      'The fourth set can be a sequence or open triplet'],
+    examples: ['🀇🀇🀇 🀍🀍🀍 🀕🀕🀕 + sequence + pair → all triplets self-drawn'],
+    combos: [YakuCombo('San Ankou + Toitoi', 4), YakuCombo('San Ankou + Honitsu', 5)],
+    tip: 'San Ankou is a strong signal to go for Suu Ankou (yakuman). If you have three concealed triplets and a closed hand, one more triplet and you\'re at yakuman.',
+  ),
+
+  /// 小三元（Shousangen）：两组三元牌刻子 + 第三组三元牌对子作雀头。
+  YakuData(
+    id: 'shousangen', nameEn: 'Shousangen (Little Three Dragons)', nameJp: '小三元',
+    han: 2, hanClosed: 2, difficulty: 'Intermediate',
+    description: 'Two dragon triplets plus a dragon pair. Worth 2 han for the two yakuhai, plus whatever the rest of the hand earns.',
+    conditions: ['Two of the three dragon types as triplets',
+      'The third dragon as the pair',
+      'Each dragon triplet gives 1 han from Yakuhai'],
+    examples: ['🀄🀄🀄 + 🀅🀅🀅 + 🀆🀆 + other sets → 2 yakuhai + other yaku'],
+    combos: [YakuCombo('Shousangen + Honitsu', 5), YakuCombo('Shousangen + Daisangen', 13)],
+    tip: 'If you have two dragon pairs early, call pon on both. Even if someone else gets the third dragon, your Shousangen is still worth 2 from the two yakuhai.',
+  ),
+
+  /// 混老頭（Honroutou）：全部牌由幺九牌（1、9）和字牌组成。
+  YakuData(
+    id: 'honroutou', nameEn: 'Honroutou (All Terminals & Honors)', nameJp: '混老頭',
+    han: 2, hanClosed: 2, difficulty: 'Advanced',
+    description: 'Every tile in the hand is either a terminal (1 or 9) or an honor tile. No tiles 2–8 allowed.',
+    conditions: ['All tiles must be terminals (1 or 9) or honors',
+      'No tiles with numbers 2-8 anywhere',
+      'Always pairs with Toitoi or Chitoitsu (no sequences possible)'],
+    examples: ['🀇🀇🀇 🀏🀏🀏 🀀🀀🀀 🀆🀆 → Only 1s, 9s, and honors'],
+    combos: [YakuCombo('Honroutou + Toitoi', 4), YakuCombo('Honroutou + Honitsu', 5)],
+    tip: 'Honroutou naturally pairs with Toitoi since you can\'t form sequences with only terminals and honors. It\'s a step toward the yakuman Chinroutou.',
+  ),
+
+  /// 純全帯么九（Junchan Taiyao）：每组面子（含雀头）必须至少包含一张幺九牌。
+  YakuData(
+    id: 'junchan', nameEn: 'Junchan (Pure Outside Hand)', nameJp: '純全帯么九',
+    han: 3, hanClosed: 2, difficulty: 'Intermediate',
+    description: 'Every set AND the pair must contain at least one terminal (1 or 9). Unlike Chanta, no honors allowed.',
+    conditions: ['Every set must have a 1 or 9 terminal',
+      'The pair must also be a 1 or 9 terminal',
+      'No honor tiles in any set or the pair',
+      'Open = 2 han, closed = 3 han'],
+    examples: ['🀇🀈🀉 🀐🀑🀒 🀘🀙🀚 🀏🀏 → Every set touches a 1 or 9, no honors'],
+    combos: [YakuCombo('Junchan + Sanshoku', 5), YakuCombo('Junchan + Honitsu', 6)],
+    tip: 'Junchan is Chanta\'s stricter cousin — no honors allowed, but worth 1 more han. If your terminals are all in one suit, pivot to Chinitsu instead.',
+  ),
+
+  /// 二盃口（Ryanpeikou）：同一花色内两组完全相同的顺子 —— 两盃口。
+  YakuData(
+    id: 'ryanpeikou', nameEn: 'Ryanpeikou (Twice Pure Double)', nameJp: '二盃口',
+    han: 3, hanClosed: 3, difficulty: 'Advanced',
+    description: 'Two pairs of identical sequences (i.e., two Iipeikou). Must be fully closed. An elegant, rare hand.',
+    conditions: ['Two pairs of identical sequences (e.g. 2-3-4 ×2 AND 6-7-8 ×2)',
+      'Must be fully closed',
+      'Essentially Iipeikou ×2'],
+    examples: ['🀈🀉🀊 🀈🀉🀊 🀖🀗🀘 🀖🀗🀘 🀆🀆 → Two pairs of identical sequences'],
+    combos: [YakuCombo('Ryanpeikou + Pinfu', 4), YakuCombo('Ryanpeikou + Tanyao', 4)],
+    tip: 'Ryanpeikou requires incredible luck or patience. If you have one Iipeikou and draw toward a second, keep your hand closed at all costs.',
+  ),
+
+  // ═══ Yakuman (役満) ═══
+
+  /// 国士無双（Kokushi Musou / Thirteen Orphans）：十三种幺九牌各一张 + 任意一张对子。
+  YakuData(
+    id: 'kokushi_musou', nameEn: 'Kokushi Musou (Thirteen Orphans)', nameJp: '国士無双',
+    han: 13, hanClosed: 13, difficulty: 'Advanced',
+    description: 'One of every terminal and honor tile (13 unique tiles), plus a duplicate of any one of them for the pair. The most iconic yakuman.',
+    conditions: ['Must collect 1 of each: 1m, 9m, 1p, 9p, 1s, 9s, and all 7 honors',
+      'Plus one duplicate for the 14th tile (pair)',
+      'Must be fully closed',
+      '13-sided tenpai if you have all 13 unique tiles (waiting for any duplicate)'],
+    examples: ['🀇 🀏 🀐 🀘 🀙 🀡 🀀🀁🀂🀃 🀄🀅🀆 + 🀇(pair) → All 13 orphans + pair'],
+    combos: [],
+    tip: 'Kokushi is the most common yakuman at beginner tables. If your starting hand has 8+ distinct terminals/honors, seriously consider this path.',
+  ),
+
+  /// 大三元（Daisangen / Big Three Dragons）：白、发、中三组三元牌全为刻子。
+  YakuData(
+    id: 'daisangen', nameEn: 'Daisangen (Big Three Dragons)', nameJp: '大三元',
+    han: 13, hanClosed: 13, difficulty: 'Advanced',
+    description: 'Triplets of all three dragon types. The most feared yakuman — when someone is calling two dragon pons, everyone defends.',
+    conditions: ['Triplet of White Dragon (Haku)',
+      'Triplet of Green Dragon (Hatsu)',
+      'Triplet of Red Dragon (Chun)',
+      'Can be open or closed'],
+    examples: ['🀄🀄🀄 + 🀅🀅🀅 + 🀆🀆🀆 + remaining set + pair → Yakuman!'],
+    combos: [YakuCombo('Daisangen + Honitsu', 13), YakuCombo('Daisangen + Shousangen → Daisangen', 13)],
+    tip: 'If you have two dragon triplets and a pair of the third dragon, everyone at the table will defend. Call pon aggressively on the third dragon — don\'t let them scare you off a yakuman.',
+  ),
+
+  /// 小四喜（Shousuushi / Little Four Winds）：三组风牌刻子 + 第四种风牌对子。
+  YakuData(
+    id: 'shousuushi', nameEn: 'Shousuushi (Little Four Winds)', nameJp: '小四喜',
+    han: 13, hanClosed: 13, difficulty: 'Advanced',
+    description: 'Three wind triplets plus the fourth wind as the pair. One step below Daisuushi (Big Four Winds) but still a yakuman.',
+    conditions: ['Triplet of any three wind types',
+      'Pair of the fourth wind type',
+      'Can be open or closed'],
+    examples: ['🀀🀀🀀 + 🀁🀁🀁 + 🀂🀂🀂 + 🀃🀃 + other set → Yakuman!'],
+    combos: [],
+    tip: 'Shousuushi is the "early warning" for Daisuushi. If you have 3 wind triplets, every player at the table will try to hold the 4th wind to block your yakuman.',
+  ),
+
+  /// 大四喜（Daisuushi / Big Four Winds）：四种风牌全部为刻子。
+  YakuData(
+    id: 'daisuushi', nameEn: 'Daisuushi (Big Four Winds)', nameJp: '大四喜',
+    han: 26, hanClosed: 26, difficulty: 'Advanced',
+    description: 'Triplets of ALL four winds. Double yakuman in most rulesets. The rarest and highest-scoring hand in mahjong.',
+    conditions: ['Triplet of East (Ton)',
+      'Triplet of South (Nan)',
+      'Triplet of West (Sha)',
+      'Triplet of North (Pei)',
+      'Can be open or closed'],
+    examples: ['🀀🀀🀀 + 🀁🀁🀁 + 🀂🀂🀂 + 🀃🀃🀃 + pair → Double Yakuman!'],
+    combos: [],
+    tip: 'Big Four Winds is the holy grail. Most players will never see it in their lifetime. If you somehow have three wind triplets, defend the fourth at all costs.',
+  ),
+
+  /// 字一色（Tsuuiisou / All Honors）：全部由字牌组成的牌型。
+  YakuData(
+    id: 'tsuuiisou', nameEn: 'Tsuuiisou (All Honors)', nameJp: '字一色',
+    han: 13, hanClosed: 13, difficulty: 'Advanced',
+    description: 'Every single tile is a wind or dragon. No numbered tiles anywhere in the hand.',
+    conditions: ['Only wind and dragon tiles',
+      'No numbered suits (manzu, pinzu, souzu) at all',
+      'Always pairs with Toitoi (no sequences with only honors)'],
+    examples: ['🀀🀀🀀 🀂🀂🀂 🀄🀄🀄 🀅🀅🀅 🀆🀆 → Pure honor tiles only'],
+    combos: [YakuCombo('Tsuuiisou + Daisangen', 13)],
+    tip: 'Tsuuiisou is built from pure honor tiles. If your opening hand has 7+ honors, especially pairs, consider this path. Pon every honor you can.',
+  ),
+
+  /// 緑一色（Ryuuiisou / All Green）：全部牌面只含绿色的牌。
+  YakuData(
+    id: 'ryuuiisou', nameEn: 'Ryuuiisou (All Green)', nameJp: '緑一色',
+    han: 13, hanClosed: 13, difficulty: 'Advanced',
+    description: 'Only tiles that are entirely green: 2, 3, 4, 6, 8 of Souzu (bamboo) and the Green Dragon (Hatsu). One of the most visually striking yakuman.',
+    conditions: ['Only these specific tiles: 2s, 3s, 4s, 6s, 8s, and Green Dragon (Hatsu)',
+      'No other tiles allowed',
+      '5s is NOT allowed (has red markings), 7s is NOT allowed (has red)'],
+    examples: ['🀛🀛🀛 🀜🀜🀜 🀝🀝🀝 🀟🀟🀟 🀅🀅 → Pure green tiles'],
+    combos: [],
+    tip: 'All Green is surprisingly achievable if you draw mostly bamboo tiles. The key is remembering: 2-3-4-6-8s and Hatsu ONLY. No 1s, 5s, 7s, or 9s.',
+  ),
+
+  /// 清老頭（Chinroutou / All Terminals）：全部由幺九数牌（1和9）组成，不含字牌。
+  YakuData(
+    id: 'chinroutou', nameEn: 'Chinroutou (All Terminals)', nameJp: '清老頭',
+    han: 13, hanClosed: 13, difficulty: 'Advanced',
+    description: 'Only terminal tiles (1s and 9s of each suit). No honors, no 2-8 tiles. The "pure" version of Honroutou.',
+    conditions: ['Only 1 and 9 of manzu, pinzu, and souzu',
+      'No honor tiles anywhere in the hand',
+      'No tiles 2-8 from any suit'],
+    examples: ['🀇🀇🀇 🀏🀏🀏 🀐🀐🀐 🀘🀘🀘 🀙🀙 → Only 1s and 9s, no honors'],
+    combos: [YakuCombo('Chinroutou + Toitoi', 13)],
+    tip: 'Chinroutou is Honroutou without the honors. If you have 6+ terminals across multiple suits and no honors in sight, this is your yakuman path.',
+  ),
+
+  /// 九蓮宝燈（Chuuren Poutou / Nine Gates）：同花色按 1112345678999 + 任意同花色牌组成的和牌形。
+  YakuData(
+    id: 'chuuren_poutou', nameEn: 'Chuuren Poutou (Nine Gates)', nameJp: '九蓮宝燈',
+    han: 13, hanClosed: 13, difficulty: 'Advanced',
+    description: 'A hand of 1112345678999 in a single suit, plus any one tile of the same suit. The pure nine-wait hand is the most elegant yakuman.',
+    conditions: ['All tiles from a single suit',
+      'Must contain 111 2345678 999 in the same suit, plus one extra tile of that suit',
+      'Must be fully closed (menzen)',
+      'The "pure" 9-sided wait (1-9 all valid) is double yakuman in some rules'],
+    examples: ['🀇🀇🀇 🀈🀉🀊🀋🀌🀍🀎🀏 🀏🀏 + any tile → Pure nine gates'],
+    combos: [YakuCombo('Chuuren + Chinitsu', 13)],
+    tip: 'Nine Gates is the holy grail of single-suit hands. If you have 111 456 999 in one suit plus some middle tiles, you\'re in the zone. Don\'t open your hand.',
+  ),
+
+  /// 四槓子（Suu Kantsu / Four Quads）：四个杠子。极其罕见。
+  YakuData(
+    id: 'suu_kantsu', nameEn: 'Suu Kantsu (Four Quads)', nameJp: '四槓子',
+    han: 13, hanClosed: 13, difficulty: 'Advanced',
+    description: 'Declare four kans. The rarest yakuman — many players go their entire lives without seeing this hand.',
+    conditions: ['Must declare four kans',
+      'Can be open or closed',
+      'Because four kans remove 16 tiles, there may not be enough tiles left to finish',
+      'If all four kans are called, the hand may end in an abortive draw'],
+    examples: ['Kan ×4 + pair → Yakuman!'],
+    combos: [],
+    tip: 'Four kans is the unicorn of mahjong. You\'ll likely never see it. If you have three kans and a chance at a fourth, go for it — you may never get another shot.',
+  ),
+
+  /// 天和（Tenhou）：庄家（东家）配牌即和牌。
+  YakuData(
+    id: 'tenhou', nameEn: 'Tenhou (Blessing of Heaven)', nameJp: '天和',
+    han: 13, hanClosed: 13, difficulty: 'Advanced',
+    description: 'The dealer wins on their initial 14-tile hand. No draws, no discards — a perfect starting hand.',
+    conditions: ['Must be the dealer (East seat)',
+      'Win from the initial 14-tile deal',
+      'No player has made any move yet'],
+    examples: ['Initial deal → 14 tiles form complete hand → Yakuman!'],
+    combos: [],
+    tip: 'Tenhou is pure destiny. You can\'t play for it, you can only receive it. If the tile gods bless you with a complete hand on deal, accept it with gratitude.',
+  ),
+
+  /// 地和（Chiihou）：子家（非庄家）第一巡自摸和牌。
+  YakuData(
+    id: 'chiihou', nameEn: 'Chiihou (Blessing of Earth)', nameJp: '地和',
+    han: 13, hanClosed: 13, difficulty: 'Advanced',
+    description: 'A non-dealer wins on their very first draw. The non-dealer version of Tenhou.',
+    conditions: ['Must not be the dealer',
+      'Win on your first draw from the wall',
+      'No calls may have been made before your first draw'],
+    examples: ['Non-dealer → first draw from wall → Tsumo! → Yakuman!'],
+    combos: [],
+    tip: 'Like Tenhou, Chiihou is a gift. If you\'re the first non-dealer to draw and your 13-tile starting hand is tenpai, hold your breath — you might hit the lottery.',
+  ),
+
+  /// 四暗刻（Suu Ankou / Four Concealed Triplets）：四个暗刻，完全靠自摸形成的刻子手。
+  YakuData(
+    id: 'suu_ankou', nameEn: 'Suu Ankou (Four Concealed Triplets)', nameJp: '四暗刻',
+    han: 13, hanClosed: 13, difficulty: 'Advanced',
+    description: 'Four concealed triplets (formed entirely by self-draw, no calls). The ultimate test of patience and tile luck.',
+    conditions: ['Four triplets formed without calling pon',
+      'Must be fully closed',
+      'The pair completes the hand',
+      'Often reached by upgrading from San Ankou (three concealed triplets)'],
+    examples: ['🀇🀇🀇 🀍🀍🀍 🀒🀒🀒 🀕🀕🀕 🀆🀆 → All four triplets self-drawn, closed'],
+    combos: [YakuCombo('Suu Ankou + Tanyao', 13)],
+    tip: 'Suu Ankou is the most achievable yakuman at intermediate play. If you have San Ankou (three concealed triplets), guard your closed hand — one more self-drawn triplet makes yakuman.',
+  ),
+
+  /// 流し満貫（Nagashi Mangan）：荒牌流局时，自己的全部舍牌都是幺九牌，且未被鸣牌。
+  YakuData(
+    id: 'nagashi_mangan', nameEn: 'Nagashi Mangan (All Terminals Discard)', nameJp: '流し満貫',
+    han: 5, hanClosed: 5, difficulty: 'Intermediate',
+    description: 'Reach an exhaustive draw while all your discards are terminals and honors, none of which were called by opponents. Worth mangan (5 han equivalent).',
+    conditions: ['Every tile you discard must be a terminal (1 or 9) or honor',
+      'None of your discards may have been called (pon/chi/kan) by anyone',
+      'The hand must reach exhaustive draw',
+      'You do not need to be tenpai'],
+    examples: ['Discard only 1s, 9s, winds, dragons → exhaustive draw → Mangan!'],
+    combos: [],
+    tip: 'Nagashi Mangan is the "defensive" yakuman-lite. If your hand is garbage by mid-game, pivot to discarding only terminals/honors and pray for the exhaustive draw.',
+  ),
 ];
 
 /// 根据役种 [id] 在 [allYaku] 列表中查找对应的役种数据。

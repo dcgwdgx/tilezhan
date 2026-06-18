@@ -11,6 +11,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/analytics/analytics_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/elo/elo_provider.dart';
+import '../../../core/providers/player_name_provider.dart';
 import '../../../core/utils/audio_service.dart';
 import '../../../core/srs/srs_provider.dart';
 import '../../../core/hearts/heart_provider.dart';
@@ -21,6 +23,7 @@ import '../../../shared/widgets/tz_combo_promo.dart';
 import '../../../shared/widgets/tz_countdown_ring.dart';
 import '../../../shared/widgets/tz_progress_bar.dart';
 import '../../../shared/widgets/tz_pulse_painter.dart';
+import '../../leaderboard/domain/leaderboard_service.dart';
 import '../domain/flashcard_provider.dart';
 
 /// 闪卡答题屏幕入口 Widget。
@@ -112,6 +115,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     _recordSrs(0); // 质量分 0 = 完全遗忘，SRS 间隔重置为最短
     _showMnemonic();
     ref.read(heartServiceProvider).recordWrong();
+    ref.read(eloProvider.notifier).recordResult(isCorrect: false, isSkip: false);
   }
 
   /// 回答提交后的流程：录战绩 → 扣体力 → 弹促销/战绩窗口。
@@ -127,6 +131,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     if (isCorrect) {
       AudioService.playCorrect();
       hearts.recordCorrect(); // 更新战绩 + 全时连斩 +1
+      ref.read(eloProvider.notifier).recordResult(isCorrect: true, isSkip: false);
 
       // ── 心数消耗流程（二级计费）──
       // 第一级：每日挑战（每日 3 题免费额度），优先消耗
@@ -144,7 +149,13 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     } else {
       AudioService.playWrong();
       hearts.recordWrong(); // 错误不耗心，但归零连斩
+      ref.read(eloProvider.notifier).recordResult(isCorrect: false, isSkip: false);
     }
+
+    // Report ELO to leaderboard (fire-and-forget)
+    final name = ref.read(playerNameProvider);
+    final elo = ref.read(eloProvider);
+    LeaderboardService.reportScore(name: name, elo: elo, streak: hearts.allTimeCombo);
 
     ref.read(flashcardQuizProvider.notifier).submitAnswer(isCorrect);
     _recordSrs(isCorrect ? 4 : 1); // 正确=质量分4，错误=质量分1

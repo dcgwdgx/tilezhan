@@ -3,22 +3,27 @@
 /// Receives a yaku [id] via route parameter and displays the full
 /// yaku info card with expandable conditions and combo suggestions.
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../domain/yaku_data.dart';
+import '../domain/yaku_favorites_provider.dart';
 
 /// Full-screen detail card for a single yaku, rendered as five scrollable
 /// card sections: basic info, conditions, example hand, common combos, and
-/// a pro tip.
-class YakuDetailScreen extends StatelessWidget {
+/// a pro tip. Favorites toggle persisted via [yakuFavoritesProvider].
+class YakuDetailScreen extends ConsumerWidget {
   /// The route-parameter yaku identifier used to look up data from [staticYakuList].
   final String yakuId;
 
   const YakuDetailScreen({super.key, required this.yakuId});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final yaku = getYakuById(yakuId);
+    final favorites = ref.watch(yakuFavoritesProvider);
+    final isFavorite = favorites.contains(yakuId);
+
     if (yaku == null) {
       return Scaffold(
         backgroundColor: AppColors.jadeDeep,
@@ -39,9 +44,14 @@ class YakuDetailScreen extends StatelessWidget {
         ),
         title: Text(yaku.nameEn, style: const TextStyle(color: AppColors.jadeWhite)),
         actions: [
-          // ⭐ Later: favorites toggle
-          IconButton(icon: const Icon(Icons.star_border, color: AppColors.neonGold),
-            onPressed: () {}),
+          // ⭐ Favorites toggle — persisted to Hive via yakuFavoritesProvider
+          IconButton(
+            icon: Icon(
+              isFavorite ? Icons.star : Icons.star_border,
+              color: AppColors.neonGold,
+            ),
+            onPressed: () => ref.read(yakuFavoritesProvider.notifier).toggle(yakuId),
+          ),
         ],
       ),
       body: SingleChildScrollView(

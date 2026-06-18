@@ -78,8 +78,8 @@ class UkeireCalculator {
   ///
   /// 本方法不扣除其他玩家已打出的牌（河底牌）或副露中的牌——仅考虑
   /// 纯理论最大值。实际对局中应结合可见牌张调整计数。
-  Map<String, _DiscardResult> calculate() {
-    final results = <String, _DiscardResult>{};
+  Map<String, DiscardResult> calculate() {
+    final results = <String, DiscardResult>{};
     final seen = <String>{};
 
     for (var i = 0; i < hand14.length; i++) {
@@ -109,7 +109,7 @@ class UkeireCalculator {
         }
       }
 
-      results[discardId] = _DiscardResult(
+      results[discardId] = DiscardResult(
         shantenAfter: baseShanten,
         ukeireTypes: ukeireTypes,
         ukeireCount: ukeireCount,
@@ -134,11 +134,12 @@ class UkeireCalculator {
   ];
 }
 
-/// 单次切牌候选的计算结果（内部类型，不对外暴露）。
+/// 单次切牌候选的计算结果。
 ///
 /// 记录打出某张牌后：手牌的向听数、有哪些进张牌、理论最大进张枚数。
-/// 调用方通过这三个维度综合评判切牌优劣。
-class _DiscardResult {
+/// 调用方（如 [NanikiruNotifier]）通过这三个维度综合评判切牌优劣，
+/// 并存入 [NaniKiruState] 供复盘面板使用。
+class DiscardResult {
   /// 打出该候选牌后的向听数（`shantenAfter`）。
   ///
   /// - 0 表示已经听牌（门前清听牌状态）。
@@ -166,8 +167,8 @@ class _DiscardResult {
   /// AI 决策时通常以枚数最大化为首要目标，种类数为次要参考。
   final int ukeireCount;
 
-  /// 构造一个内部结果对象。
+  /// 构造一个切牌评估结果对象。
   ///
   /// 所有字段为 `required`，调用方必须同时提供向听数、有効牌种类和枚数。
-  const _DiscardResult({required this.shantenAfter, required this.ukeireTypes, required this.ukeireCount});
+  const DiscardResult({required this.shantenAfter, required this.ukeireTypes, required this.ukeireCount});
 }

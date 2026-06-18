@@ -12,6 +12,7 @@ void main() async {
   await Hive.initFlutter();
   await Hive.openBox('prefs');
   await Hive.openBox('hearts');
+  await Hive.openBox('yaku_favorites');
   localeModel.init();
   runApp(const ProviderScope(child: TileSlashApp()));
 }

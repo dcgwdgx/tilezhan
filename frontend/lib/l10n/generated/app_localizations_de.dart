@@ -264,6 +264,21 @@ class AppLocalizationsDe extends AppLocalizations {
   String get nanikiruAcceptanceTiles => 'Akzeptanz-Steine';
 
   @override
+  String get nanikiruNextPuzzle => 'Nächstes Puzzle';
+
+  @override
+  String get nanikiruReviewAgain => 'Nochmal prüfen';
+
+  @override
+  String get nanikiruAcceptanceComparison => 'Akzeptanz-Vergleich';
+
+  @override
+  String get nanikiruYourDiscardLabel => 'Dein Abwurf';
+
+  @override
+  String get nanikiruBestDiscardLabel => 'Bester Abwurf';
+
+  @override
   String get scannerTitle => 'Yaku Scanner';
 
   @override
@@ -272,6 +287,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get scannerBasicYaku => 'BASIS YAKU';
+
+  @override
+  String get scannerFavorites => 'FAVORITEN';
 
   @override
   String get leaderboardTitle => 'Rangliste';
@@ -285,6 +303,21 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get leaderboardRetry => 'Wiederholen';
+
+  @override
+  String get leaderboardMyRank => 'Mein Rang';
+
+  @override
+  String get leaderboardNotRanked => 'Spiele, um deinen Rang zu verdienen!';
+
+  @override
+  String get leaderboardEnterName => 'Gib deinen Namen ein';
+
+  @override
+  String get leaderboardNameHint => 'Dein Anzeigename';
+
+  @override
+  String get leaderboardSaveName => 'Speichern';
 
   @override
   String get flashcardTimer => 's';

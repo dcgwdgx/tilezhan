@@ -568,6 +568,36 @@ abstract class AppLocalizations {
   /// **'Acceptance Tiles'**
   String get nanikiruAcceptanceTiles;
 
+  /// No description provided for @nanikiruNextPuzzle.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Puzzle'**
+  String get nanikiruNextPuzzle;
+
+  /// No description provided for @nanikiruReviewAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Review Again'**
+  String get nanikiruReviewAgain;
+
+  /// No description provided for @nanikiruAcceptanceComparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Acceptance Comparison'**
+  String get nanikiruAcceptanceComparison;
+
+  /// No description provided for @nanikiruYourDiscardLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your discard'**
+  String get nanikiruYourDiscardLabel;
+
+  /// No description provided for @nanikiruBestDiscardLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Best discard'**
+  String get nanikiruBestDiscardLabel;
+
   /// No description provided for @scannerTitle.
   ///
   /// In en, this message translates to:
@@ -585,6 +615,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'BASIC YAKU'**
   String get scannerBasicYaku;
+
+  /// No description provided for @scannerFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'FAVORITES'**
+  String get scannerFavorites;
 
   /// No description provided for @leaderboardTitle.
   ///
@@ -609,6 +645,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get leaderboardRetry;
+
+  /// No description provided for @leaderboardMyRank.
+  ///
+  /// In en, this message translates to:
+  /// **'My Rank'**
+  String get leaderboardMyRank;
+
+  /// No description provided for @leaderboardNotRanked.
+  ///
+  /// In en, this message translates to:
+  /// **'Play games to earn your rank!'**
+  String get leaderboardNotRanked;
+
+  /// No description provided for @leaderboardEnterName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter Your Name'**
+  String get leaderboardEnterName;
+
+  /// No description provided for @leaderboardNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your display name'**
+  String get leaderboardNameHint;
+
+  /// No description provided for @leaderboardSaveName.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get leaderboardSaveName;
 
   /// No description provided for @flashcardTimer.
   ///

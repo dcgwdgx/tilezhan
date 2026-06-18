@@ -226,7 +226,25 @@ class NaniKiruState {
     this.ukeireTypes,
     this.ukeireTiles,
     this.puzzleId = '',
+    this.allDiscardUkeire,
+    this.allDiscardUkeireTiles,
   });
+
+  /// 每种弃牌的进张枚数映射（tileId → ukeireCount）。
+  ///
+  /// 在 [NanikiruNotifier.initPuzzle] 中由 [UkeireCalculator] 计算并填充。
+  /// 包含全部 14 张手牌中每种不重复牌的进张评估结果。
+  /// 在复盘面板中用于对比用户选择与正确答案的进张差异。
+  ///
+  /// 其他阶段为 `null`。可空设计使得 UI 层能通过
+  /// `state.allDiscardUkeire != null` 判断数据是否就绪。
+  final Map<String, int>? allDiscardUkeire;
+
+  /// 每种弃牌的进张牌列表映射（tileId → ukeire tile IDs）。
+  ///
+  /// 与 [allDiscardUkeire] 同步填充，存储每种弃牌后能降低向听数的
+  /// 具体进张牌 ID 列表。在复盘面板中渲染为迷你牌面网格。
+  final Map<String, List<String>>? allDiscardUkeireTiles;
 
   /// 谜题回合是否已经结束（即是否应展示反馈覆盖层）。
   ///
@@ -292,6 +310,8 @@ class NaniKiruState {
     int? ukeireTypes,
     List<String>? ukeireTiles,
     String? puzzleId,
+    Map<String, int>? allDiscardUkeire,
+    Map<String, List<String>>? allDiscardUkeireTiles,
   }) {
     return NaniKiruState(
       handTiles: handTiles ?? this.handTiles,
@@ -305,6 +325,8 @@ class NaniKiruState {
       ukeireTypes: ukeireTypes ?? this.ukeireTypes,
       ukeireTiles: ukeireTiles ?? this.ukeireTiles,
       puzzleId: puzzleId ?? this.puzzleId,
+      allDiscardUkeire: allDiscardUkeire ?? this.allDiscardUkeire,
+      allDiscardUkeireTiles: allDiscardUkeireTiles ?? this.allDiscardUkeireTiles,
     );
   }
 }

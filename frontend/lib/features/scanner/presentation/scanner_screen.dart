@@ -16,6 +16,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../yaku_detail/domain/yaku_data.dart';
+import '../../yaku_detail/domain/yaku_favorites_provider.dart';
 
 /// 役种扫描器主页面 — 展示基础役种列表供玩家参考。
 ///
@@ -71,6 +73,8 @@ class ScannerScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final favorites = ref.watch(yakuFavoritesProvider);
+
     return Scaffold(
       // 深翡翠底色，与全局 AppBar 风格统一
       backgroundColor: AppColors.jadeDeep,
@@ -118,16 +122,51 @@ class ScannerScreen extends ConsumerWidget {
               ],
             ),
           ),
+          // ===== 收藏分区 =====
+          if (favorites.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Text(l10n.scannerFavorites, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5, color: AppColors.neonGold)),
+            const SizedBox(height: 8),
+            ..._buildYakuCards(favorites.toList(), allYaku),
+          ],
           const SizedBox(height: 20),
           // ===== 章节标题 =====
           Text(l10n.scannerBasicYaku, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5, color: AppColors.jadeWhiteMuted)),
           const SizedBox(height: 8),
           // ===== 役种卡片列表 =====
-          // 使用展开运算符遍历 _yakuList，将每条数据映射为一个 _YakuCard 实例
-          ..._yakuList.map((y) => _YakuCard(y.$1, y.$2, y.$3, y.$4, y.$5, y.$6)),
+          // 使用展开运算符遍历全量役种数据，将每条数据映射为一个 _YakuCard 实例
+          ..._buildYakuCards(allYaku.map((y) => y.id).toList(), allYaku),
         ],
       ),
     );
+  }
+
+  /// Build yaku card widgets from a list of yaku IDs, sourcing data from [source].
+  List<Widget> _buildYakuCards(List<String> ids, List<YakuData> source) {
+    return ids.map((id) {
+      final yaku = getYakuById(id);
+      if (yaku == null) return const SizedBox.shrink();
+      final emoji = _emojiForYaku(id);
+      return _YakuCard(emoji, yaku.nameEn, yaku.nameJp, yaku.description, true, yaku.id);
+    }).toList();
+  }
+
+  /// Map a yaku ID to a representative emoji for the card icon.
+  static String _emojiForYaku(String id) {
+    const map = {
+      'riichi': '🔫', 'tanyao': '🥪', 'pinfu': '🛗', 'yakuhai': '👑',
+      'iipeiko': '🌀', 'chanta': '🏔️', 'honitsu': '🎨', 'chitoitsu': '🚢',
+      'toitoi': '👯', 'sanshoku': '🌈', 'ikkitsukan': '🚂', 'chinitsu': '🧹',
+      'menzen_tsumo': '🤲', 'ippatsu': '⚡', 'haitei': '🌊', 'houtei': '🐟',
+      'rinshan_kaihou': '🏔️', 'chankan': '🏴‍☠️', 'double_riichi': '⚡⚡',
+      'sanshoku_doukou': '🎲', 'san_kantsu': '📦', 'san_ankou': '🤫',
+      'shousangen': '🐉', 'honroutou': '👴', 'junchan': '🧼', 'ryanpeikou': '🪞',
+      'kokushi_musou': '👑', 'daisangen': '🐲', 'shousuushi': '🌪️', 'daisuushi': '🌪️🌪️',
+      'tsuuiisou': '📜', 'ryuuiisou': '💚', 'chinroutou': '💀',
+      'chuuren_poutou': '🚪', 'suu_kantsu': '📚', 'tenhou': '☁️', 'chiihou': '🌍',
+      'suu_ankou': '🤐', 'nagashi_mangan': '🌊',
+    };
+    return map[id] ?? '🀄';
   }
 }
 
