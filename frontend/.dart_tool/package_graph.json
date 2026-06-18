@@ -20,7 +20,8 @@
         "in_app_purchase",
         "intl",
         "path_provider",
-        "share_plus"
+        "share_plus",
+        "url_launcher"
       ],
       "devDependencies": [
         "build_runner",
@@ -1340,6 +1341,45 @@
         "collection",
         "meta",
         "pub_semver"
+      ]
+    },
+    {
+      "name": "url_launcher",
+      "version": "6.3.2",
+      "dependencies": [
+        "flutter",
+        "url_launcher_android",
+        "url_launcher_ios",
+        "url_launcher_linux",
+        "url_launcher_macos",
+        "url_launcher_platform_interface",
+        "url_launcher_web",
+        "url_launcher_windows"
+      ]
+    },
+    {
+      "name": "url_launcher_macos",
+      "version": "3.2.5",
+      "dependencies": [
+        "flutter",
+        "url_launcher_platform_interface"
+      ]
+    },
+    {
+      "name": "url_launcher_ios",
+      "version": "6.4.1",
+      "dependencies": [
+        "flutter",
+        "url_launcher_platform_interface"
+      ]
+    },
+    {
+      "name": "url_launcher_android",
+      "version": "6.3.32",
+      "dependencies": [
+        "flutter",
+        "meta",
+        "url_launcher_platform_interface"
       ]
     }
   ],

@@ -586,6 +586,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
   /// Visual comparison bar: user's ukeire (red) vs correct discard (green)
   /// normalized against the max ukeire across all possible discards.
   Widget _buildComparisonBar(int selUkeire, int correctUkeire, Map<String, int> allUkeire) {
+    final l10n = AppLocalizations.of(context)!;
     final maxUkeire = allUkeire.values.isNotEmpty
         ? allUkeire.values.reduce((a, b) => a > b ? a : b).toDouble()
         : correctUkeire.toDouble();

@@ -10,7 +10,7 @@
 /// ```
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../core/constants/api_endpoints.dart';
+import '../../../core/constants/api_endpoints.dart';
 
 class LeaderboardService {
   /// 上报玩家 ELO 评分到后端排行榜。
