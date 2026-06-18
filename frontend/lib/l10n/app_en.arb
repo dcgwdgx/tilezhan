@@ -107,6 +107,8 @@
   "flashcardCorrect": "Correct",
   "flashcardIncorrect": "Incorrect",
   "flashcardTimeout": "Timeout",
+  "flashcardPlayAgain": "🔄 Play Again",
+  "flashcardGotIt": "Got it ✓",
 
   "settingsTitle": "Settings",
   "settingsAudio": "Audio",

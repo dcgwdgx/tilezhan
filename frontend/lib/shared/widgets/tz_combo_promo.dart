@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../widgets/tz_button.dart';
 
 /// 10 连斩组合促销弹窗——免费用户连续答对 10 题后触发。
@@ -18,6 +19,7 @@ class TzComboPromo extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
@@ -35,13 +37,13 @@ class TzComboPromo extends ConsumerWidget {
         // 标题
         const Text('🔥', style: TextStyle(fontSize: 40)),
         const SizedBox(height: 8),
-        const Text('COMBO ×10!',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900,
+        Text(l10n.comboTitle,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900,
             color: AppColors.neonGold)),
         const SizedBox(height: 8),
-        const Text('You\'re on fire! Unlock unlimited play\nand keep your streak alive.',
+        Text(l10n.comboSubtitle,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: AppColors.jadeWhiteDim, height: 1.5)),
+          style: const TextStyle(fontSize: 14, color: AppColors.jadeWhiteDim, height: 1.5)),
         const SizedBox(height: 20),
         // 促销卡片
         Container(
@@ -52,8 +54,8 @@ class TzComboPromo extends ConsumerWidget {
             border: Border.all(color: AppColors.neonGold.withOpacity(0.3)),
           ),
           child: Column(children: [
-            const Text('SPECIAL OFFER',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+            Text(l10n.comboOffer,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
                 color: AppColors.neonGold, letterSpacing: 2)),
             const SizedBox(height: 8),
             // 折后价
@@ -70,8 +72,8 @@ class TzComboPromo extends ConsumerWidget {
               const TextSpan(text: '\$29.99',
                 style: TextStyle(fontSize: 14, decoration: TextDecoration.lineThrough,
                   color: AppColors.jadeWhiteMuted)),
-              const TextSpan(text: '  20% OFF',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800,
+              TextSpan(text: '  ${l10n.comboDiscount}',
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800,
                   color: AppColors.vermillion)),
             ])),
           ]),
@@ -79,7 +81,7 @@ class TzComboPromo extends ConsumerWidget {
         const SizedBox(height: 16),
         // CTA
         TzButton(
-          label: 'UNLOCK NOW — \$23.99',
+          label: l10n.comboUnlock,
           style: TzButtonStyle.gold,
           onPressed: () {
             Navigator.pop(context);
@@ -89,8 +91,8 @@ class TzComboPromo extends ConsumerWidget {
         const SizedBox(height: 8),
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Maybe later',
-            style: TextStyle(fontSize: 13, color: AppColors.jadeWhiteMuted)),
+          child: Text(l10n.comboMaybe,
+            style: const TextStyle(fontSize: 13, color: AppColors.jadeWhiteMuted)),
         ),
         const SizedBox(height: 12),
       ]),

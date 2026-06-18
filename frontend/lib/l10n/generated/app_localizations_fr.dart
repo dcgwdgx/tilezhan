@@ -302,6 +302,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get flashcardTimeout => 'Timeout';
 
   @override
+  String get flashcardPlayAgain => '🔄 Rejouer';
+
+  @override
+  String get flashcardGotIt => 'Compris ✓';
+
+  @override
   String get settingsTitle => 'Paramètres';
 
   @override

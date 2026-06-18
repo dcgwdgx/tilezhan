@@ -640,6 +640,18 @@ abstract class AppLocalizations {
   /// **'Timeout'**
   String get flashcardTimeout;
 
+  /// No description provided for @flashcardPlayAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'🔄 Play Again'**
+  String get flashcardPlayAgain;
+
+  /// No description provided for @flashcardGotIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it ✓'**
+  String get flashcardGotIt;
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:

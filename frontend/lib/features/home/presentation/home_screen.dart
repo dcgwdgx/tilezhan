@@ -243,7 +243,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
             const Spacer(),
             // 监听每日挑战剩余次数 (如 "2/3 free")
-            Text('${ref.watch(dailyChallengeRemainingProvider)}/3 free',
+            Text(l10n.homeFreeCount(ref.watch(dailyChallengeRemainingProvider)),
               style: const TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)),
           ]),
           const SizedBox(height: 16),

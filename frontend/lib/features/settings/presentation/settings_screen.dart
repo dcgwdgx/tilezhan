@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/locale_provider.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// A scrollable settings page with sections for Learning, Account, and About.
 ///
@@ -20,6 +21,7 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.jadeDeep,
       appBar: AppBar(
@@ -28,27 +30,27 @@ class SettingsScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back, color: AppColors.jadeWhiteDim),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(l10n.settingsTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           _section('Learning', [
-            _tile(Icons.speed, 'Animation Speed', 'Normal'),
+            _tile(Icons.speed, l10n.settingsAnimation, 'Normal'),
             _tile(Icons.flag, 'Daily Goal', '10 cards'),
             _tile(Icons.timer, 'Countdown', '8 seconds'),
           ]),
           const SizedBox(height: 24),
           _section('Account', [
             _tile(Icons.person_outline, 'Sign In', 'Coming soon'),
-            _tile(Icons.restore, 'Restore Purchases', 'Coming soon'),
+            _tile(Icons.restore, l10n.premiumRestore, 'Coming soon'),
           ]),
           const SizedBox(height: 24),
           _section('Language', [
             _languageTile(context, ref),
           ]),
           const SizedBox(height: 24),
-          _section('About', [
+          _section(l10n.settingsAbout, [
             _tile(Icons.info_outline, 'Version', '1.0.0+1'),
             _tile(Icons.shield_outlined, 'Privacy Policy', ''),
             _tile(Icons.description_outlined, 'Terms of Service', ''),

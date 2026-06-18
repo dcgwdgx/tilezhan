@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
@@ -54,20 +55,21 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
   /// Scaffold with jade-themed AppBar + state-driven body.
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.jadeDeep,
       appBar: AppBar(
         backgroundColor: AppColors.jadeDeep,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.jadeWhiteDim),
           onPressed: () => context.pop()),
-        title: const Text('Leaderboard', style: TextStyle(color: AppColors.jadeWhite)),
+        title: Text(l10n.leaderboardTitle, style: const TextStyle(color: AppColors.jadeWhite)),
       ),
-      body: _buildBody(),
+      body: _buildBody(l10n),
     );
   }
 
   /// State-machine body: loading spinner → error + retry → empty CTA → ranked list.
-  Widget _buildBody() {
+  Widget _buildBody(AppLocalizations l10n) {
     // --- Loading state ---
     if (_loading) {
       return const Center(child: CircularProgressIndicator(color: AppColors.neonGold));
@@ -80,7 +82,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
         const SizedBox(height: 12),
         ElevatedButton(onPressed: _fetch,
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.neonGold),
-          child: const Text('Retry', style: TextStyle(color: Colors.black))),
+          child: Text(l10n.leaderboardRetry, style: const TextStyle(color: Colors.black))),
       ]));
     }
 
@@ -89,11 +91,11 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Text('🏆', style: TextStyle(fontSize: 48)),
         const SizedBox(height: 12),
-        const Text('Be the first to rank!',
-          style: TextStyle(fontSize: 16, color: AppColors.jadeWhiteDim)),
+        Text(l10n.leaderboardEmpty,
+          style: const TextStyle(fontSize: 16, color: AppColors.jadeWhiteDim)),
         const SizedBox(height: 4),
-        const Text('Complete puzzles to earn your spot.',
-          style: TextStyle(fontSize: 13, color: AppColors.jadeWhiteMuted)),
+        Text(l10n.leaderboardEmptySub,
+          style: const TextStyle(fontSize: 13, color: AppColors.jadeWhiteMuted)),
       ]));
     }
 

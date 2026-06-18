@@ -98,6 +98,8 @@
 
   "flashcardCorrect": "Richtig",
   "flashcardIncorrect": "Falsch",
+  "flashcardPlayAgain": "🔄 Nochmal spielen",
+  "flashcardGotIt": "Verstanden ✓",
   "settingsTitle": "Einstellungen",
   "settingsAbout": "Über",
   "settingsVersion": "Version 1.0.0",

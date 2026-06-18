@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/analytics/analytics_service.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/audio_service.dart';
 import '../../../core/srs/srs_provider.dart';
@@ -218,6 +219,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   // - 题库完成时：跳转完成页面
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(flashcardQuizProvider);
     final tile = state.currentTile;
 
@@ -578,6 +580,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   // 点击覆盖层任意位置或按钮均可关闭。
   // 背景为深玉色 97% 透明度，确保与主界面视觉连贯。
   Widget _buildMnemonicOverlay(TileModel tile) {
+    final l10n = AppLocalizations.of(context)!;
     final pngPath = 'assets/mnemonic_png/${tile.id}.png';
     return GestureDetector(
       onTap: _hideMnemonic, // 点击背景任意位置关闭助记覆盖层
@@ -618,7 +621,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
                       color: AppColors.neonGold,
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    child: const Text('Got it ✓', style: TextStyle(
+                    child: Text(l10n.flashcardGotIt, style: const TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black,
                     )),
                   ),
@@ -665,6 +668,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   // 展示：奖杯图标 | 正确/错误数 | 正确率 | "Play Again" 按钮。
   // 点击"Play Again"会取消残留定时器并调用 restart() 重新开始一轮。
   Widget _buildFinishedScreen(state) {
+    final l10n = AppLocalizations.of(context)!;
     final accuracy = state.totalCount > 0
         ? (state.correctCount / state.totalCount * 100).round()
         : 0;
@@ -677,7 +681,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
             children: [
               const Text('🏆', style: TextStyle(fontSize: 56)),
               const SizedBox(height: 16),
-              const Text('Round Complete!', style: TextStyle(
+              Text(l10n.flashcardCorrect, style: const TextStyle(
                 fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.neonGold,
               )),
               const SizedBox(height: 8),
@@ -698,7 +702,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 ),
-                child: const Text('🔄 Play Again', style: TextStyle(fontWeight: FontWeight.w700)),
+                child: Text(l10n.flashcardPlayAgain, style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
             ],
           ),

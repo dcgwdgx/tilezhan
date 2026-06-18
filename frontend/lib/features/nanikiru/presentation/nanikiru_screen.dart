@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/analytics/analytics_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/audio_service.dart';
@@ -120,6 +121,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
   // 3. 主游戏布局：导航栏 → 摸牌提示 → 倒计时条 → 手牌区 → 工具栏 → 反馈浮层
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(nanikiruProvider);
     final notifier = ref.read(nanikiruProvider.notifier);
 
@@ -235,6 +237,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
 
   /// Drawn-tile card showing the tile the player just picked up.
   Widget _buildPrompt(NaniKiruState state) {
+    final l10n = AppLocalizations.of(context)!;
     // 从牌库查询当前摸到的牌数据（用于渲染牌面文字和新牌标签）
     final drawnTile = ref.read(tileRepositoryProvider)
         .getById(state.drawnTileId, []);
@@ -249,7 +252,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
         ),
         child: Column(
           children: [
-            const Text('You just drew:', style: TextStyle(
+            Text(l10n.nanikiruDraw, style: const TextStyle(
               fontSize: 13, color: AppColors.jadeWhiteDim,
             )),
             const SizedBox(height: 6),
@@ -362,6 +365,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
 
   /// Bottom toolbar: Sort, Hint, and Skip buttons. Hidden after answer.
   Widget _buildToolbar(NaniKiruState state, NanikiruNotifier notifier) {
+    final l10n = AppLocalizations.of(context)!;
     if (state.isFinished) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -376,14 +380,14 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
               builder: (_) => AlertDialog(
                 backgroundColor: AppColors.jadeCard,
                 title: const Text('💡 Hint', style: TextStyle(color: AppColors.neonGold)),
-                content: const Text('Look for sequences and triplets.\nDiscard isolated tiles that don\'t form any meld.\nThe correct answer maximizes tile acceptance (ukeire).',
-                    style: TextStyle(color: AppColors.jadeWhiteDim)),
+                content: Text(l10n.nanikiruHint,
+                    style: const TextStyle(color: AppColors.jadeWhiteDim)),
                 actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it', style: TextStyle(color: AppColors.neonGold)))],
               ),
             );
           }),
           const SizedBox(width: 8),
-          _toolBtn('🏳️ Skip', () {
+          _toolBtn(l10n.nanikiruSkip, () {
             // 跳过流程：播放音效+动画 → 埋点上报 → 确认丢弃（isSkip=true）→ SRS记录 → 扣心
             AudioService.playSlash();
             _slashCtrl.forward(from: 0);
@@ -428,6 +432,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
   /// Displays PERFECT or BLUNDER header, stats row, and a review panel
   /// explaining why the correct discard is better.
   Widget _buildFeedbackSheet(NaniKiruState state, NanikiruNotifier notifier) {
+    final l10n = AppLocalizations.of(context)!;
     final isPerfect = state.isPerfect;
     return GestureDetector(
       // 点击反馈面板任意位置：递增对局计数 → 加载下一题 → 重启倒计时
@@ -469,7 +474,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
               ),
               child: Column(children: [
                 // 结果标题：完美或失误，带发光阴影效果
-                Text(isPerfect ? '🎯 PERFECT!' : '💥 BLUNDER!', style: TextStyle(
+                Text(isPerfect ? l10n.nanikiruPerfect : l10n.nanikiruBlunder, style: TextStyle(
                   fontSize: 40, fontWeight: FontWeight.w900,
                   color: isPerfect ? const Color(0xFF2CE574) : AppColors.vermillion,
                   shadows: [Shadow(
@@ -480,7 +485,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                 const SizedBox(height: 16),
                 // 统计数据行：有效牌数 / 牌种数 / 向听数
                 Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                  _stat('${state.ukeireCount}', isPerfect ? 'Acceptance Tiles' : 'Your Pick'),
+                  _stat('${state.ukeireCount}', isPerfect ? l10n.nanikiruAcceptanceTiles : 'Your Pick'),
                   _stat('${state.ukeireTypes}', 'Types'),
                   _stat(isPerfect ? 'Tenpai!' : '-7 tiles', 'Shanten'),
                 ]),
@@ -499,7 +504,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                         Container(width: 8, height: 8, decoration: const BoxDecoration(
                           shape: BoxShape.circle, color: AppColors.vermillion)),
                         const SizedBox(width: 8),
-                        Text('Your discard: ${state.selectedTileId ?? "—"}',
+                        Text(l10n.nanikiruYourDiscard(state.selectedTileId ?? "—"),
                           style: const TextStyle(fontSize: 14, color: AppColors.vermillion)),
                       ]),
                       const SizedBox(height: 8),
@@ -508,8 +513,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                           shape: BoxShape.circle, color: Color(0xFF2CE574))),
                         const SizedBox(width: 8),
                         Expanded(child: Text(
-                          'Best discard: ${state.correctDiscardId}'
-                          '  →  ${state.ukeireCount ?? 0} tile types, ${state.ukeireTypes ?? 0} acceptance tiles',
+                          l10n.nanikiruBestDiscard(state.correctDiscardId, state.ukeireCount ?? 0, state.ukeireTypes ?? 0),
                           style: const TextStyle(fontSize: 14, color: Color(0xFF2CE574)))),
                       ]),
                       const SizedBox(height: 12),
@@ -542,7 +546,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                 ],
                 // --- 关闭提示文字：引导玩家点击任意位置继续 ---
                 const SizedBox(height: 20),
-                Text('Tap anywhere to continue', style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteMuted.withOpacity(0.5))),
+                Text(l10n.nanikiruTapToContinue, style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteMuted.withOpacity(0.5))),
               ]),
             ),
           ],

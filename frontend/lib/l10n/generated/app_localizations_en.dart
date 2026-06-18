@@ -300,6 +300,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get flashcardTimeout => 'Timeout';
 
   @override
+  String get flashcardPlayAgain => '🔄 Play Again';
+
+  @override
+  String get flashcardGotIt => 'Got it ✓';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override

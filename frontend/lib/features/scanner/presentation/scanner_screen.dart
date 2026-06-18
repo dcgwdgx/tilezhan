@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// 役种扫描器主页面 — 展示基础役种列表供玩家参考。
 ///
@@ -69,6 +70,7 @@ class ScannerScreen extends ConsumerWidget {
   /// - 已锁定卡片不可点击（[GestureDetector.onTap] 为 null）
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       // 深翡翠底色，与全局 AppBar 风格统一
       backgroundColor: AppColors.jadeDeep,
@@ -80,7 +82,7 @@ class ScannerScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         // 标题
-        title: const Text('Yaku Scanner', style: TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(l10n.scannerTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
         // 右侧操作区：搜索图标（V2 将实现搜索过滤功能）
         actions: [
           const Text('🔍', style: TextStyle(fontSize: 16)),
@@ -99,7 +101,7 @@ class ScannerScreen extends ConsumerWidget {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.neonGold.withOpacity(0.2)),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 Text('📸', style: TextStyle(fontSize: 32)),
                 SizedBox(width: 12),
@@ -109,7 +111,7 @@ class ScannerScreen extends ConsumerWidget {
                     children: [
                       Text('Yaku Reference', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.jadeWhite)),
                       SizedBox(height: 4),
-                      Text('Full hand scanning coming in V2.\nBrowse all 10 basic yaku below.', style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)),
+                      Text(l10n.scannerDesc, style: const TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)),
                     ],
                   ),
                 ),
@@ -118,7 +120,7 @@ class ScannerScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           // ===== 章节标题 =====
-          const Text('BASIC YAKU', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5, color: AppColors.jadeWhiteMuted)),
+          Text(l10n.scannerBasicYaku, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5, color: AppColors.jadeWhiteMuted)),
           const SizedBox(height: 8),
           // ===== 役种卡片列表 =====
           // 使用展开运算符遍历 _yakuList，将每条数据映射为一个 _YakuCard 实例
