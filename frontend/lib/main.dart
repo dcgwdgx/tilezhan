@@ -24,6 +24,7 @@ class TileSlashApp extends StatelessWidget {
     return ListenableBuilder(
       listenable: localeModel,
       builder: (context, _) => MaterialApp.router(
+        key: ValueKey(localeModel.locale.languageCode),
         title: 'TileSlash',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark,
