@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:tilezhan/shared/models/tile_model.dart';
 import 'package:tilezhan/shared/widgets/tz_tile.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:tilezhan/l10n/generated/app_localizations.dart';
 
 TileModel _makeTile(String id, TileSuit suit, String label) {
   return TileModel(
@@ -21,7 +23,15 @@ void main() {
     testWidgets('renders SvgPicture for tile asset', (tester) async {
       final tile = _makeTile('m5', TileSuit.man, '5m');
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: Center(child: TzTile(tile: tile)))),
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('en')],
+          home: Scaffold(body: Center(child: TzTile(tile: tile))),
+        ),
       );
       // Should contain an SVG widget (renders placeholder in test env)
       expect(find.byType(SvgPicture), findsOneWidget);
@@ -32,7 +42,15 @@ void main() {
       final tile = _makeTile('m5', TileSuit.man, '5m');
       for (final size in [TileSize.md, TileSize.lg]) {
         await tester.pumpWidget(
-          MaterialApp(home: Scaffold(body: Center(child: TzTile(tile: tile, size: size)))),
+          MaterialApp(
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en')],
+            home: Scaffold(body: Center(child: TzTile(tile: tile, size: size))),
+          ),
         );
         expect(tester.takeException(), isNull);
       }
@@ -42,9 +60,17 @@ void main() {
     testWidgets('selected state renders without error', (tester) async {
       final tile = _makeTile('m5', TileSuit.man, '5m');
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: Center(
-          child: TzTile(tile: tile, state: TileState.selected),
-        ))),
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('en')],
+          home: Scaffold(body: Center(
+            child: TzTile(tile: tile, state: TileState.selected),
+          )),
+        ),
       );
       expect(tester.takeException(), isNull);
     });
@@ -53,9 +79,17 @@ void main() {
     testWidgets('dimmed state renders without error', (tester) async {
       final tile = _makeTile('m5', TileSuit.man, '5m');
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: Center(
-          child: TzTile(tile: tile, state: TileState.dimmed),
-        ))),
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('en')],
+          home: Scaffold(body: Center(
+            child: TzTile(tile: tile, state: TileState.dimmed),
+          )),
+        ),
       );
       expect(tester.takeException(), isNull);
     });
@@ -65,9 +99,17 @@ void main() {
       final tile = _makeTile('m5', TileSuit.man, '5m');
       var tapped = false;
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: Center(
-          child: TzTile(tile: tile, onTap: () => tapped = true),
-        ))),
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('en')],
+          home: Scaffold(body: Center(
+            child: TzTile(tile: tile, onTap: () => tapped = true),
+          )),
+        ),
       );
       await tester.tap(find.byType(TzTile));
       expect(tapped, true);
@@ -84,7 +126,15 @@ void main() {
       ];
       for (final tile in suits) {
         await tester.pumpWidget(
-          MaterialApp(home: Scaffold(body: Center(child: TzTile(tile: tile)))),
+          MaterialApp(
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en')],
+            home: Scaffold(body: Center(child: TzTile(tile: tile))),
+          ),
         );
         expect(tester.takeException(), isNull);
       }

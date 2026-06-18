@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/core/hearts/heart_provider.dart';
 import 'package:tilezhan/core/hearts/heart_service.dart';
+import 'package:tilezhan/l10n/generated/app_localizations.dart';
 import 'package:tilezhan/shared/widgets/tz_combo_promo.dart';
 
 /// Fake HeartService with 10+ combo for promo trigger.
@@ -20,7 +22,15 @@ class _PromoFake extends HeartService {
 Widget _wrap(Widget child) {
   return ProviderScope(
     overrides: [heartServiceProvider.overrideWith((ref) => _PromoFake())],
-    child: MaterialApp(home: child),
+    child: MaterialApp(
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('en')],
+      home: child,
+    ),
   );
 }
 
