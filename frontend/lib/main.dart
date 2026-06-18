@@ -23,6 +23,7 @@ class TileSlashApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider);
     return MaterialApp.router(
+      key: ValueKey(locale.languageCode), // force full rebuild on locale change
       title: 'TileSlash',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,

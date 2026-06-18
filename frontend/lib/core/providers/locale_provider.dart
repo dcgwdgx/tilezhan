@@ -18,8 +18,12 @@ final localeProvider = StateProvider<Locale>((ref) {
   return Locale(lang);
 });
 
-/// 切换语言并持久化到 Hive。
+/// 切换语言并持久化到 Hive。Hive 写入失败不阻塞切换。
 void setAppLocale(WidgetRef ref, String langCode) {
-  Hive.box('prefs').put('app_language', langCode);
+  try {
+    Hive.box('prefs').put('app_language', langCode);
+  } catch (_) {
+    // Hive 写入失败（如 Box 未就绪），语言切换仍然生效，仅本次会话有效
+  }
   ref.read(localeProvider.notifier).state = Locale(langCode);
 }
