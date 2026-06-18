@@ -59,9 +59,8 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _languageTile(BuildContext context, WidgetRef ref) {
-    final currentLocale = ref.watch(localeProvider);
     final currentName = supportedLanguages
-        .firstWhere((l) => l.$1 == currentLocale.languageCode,
+        .firstWhere((l) => l.$1 == localeModel.locale.languageCode,
             orElse: () => const ('en', 'English'))
         .$2;
     return ListTile(
@@ -71,22 +70,22 @@ class SettingsScreen extends ConsumerWidget {
         Text(currentName, style: const TextStyle(color: AppColors.neonGold, fontSize: 13)),
         const Icon(Icons.chevron_right, color: AppColors.jadeWhiteMuted),
       ]),
-      onTap: () => _showLanguagePicker(context, ref, currentLocale),
+      onTap: () => _showLanguagePicker(context),
     );
   }
 
-  void _showLanguagePicker(BuildContext context, WidgetRef ref, Locale current) {
+  void _showLanguagePicker(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.jadeCard,
       builder: (_) => Column(mainAxisSize: MainAxisSize.min, children: [
         ...supportedLanguages.map((lang) => ListTile(
-          leading: Radio<Locale>(
-            value: Locale(lang.$1),
-            groupValue: current,
+          leading: Radio<String>(
+            value: lang.$1,
+            groupValue: localeModel.locale.languageCode,
             activeColor: AppColors.neonGold,
             onChanged: (v) {
-              setAppLocale(ref, lang.$1);
+              if (v != null) localeModel.switchTo(v);
               Navigator.pop(context);
             },
           ),

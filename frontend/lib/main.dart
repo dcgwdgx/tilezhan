@@ -13,33 +13,35 @@ void main() async {
   await Hive.initFlutter();
   await Hive.openBox('prefs');
   await Hive.openBox('hearts');
+  localeModel.init();
   runApp(const ProviderScope(child: TileSlashApp()));
 }
 
-class TileSlashApp extends ConsumerWidget {
+class TileSlashApp extends StatelessWidget {
   const TileSlashApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final locale = ref.watch(localeProvider);
-    return MaterialApp.router(
-      key: ValueKey(locale.languageCode), // force full rebuild on locale change
-      title: 'TileSlash',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      routerConfig: appRouter,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('en'),
-        Locale('fr'),
-        Locale('de'),
-      ],
-      locale: locale,
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: localeModel,
+      builder: (context, _) => MaterialApp.router(
+        title: 'TileSlash',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.dark,
+        routerConfig: appRouter,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('en'),
+          Locale('fr'),
+          Locale('de'),
+        ],
+        locale: localeModel.locale,
+      ),
     );
   }
 }
