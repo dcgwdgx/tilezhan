@@ -63,6 +63,8 @@
   "premiumBestValue": "BESTER PREIS — -50%",
   "premiumPayOnce": "EINMALZAHLUNG",
   "premiumLaunchBanner": "Launch-Angebot: Lebenslang -20% — Begrenzt",
+  "premiumPrivacy": "Datenschutzerklärung",
+  "premiumTerms": "Nutzungsbedingungen",
 
   "shareStats": "🎯 {total} Rätsel heute · {accuracy}% Genauigkeit · {combo}× max Combo auf TileZhan! tilezhan.app",
   "inviteText": "🀄 Komm zu TileZhan — meistere Mahjong! Kostenlose tägliche Rätsel. tilezhan.app",

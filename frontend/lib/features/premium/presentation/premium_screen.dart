@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/hearts/heart_provider.dart';
 import '../../../core/iap/iap_provider.dart';
@@ -188,6 +189,8 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
         const SizedBox(height: 8),
         // 页脚说明："所有方案均包含..." 等法律/说明文本
         _buildAllPlansFooter(),
+        const SizedBox(height: 16),
+        _buildLegalLinks(),
         const SizedBox(height: 40),
       ]),
     );
@@ -383,6 +386,38 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
       child: Text(l10n.premiumRestore,
         style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteMuted,
           decoration: TextDecoration.underline)),
+    );
+  }
+
+  /// 构建法律链接行：Privacy Policy | Terms of Use。
+  ///
+  /// Apple Guideline 3.1.2(c) 要求 App 内必须有可点击的隐私政策和
+  /// 服务条款链接。使用 [url_launcher] 在外部浏览器中打开。
+  Widget _buildLegalLinks() {
+    final l10n = AppLocalizations.of(context)!;
+    const privacyUrl = 'https://tz.slxing.com/privacy.html';
+    const termsUrl = 'https://tz.slxing.com/terms.html';
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        GestureDetector(
+          onTap: () => launchUrl(Uri.parse(privacyUrl), mode: LaunchMode.externalApplication),
+          child: Text(l10n.premiumPrivacy,
+            style: TextStyle(fontSize: 11, color: AppColors.neonGold.withOpacity(0.7),
+              decoration: TextDecoration.underline)),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text('·', style: TextStyle(color: AppColors.jadeWhiteMuted.withOpacity(0.3))),
+        ),
+        GestureDetector(
+          onTap: () => launchUrl(Uri.parse(termsUrl), mode: LaunchMode.externalApplication),
+          child: Text(l10n.premiumTerms,
+            style: TextStyle(fontSize: 11, color: AppColors.neonGold.withOpacity(0.7),
+              decoration: TextDecoration.underline)),
+        ),
+      ],
     );
   }
 

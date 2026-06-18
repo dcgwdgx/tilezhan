@@ -192,6 +192,12 @@ class AppLocalizationsFr extends AppLocalizations {
       'Offre de lancement : Vie -20% — Offre limitée';
 
   @override
+  String get premiumPrivacy => 'Politique de confidentialité';
+
+  @override
+  String get premiumTerms => 'Conditions d\'utilisation';
+
+  @override
   String shareStats(Object total, Object accuracy, Object combo) {
     return '🎯 $total puzzles aujourd\'hui · $accuracy% de précision · $combo× combo max sur TileZhan ! tilezhan.app';
   }

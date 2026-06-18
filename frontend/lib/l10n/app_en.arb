@@ -65,6 +65,8 @@
   "premiumBestValue": "BEST VALUE — Save 50%",
   "premiumPayOnce": "PAY ONCE",
   "premiumLaunchBanner": "Launch Special: Lifetime 20% OFF — Limited Time",
+  "premiumPrivacy": "Privacy Policy",
+  "premiumTerms": "Terms of Use",
 
   "shareStats": "🎯 {total} puzzles today · {accuracy}% accuracy · {combo}× max combo on TileZhan! tilezhan.app",
   "@shareStats": { "placeholders": { "total": {}, "accuracy": {}, "combo": {} } },

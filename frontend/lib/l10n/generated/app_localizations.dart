@@ -448,6 +448,18 @@ abstract class AppLocalizations {
   /// **'Launch Special: Lifetime 20% OFF — Limited Time'**
   String get premiumLaunchBanner;
 
+  /// No description provided for @premiumPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get premiumPrivacy;
+
+  /// No description provided for @premiumTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Use'**
+  String get premiumTerms;
+
   /// No description provided for @shareStats.
   ///
   /// In en, this message translates to:

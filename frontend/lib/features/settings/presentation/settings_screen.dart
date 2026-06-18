@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -52,8 +53,8 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           _section(l10n.settingsAbout, [
             _tile(Icons.info_outline, 'Version', '1.0.0+1'),
-            _tile(Icons.shield_outlined, 'Privacy Policy', ''),
-            _tile(Icons.description_outlined, 'Terms of Service', ''),
+            _linkTile(Icons.shield_outlined, 'Privacy Policy', 'https://tz.slxing.com/privacy.html'),
+            _linkTile(Icons.description_outlined, 'Terms of Service', 'https://tz.slxing.com/terms.html'),
           ]),
         ],
       ),
@@ -116,5 +117,14 @@ class SettingsScreen extends ConsumerWidget {
     title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.jadeWhite)),
     subtitle: subtitle.isEmpty ? null : Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted)),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+  );
+
+  /// Tappable tile that opens [url] in an external browser.
+  Widget _linkTile(IconData icon, String title, String url) => ListTile(
+    leading: Icon(icon, color: AppColors.neonGold, size: 22),
+    title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.jadeWhite)),
+    trailing: const Icon(Icons.open_in_new, color: AppColors.jadeWhiteMuted, size: 16),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+    onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
   );
 }

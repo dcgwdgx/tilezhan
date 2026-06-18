@@ -191,6 +191,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Launch Special: Lifetime 20% OFF — Limited Time';
 
   @override
+  String get premiumPrivacy => 'Privacy Policy';
+
+  @override
+  String get premiumTerms => 'Terms of Use';
+
+  @override
   String shareStats(Object total, Object accuracy, Object combo) {
     return '🎯 $total puzzles today · $accuracy% accuracy · $combo× max combo on TileZhan! tilezhan.app';
   }

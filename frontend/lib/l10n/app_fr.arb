@@ -63,6 +63,8 @@
   "premiumBestValue": "MEILLEUR PRIX — -50%",
   "premiumPayOnce": "PAIEMENT UNIQUE",
   "premiumLaunchBanner": "Offre de lancement : Vie -20% — Offre limitée",
+  "premiumPrivacy": "Politique de confidentialité",
+  "premiumTerms": "Conditions d'utilisation",
 
   "shareStats": "🎯 {total} puzzles aujourd'hui · {accuracy}% de précision · {combo}× combo max sur TileZhan ! tilezhan.app",
   "inviteText": "🀄 Rejoignez-moi sur TileZhan — maîtrisez le Mahjong ! Puzzles gratuits quotidiens. tilezhan.app",
