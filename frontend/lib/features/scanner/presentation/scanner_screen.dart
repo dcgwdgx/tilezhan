@@ -113,7 +113,7 @@ class ScannerScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Yaku Reference', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.jadeWhite)),
+                      Text(l10n.scannerTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.jadeWhite)),
                       SizedBox(height: 4),
                       Text(l10n.scannerDesc, style: const TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)),
                     ],

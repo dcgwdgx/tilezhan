@@ -245,7 +245,7 @@ class _SplashScreenState extends State<SplashScreen>
                 opacity: _titleFade.value,
                 child: Transform.translate(
                   offset: Offset(0, _titleSlide.value),
-                  child: const Text('TILEZAN', style: TextStyle(
+                  child: const Text('TILESLASH', style: TextStyle(
                     fontSize: 32, fontWeight: FontWeight.w900,
                     letterSpacing: 6, color: AppColors.jadeWhite,
                   )),

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../domain/yaku_data.dart';
 import '../domain/yaku_favorites_provider.dart';
 
@@ -23,13 +24,13 @@ class YakuDetailScreen extends ConsumerWidget {
     final yaku = getYakuById(yakuId);
     final favorites = ref.watch(yakuFavoritesProvider);
     final isFavorite = favorites.contains(yakuId);
-
     if (yaku == null) {
+      final l10n = AppLocalizations.of(context)!;
       return Scaffold(
         backgroundColor: AppColors.jadeDeep,
         body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('Yaku not found', style: TextStyle(color: AppColors.jadeWhiteDim)),
-          TextButton(onPressed: () => context.pop(), child: const Text('Go back')),
+          Text(l10n.commonNotFound, style: const TextStyle(color: AppColors.jadeWhiteDim)),
+          TextButton(onPressed: () => context.pop(), child: Text(l10n.commonGoBack)),
         ])),
       );
     }

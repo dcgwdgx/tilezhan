@@ -362,6 +362,60 @@ class AppLocalizationsEn extends AppLocalizations {
   String get flashcardGotIt => 'Got it ✓';
 
   @override
+  String get flashcardClose => 'Close';
+
+  @override
+  String get flashcardTapHint => 'Tap tile to see mnemonic';
+
+  @override
+  String get flashcardAccuracy => 'Accuracy';
+
+  @override
+  String get nanikiruNavTitle => 'Nani-Kiru · Tile Efficiency';
+
+  @override
+  String get nanikiruDiscardHint => 'Discard 1 tile for max efficiency';
+
+  @override
+  String get nanikiruGotIt => 'Got it';
+
+  @override
+  String get nanikiruAcceptanceGridTitle => 'Acceptance Tiles';
+
+  @override
+  String get collectionTitle => 'Yaku Collection';
+
+  @override
+  String get collectionClose => 'Close';
+
+  @override
+  String get collectionMastery => 'Mastery';
+
+  @override
+  String get tileBrowserTitle => 'Tile Browser';
+
+  @override
+  String get tileBrowserClose => 'Close';
+
+  @override
+  String get tileBrowserError => 'Error';
+
+  @override
+  String get commonGoBack => 'Go back';
+
+  @override
+  String get commonNotFound => 'Not found';
+
+  @override
+  String get settingsAppLanguage => 'App Language';
+
+  @override
+  String get leaderboardKeepPlaying => 'Keep playing to climb the ranks!';
+
+  @override
+  String get leaderboardChangeName => 'Change name';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override
@@ -407,4 +461,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get navReview => 'Review';
+
+  @override
+  String get graveyardSrsReview => 'SRS Review';
+
+  @override
+  String get graveyardTodaysReview => 'TODAY\'S REVIEW';
+
+  @override
+  String graveyardReviewAll(int count) {
+    return '⚡ Review All ($count)';
+  }
+
+  @override
+  String get graveyardWeaknessRadar => 'Weakness Radar';
+
+  @override
+  String graveyardWeakest(Object suit, Object rate) {
+    return '⚠ Weakest: $suit ($rate% error rate)';
+  }
+
+  @override
+  String get graveyardNothingDue => 'Nothing due!\nAll caught up.';
+
+  @override
+  String graveyardErrorsOverdue(Object errors, Object days) {
+    return '$errors errors · ${days}d overdue';
+  }
+
+  @override
+  String graveyardDueCount(int count) {
+    return '$count DUE';
+  }
 }

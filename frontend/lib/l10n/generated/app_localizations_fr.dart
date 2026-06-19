@@ -364,6 +364,60 @@ class AppLocalizationsFr extends AppLocalizations {
   String get flashcardGotIt => 'Compris ✓';
 
   @override
+  String get flashcardClose => 'Fermer';
+
+  @override
+  String get flashcardTapHint => 'Touchez la tuile pour voir l\'aide';
+
+  @override
+  String get flashcardAccuracy => 'Précision';
+
+  @override
+  String get nanikiruNavTitle => 'Nani-Kiru · Efficacité';
+
+  @override
+  String get nanikiruDiscardHint => 'Défaussez 1 tuile pour une efficacité max';
+
+  @override
+  String get nanikiruGotIt => 'Compris';
+
+  @override
+  String get nanikiruAcceptanceGridTitle => 'Tuiles d\'acceptation';
+
+  @override
+  String get collectionTitle => 'Collection Yaku';
+
+  @override
+  String get collectionClose => 'Fermer';
+
+  @override
+  String get collectionMastery => 'Maîtrise';
+
+  @override
+  String get tileBrowserTitle => 'Tuiles';
+
+  @override
+  String get tileBrowserClose => 'Fermer';
+
+  @override
+  String get tileBrowserError => 'Erreur';
+
+  @override
+  String get commonGoBack => 'Retour';
+
+  @override
+  String get commonNotFound => 'Non trouvé';
+
+  @override
+  String get settingsAppLanguage => 'Langue';
+
+  @override
+  String get leaderboardKeepPlaying => 'Continuez à jouer pour grimper !';
+
+  @override
+  String get leaderboardChangeName => 'Changer de nom';
+
+  @override
   String get settingsTitle => 'Paramètres';
 
   @override
@@ -409,4 +463,36 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get navReview => 'Réviser';
+
+  @override
+  String get graveyardSrsReview => 'Révision SRS';
+
+  @override
+  String get graveyardTodaysReview => 'RÉVISION DU JOUR';
+
+  @override
+  String graveyardReviewAll(int count) {
+    return '⚡ Tout réviser ($count)';
+  }
+
+  @override
+  String get graveyardWeaknessRadar => 'Radar de faiblesses';
+
+  @override
+  String graveyardWeakest(Object suit, Object rate) {
+    return '⚠ Plus faible : $suit ($rate% d\'erreurs)';
+  }
+
+  @override
+  String get graveyardNothingDue => 'Rien à réviser !\nTout est à jour.';
+
+  @override
+  String graveyardErrorsOverdue(Object errors, Object days) {
+    return '$errors erreurs · ${days}j de retard';
+  }
+
+  @override
+  String graveyardDueCount(int count) {
+    return '$count À FAIRE';
+  }
 }

@@ -264,7 +264,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
             onPressed: () => context.pop(),
           ),
           const Expanded(
-            child: Text('Nani-Kiru · Two-Sided Waits', style: TextStyle(
+            child: Text(l10n.nanikiruNavTitle, style: TextStyle(
               fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.jadeWhite,
             )),
           ),
@@ -324,7 +324,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                 ),
               ),
             const SizedBox(height: 8),
-            Text('Discard 1 tile for max efficiency',
+            Text(l10n.nanikiruDiscardHint,
                 style: TextStyle(
                   fontSize: 13, color: AppColors.neonGold.withOpacity(0.8),
                   fontWeight: FontWeight.w600,
@@ -423,7 +423,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                 title: const Text('💡 Hint', style: TextStyle(color: AppColors.neonGold)),
                 content: Text(l10n.nanikiruHint,
                     style: const TextStyle(color: AppColors.jadeWhiteDim)),
-                actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it', style: TextStyle(color: AppColors.neonGold)))],
+                actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.nanikiruGotIt, style: const TextStyle(color: AppColors.neonGold)))],
               ),
             );
           }),

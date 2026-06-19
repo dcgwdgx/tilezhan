@@ -364,6 +364,60 @@ class AppLocalizationsDe extends AppLocalizations {
   String get flashcardGotIt => 'Verstanden ✓';
 
   @override
+  String get flashcardClose => 'Schließen';
+
+  @override
+  String get flashcardTapHint => 'Stein antippen für Hilfe';
+
+  @override
+  String get flashcardAccuracy => 'Genauigkeit';
+
+  @override
+  String get nanikiruNavTitle => 'Nani-Kiru · Effizienz';
+
+  @override
+  String get nanikiruDiscardHint => '1 Stein für max. Effizienz abwerfen';
+
+  @override
+  String get nanikiruGotIt => 'Verstanden';
+
+  @override
+  String get nanikiruAcceptanceGridTitle => 'Akzeptanz-Steine';
+
+  @override
+  String get collectionTitle => 'Yaku-Sammlung';
+
+  @override
+  String get collectionClose => 'Schließen';
+
+  @override
+  String get collectionMastery => 'Meisterschaft';
+
+  @override
+  String get tileBrowserTitle => 'Steine';
+
+  @override
+  String get tileBrowserClose => 'Schließen';
+
+  @override
+  String get tileBrowserError => 'Fehler';
+
+  @override
+  String get commonGoBack => 'Zurück';
+
+  @override
+  String get commonNotFound => 'Nicht gefunden';
+
+  @override
+  String get settingsAppLanguage => 'Sprache';
+
+  @override
+  String get leaderboardKeepPlaying => 'Spiel weiter, um aufzusteigen!';
+
+  @override
+  String get leaderboardChangeName => 'Namen ändern';
+
+  @override
   String get settingsTitle => 'Einstellungen';
 
   @override
@@ -409,4 +463,37 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get navReview => 'Review';
+
+  @override
+  String get graveyardSrsReview => 'SRS-Review';
+
+  @override
+  String get graveyardTodaysReview => 'HEUTIGE REVIEW';
+
+  @override
+  String graveyardReviewAll(int count) {
+    return '⚡ Alle wiederholen ($count)';
+  }
+
+  @override
+  String get graveyardWeaknessRadar => 'Schwächen-Radar';
+
+  @override
+  String graveyardWeakest(Object suit, Object rate) {
+    return '⚠ Schwächste: $suit ($rate% Fehler)';
+  }
+
+  @override
+  String get graveyardNothingDue =>
+      'Nichts fällig!\nAlles auf dem neuesten Stand.';
+
+  @override
+  String graveyardErrorsOverdue(Object errors, Object days) {
+    return '$errors Fehler · ${days}T überfällig';
+  }
+
+  @override
+  String graveyardDueCount(int count) {
+    return '$count FÄLLIG';
+  }
 }

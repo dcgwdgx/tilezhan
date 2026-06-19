@@ -702,7 +702,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
               Text('✅ ${state.correctCount} correct · ❌ ${state.wrongCount} wrong',
                   style: const TextStyle(fontSize: 15, color: AppColors.jadeWhiteDim)),
               const SizedBox(height: 4),
-              Text('Accuracy: $accuracy%',
+              Text('${l10n.flashcardAccuracy}: $accuracy%',
                   style: const TextStyle(fontSize: 13, color: AppColors.jadeWhiteMuted)),
               const SizedBox(height: 24),
               ElevatedButton(
@@ -774,13 +774,13 @@ class _PulsingHintState extends State<_PulsingHint>
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppColors.neonGold.withOpacity(0.25)),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('👆', style: TextStyle(fontSize: 16)),
-            SizedBox(width: 6),
-            Text('Tap tile to see mnemonic',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.neonGold)),
+            const Text('👆', style: TextStyle(fontSize: 16)),
+            const SizedBox(width: 6),
+            Text(AppLocalizations.of(context)!.flashcardTapHint,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.neonGold)),
           ],
         ),
       ),

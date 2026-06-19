@@ -103,7 +103,7 @@ class NanikiruFeedbackPanel extends ConsumerWidget {
                 // ── 进张牌网格 ──
                 if (correctUkeire > 0) ...[
                   const SizedBox(height: 12),
-                  _buildUkeireTileGrid(state, ref),
+                  _buildUkeireTileGrid(state, ref, l10n),
                 ],
 
                 // ── 答对提示 ──
@@ -215,7 +215,7 @@ class NanikiruFeedbackPanel extends ConsumerWidget {
     }
   }
 
-  Widget _buildUkeireTileGrid(NaniKiruState state, WidgetRef ref) {
+  Widget _buildUkeireTileGrid(NaniKiruState state, WidgetRef ref, AppLocalizations l10n) {
     final allTiles = state.allDiscardUkeireTiles ?? {};
     final correctTiles = allTiles[state.correctDiscardId] ?? state.ukeireTiles ?? [];
     if (correctTiles.isEmpty) return const SizedBox.shrink();
@@ -224,7 +224,7 @@ class NanikiruFeedbackPanel extends ConsumerWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), borderRadius: BorderRadius.circular(12)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Acceptance Tiles', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.jadeWhiteDim)),
+        Text(l10n.nanikiruAcceptanceGridTitle, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.jadeWhiteDim)),
         const SizedBox(height: 8),
         Wrap(spacing: 3, runSpacing: 3, children: correctTiles.map((id) {
           final tile = repo.getById(id, []);

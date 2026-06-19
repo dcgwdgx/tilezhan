@@ -39,7 +39,7 @@ class GraveyardScreen extends ConsumerWidget {
           children: [
             Text(l10n.homeGraveyard, style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(width: 8),
-            const Text('👻 SRS Review', style: TextStyle( // TODO: add graveyardSrsReview l10n key
+            Text(l10n.graveyardSrsReview, style: const TextStyle(
               fontSize: 13, color: AppColors.demonPurple,
             )),
           ],
@@ -53,13 +53,13 @@ class GraveyardScreen extends ConsumerWidget {
           final suitRates = ref.watch(suitErrorRatesProvider);
           return Column(
             children: [
-              _buildRadarCard(context, suitRates),
+              _buildRadarCard(context, suitRates, l10n),
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text("TODAY'S REVIEW · ${dueItems.length} DUE", style: const TextStyle( // TODO: add graveyardTodaysReview l10n key
+                  child: Text('${l10n.graveyardTodaysReview} · ${l10n.graveyardDueCount(dueItems.length)}', style: const TextStyle(
                     fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5,
                     color: AppColors.jadeWhiteMuted,
                   )),
@@ -82,7 +82,7 @@ class GraveyardScreen extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
-                    child: Text('⚡ Review All (${dueItems.length})', style: const TextStyle( // TODO: add graveyardReviewAll l10n key
+                    child: Text(l10n.graveyardReviewAll(dueItems.length), style: const TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w800,
                     )),
                   ),
@@ -99,7 +99,7 @@ class GraveyardScreen extends ConsumerWidget {
   ///
   /// [suitRates] key 为花色名('man'/'pin'/'sou'/'wind'/'dragon')，value 为 0~1 的错误率。
   /// 返回一个 [TzCard] 包裹的雷达图组件（含 CustomPaint 五边形图 + 最弱项高亮文本）。
-  Widget _buildRadarCard(BuildContext context, Map<String, double> suitRates) {
+  Widget _buildRadarCard(BuildContext context, Map<String, double> suitRates, AppLocalizations l10n) {
     // 五种麻将花色的内部键名与展示标签。
     final suits = ['man', 'pin', 'sou', 'wind', 'dragon'];
     // TODO: add l10n keys for suit labels (graveyardSuitMan, graveyardSuitPin, etc.)
@@ -113,7 +113,7 @@ class GraveyardScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const Text('Weakness Radar', style: TextStyle( // TODO: add graveyardWeaknessRadar l10n key
+            Text(l10n.graveyardWeaknessRadar, style: const TextStyle(
               fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.jadeWhiteDim,
             )),
             const SizedBox(height: 12),
@@ -124,7 +124,7 @@ class GraveyardScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text('⚠ Weakest: ${labels[suits.indexOf(worst)]} (${((suitRates[worst] ?? 0) * 100).round()}% error rate)', style: const TextStyle( // TODO: add graveyardWeakest l10n key
+            Text(l10n.graveyardWeakest(labels[suits.indexOf(worst)], ((suitRates[worst] ?? 0) * 100).round()), style: const TextStyle(
               fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.vermillionHover,
             )),
           ],
@@ -142,13 +142,13 @@ class GraveyardScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     // 无待复习项：展示庆祝空状态。
     if (dueItems.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('🎉', style: TextStyle(fontSize: 40)),
-            SizedBox(height: 8),
-            Text('Nothing due!\nAll caught up.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.jadeWhiteDim)), // TODO: add graveyardNothingDue l10n key
+            const Text('🎉', style: TextStyle(fontSize: 40)),
+            const SizedBox(height: 8),
+            Text(l10n.graveyardNothingDue, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.jadeWhiteDim)),
           ],
         ),
       );
@@ -188,7 +188,7 @@ class GraveyardScreen extends ConsumerWidget {
                           fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.jadeWhite,
                         )),
                         const SizedBox(height: 2),
-                        Text('${item.errors} errors · ${daysAgo}d overdue', style: const TextStyle( // TODO: add graveyardErrorsOverdue l10n key
+                        Text(l10n.graveyardErrorsOverdue('${item.errors}', '$daysAgo'), style: const TextStyle(
                           fontSize: 11, color: AppColors.jadeWhiteMuted,
                         )),
                       ],

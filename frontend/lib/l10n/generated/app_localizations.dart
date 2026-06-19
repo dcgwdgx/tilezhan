@@ -760,6 +760,114 @@ abstract class AppLocalizations {
   /// **'Got it ✓'**
   String get flashcardGotIt;
 
+  /// No description provided for @flashcardClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get flashcardClose;
+
+  /// No description provided for @flashcardTapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap tile to see mnemonic'**
+  String get flashcardTapHint;
+
+  /// No description provided for @flashcardAccuracy.
+  ///
+  /// In en, this message translates to:
+  /// **'Accuracy'**
+  String get flashcardAccuracy;
+
+  /// No description provided for @nanikiruNavTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nani-Kiru · Tile Efficiency'**
+  String get nanikiruNavTitle;
+
+  /// No description provided for @nanikiruDiscardHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard 1 tile for max efficiency'**
+  String get nanikiruDiscardHint;
+
+  /// No description provided for @nanikiruGotIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get nanikiruGotIt;
+
+  /// No description provided for @nanikiruAcceptanceGridTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Acceptance Tiles'**
+  String get nanikiruAcceptanceGridTitle;
+
+  /// No description provided for @collectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Yaku Collection'**
+  String get collectionTitle;
+
+  /// No description provided for @collectionClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get collectionClose;
+
+  /// No description provided for @collectionMastery.
+  ///
+  /// In en, this message translates to:
+  /// **'Mastery'**
+  String get collectionMastery;
+
+  /// No description provided for @tileBrowserTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tile Browser'**
+  String get tileBrowserTitle;
+
+  /// No description provided for @tileBrowserClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get tileBrowserClose;
+
+  /// No description provided for @tileBrowserError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get tileBrowserError;
+
+  /// No description provided for @commonGoBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Go back'**
+  String get commonGoBack;
+
+  /// No description provided for @commonNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Not found'**
+  String get commonNotFound;
+
+  /// No description provided for @settingsAppLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'App Language'**
+  String get settingsAppLanguage;
+
+  /// No description provided for @leaderboardKeepPlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep playing to climb the ranks!'**
+  String get leaderboardKeepPlaying;
+
+  /// No description provided for @leaderboardChangeName.
+  ///
+  /// In en, this message translates to:
+  /// **'Change name'**
+  String get leaderboardChangeName;
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:
@@ -849,6 +957,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Review'**
   String get navReview;
+
+  /// No description provided for @graveyardSrsReview.
+  ///
+  /// In en, this message translates to:
+  /// **'SRS Review'**
+  String get graveyardSrsReview;
+
+  /// No description provided for @graveyardTodaysReview.
+  ///
+  /// In en, this message translates to:
+  /// **'TODAY\'S REVIEW'**
+  String get graveyardTodaysReview;
+
+  /// No description provided for @graveyardReviewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'⚡ Review All ({count})'**
+  String graveyardReviewAll(int count);
+
+  /// No description provided for @graveyardWeaknessRadar.
+  ///
+  /// In en, this message translates to:
+  /// **'Weakness Radar'**
+  String get graveyardWeaknessRadar;
+
+  /// No description provided for @graveyardWeakest.
+  ///
+  /// In en, this message translates to:
+  /// **'⚠ Weakest: {suit} ({rate}% error rate)'**
+  String graveyardWeakest(Object suit, Object rate);
+
+  /// No description provided for @graveyardNothingDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing due!\nAll caught up.'**
+  String get graveyardNothingDue;
+
+  /// No description provided for @graveyardErrorsOverdue.
+  ///
+  /// In en, this message translates to:
+  /// **'{errors} errors · {days}d overdue'**
+  String graveyardErrorsOverdue(Object errors, Object days);
+
+  /// No description provided for @graveyardDueCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} DUE'**
+  String graveyardDueCount(int count);
 }
 
 class _AppLocalizationsDelegate
