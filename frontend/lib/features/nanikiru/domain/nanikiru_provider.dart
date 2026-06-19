@@ -28,12 +28,16 @@
 /// 换算为难度区间，再交由 [PuzzleGenerator.generate] 生成与之匹配的谜题。
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/models/tile_model.dart';
+import '../../../shared/models/puzzle_model.dart';
 import '../../../shared/data/tile_repository.dart';
 import '../../../core/providers/tile_data_provider.dart';
 import '../../../core/providers/storage_provider.dart';
 import '../../../core/storage/storage_service.dart';
+import 'dart:math';
 import '../../../shared/engine/ukeire_calculator.dart' show UkeireCalculator;
+import '../../../shared/data/static_puzzle_loader.dart';
 import 'nanikiru_state.dart';
+import 'difficulty_scorer.dart';
 import 'puzzle_generator.dart';
 import 'difficulty_scorer.dart';
 
@@ -113,11 +117,18 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
   Future<void> initPuzzle() async {
     _allTiles = await _repo.loadAllTiles();
 
-    // Generate puzzle matching user ELO difficulty
+    // Generate puzzle matching user ELO difficulty.
+    // ~40% chance to pull from static hand-crafted puzzle bank for variety.
     final storage = _ref.read(storageServiceProvider).valueOrNull;
     final userElo = storage?.getInt(StorageService.kElo) ?? 1000;
     final target = DifficultyScorer.targetRange(userElo);
-    final puzzle = PuzzleGenerator.generate(targetDifficulty: target);
+    Puzzle puzzle;
+    if (Random().nextDouble() < 0.4) {
+      final staticPuzzle = await pickStaticPuzzle(target);
+      puzzle = staticPuzzle ?? PuzzleGenerator.generate(targetDifficulty: target);
+    } else {
+      puzzle = PuzzleGenerator.generate(targetDifficulty: target);
+    }
     final handTiles = puzzle.hand13Ids
         .map((id) => _repo.getById(id, _allTiles))
         .whereType<TileModel>()

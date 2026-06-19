@@ -42,6 +42,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/data/
+    - assets/data/nanikiru_puzzles.json
     - assets/tiles/
     - assets/mnemonic_png/
     - assets/sounds/

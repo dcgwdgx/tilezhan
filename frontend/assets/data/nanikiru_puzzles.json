@@ -1,0 +1,102 @@
+[
+  {
+    "hand13Ids": ["m1","m1","m2","m3","m4","m5","m6","m7","m8","m9","z1","z1","z1"],
+    "drawnTileId": "z5",
+    "correctDiscardId": "z5",
+    "ukeireCount": 28,
+    "ukeireTypes": 8,
+    "ukeireTileIds": ["m1","m2","m3","m4","m5","m6","m7","m8"],
+    "difficulty": 820,
+    "hint": "The White Dragon (z5) is a lone honor tile with no pair potential. Discard it to keep your nearly-complete straight."
+  },
+  {
+    "hand13Ids": ["m2","m3","m4","p5","p6","p7","s3","s4","s5","z1","z1","z2","z2"],
+    "drawnTileId": "m5",
+    "correctDiscardId": "m5",
+    "ukeireCount": 23,
+    "ukeireTypes": 7,
+    "ukeireTileIds": ["m1","m3","m4","m6","m7","s2","s5"],
+    "difficulty": 850,
+    "hint": "m5 is isolated — your manzu sequence is already complete (2-3-4). The m5 doesn't extend any meld."
+  },
+  {
+    "hand13Ids": ["m1","m2","m3","m5","m6","m6","p3","p4","p5","s7","s8","s9","z3"],
+    "drawnTileId": "p8",
+    "correctDiscardId": "z3",
+    "ukeireCount": 20,
+    "ukeireTypes": 6,
+    "ukeireTileIds": ["m4","m7","p2","p5","p6","p9"],
+    "difficulty": 800,
+    "hint": "West Wind (z3) is an isolated honor. Your sequences are almost complete — don't break them for a lone wind."
+  },
+  {
+    "hand13Ids": ["m3","m4","m5","m7","m8","m9","p2","p3","p4","s1","s1","s2","s3"],
+    "drawnTileId": "p7",
+    "correctDiscardId": "p7",
+    "ukeireCount": 22,
+    "ukeireTypes": 6,
+    "ukeireTileIds": ["m2","m5","m6","p1","p4","s4"],
+    "difficulty": 860,
+    "hint": "p7 is isolated — your pinzu sequence (2-3-4) is already complete. Keep the shape intact."
+  },
+  {
+    "hand13Ids": ["m4","m5","m6","p1","p2","p3","s6","s7","s8","z1","z1","z5","z5"],
+    "drawnTileId": "s9",
+    "correctDiscardId": "s9",
+    "ukeireCount": 15,
+    "ukeireTypes": 4,
+    "ukeireTileIds": ["m3","m6","m7","p4"],
+    "difficulty": 830,
+    "hint": "s9 is an isolated tile — your souzu sequence (6-7-8) is done. The pair waits give better acceptance."
+  },
+  {
+    "hand13Ids": ["m1","m2","m3","m7","m8","m9","p4","p5","p6","s2","s3","s4","z7"],
+    "drawnTileId": "z7",
+    "correctDiscardId": "z7",
+    "ukeireCount": 24,
+    "ukeireTypes": 8,
+    "ukeireTileIds": ["m4","m6","p1","p3","p4","p6","p7","s1"],
+    "difficulty": 810,
+    "hint": "Chun (Red Dragon) is an isolated honor with no pair. Three perfect sequences are already formed."
+  },
+  {
+    "hand13Ids": ["m3","m4","m4","p5","p6","p7","s2","s3","s4","z2","z2","z6","z6"],
+    "drawnTileId": "p2",
+    "correctDiscardId": "p2",
+    "ukeireCount": 18,
+    "ukeireTypes": 5,
+    "ukeireTileIds": ["m2","m5","p4","p5","p7"],
+    "difficulty": 880,
+    "hint": "p2 is too far from your pinzu 5-6-7 to be useful. Keep the 3-4-4 manzu shape for a potential triplet or sequence extension."
+  },
+  {
+    "hand13Ids": ["m2","m3","m4","m5","m6","m7","p1","p1","p2","p3","s4","s5","s6"],
+    "drawnTileId": "z4",
+    "correctDiscardId": "z4",
+    "ukeireCount": 26,
+    "ukeireTypes": 8,
+    "ukeireTileIds": ["m1","m4","m5","m7","m8","p1","p4","s3"],
+    "difficulty": 790,
+    "hint": "North Wind is completely isolated. You have two solid sequences and a pair+sequence in pinzu — don't break them."
+  },
+  {
+    "hand13Ids": ["m5","m5","m6","m7","p2","p3","p4","s1","s2","s3","z3","z3","z7"],
+    "drawnTileId": "m2",
+    "correctDiscardId": "m2",
+    "ukeireCount": 16,
+    "ukeireTypes": 5,
+    "ukeireTileIds": ["m4","m5","m6","m7","m8"],
+    "difficulty": 920,
+    "hint": "m2 is isolated from your 5-5-6-7 manzu group. Keep the manzu shape which can evolve into a sequence or triplet."
+  },
+  {
+    "hand13Ids": ["m1","m1","m2","m2","p3","p4","p5","s7","s8","s9","z5","z5","z6"],
+    "drawnTileId": "z6",
+    "correctDiscardId": "z6",
+    "ukeireCount": 12,
+    "ukeireTypes": 4,
+    "ukeireTileIds": ["m1","m2","m3","p2"],
+    "difficulty": 940,
+    "hint": "Hatsu (z6) is isolated — you already have a White Dragon pair. Don't chase a second honor pair when you have double pairs in manzu."
+  }
+]
