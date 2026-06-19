@@ -98,6 +98,11 @@
   "scannerDesc": "Vollständiger Scan kommt in V2.\nDurchsuche die 10 Basis-Yaku unten.",
   "scannerBasicYaku": "BASIS YAKU",
   "scannerFavorites": "FAVORITEN",
+  "scannerBeginner": "Anfänger",
+  "scannerIntermediate": "Fortgeschritten",
+  "scannerAdvanced": "Experte",
+  "scannerYakuman": "Yakuman",
+  "scannerYakuCount": "{count} Yaku",
 
   "leaderboardTitle": "Rangliste",
   "leaderboardEmpty": "Sei der Erste in der Rangliste!",

@@ -104,6 +104,12 @@
   "scannerDesc": "Full hand scanning coming in V2.\nBrowse all 10 basic yaku below.",
   "scannerBasicYaku": "BASIC YAKU",
   "scannerFavorites": "FAVORITES",
+  "scannerBeginner": "Beginner",
+  "scannerIntermediate": "Intermediate",
+  "scannerAdvanced": "Advanced",
+  "scannerYakuman": "Yakuman",
+  "scannerYakuCount": "{count} yaku",
+  "@scannerYakuCount": { "placeholders": { "count": { "type": "int" } } },
 
   "leaderboardTitle": "Leaderboard",
   "leaderboardEmpty": "Be the first to rank!",

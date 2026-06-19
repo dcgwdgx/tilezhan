@@ -131,7 +131,7 @@ class ScannerScreen extends ConsumerWidget {
           ],
           const SizedBox(height: 20),
           // ===== 按难度分组 =====
-          ..._buildGroupedYaku(allYaku),
+          ..._buildGroupedYaku(allYaku, l10n),
           const SizedBox(height: 40),
         ],
       ),
@@ -143,7 +143,7 @@ class ScannerScreen extends ConsumerWidget {
   /// Groups yaku into 4 sections: Beginner → Intermediate → Advanced → Yakuman.
   /// Each section uses an [ExpansionTile] with a difficulty-appropriate emoji.
   /// Beginner section is expanded by default.
-  List<Widget> _buildGroupedYaku(List<YakuData> source) {
+  List<Widget> _buildGroupedYaku(List<YakuData> source, AppLocalizations l10n) {
     final groups = <String, List<YakuData>>{
       'Beginner': [],
       'Intermediate': [],
@@ -151,7 +151,6 @@ class ScannerScreen extends ConsumerWidget {
       'Yakuman': [],
     };
     for (final y in source) {
-      // Yakuman: han >= 13
       if (y.han >= 13) {
         groups['Yakuman']!.add(y);
       } else {
@@ -159,18 +158,14 @@ class ScannerScreen extends ConsumerWidget {
       }
     }
 
-    final icons = {
-      'Beginner': '🌱',
-      'Intermediate': '🔥',
-      'Advanced': '💎',
-      'Yakuman': '👑',
+    final titles = {
+      'Beginner': l10n.scannerBeginner,
+      'Intermediate': l10n.scannerIntermediate,
+      'Advanced': l10n.scannerAdvanced,
+      'Yakuman': l10n.scannerYakuman,
     };
-    final counts = {
-      'Beginner': '1–2 han',
-      'Intermediate': '2–3 han',
-      'Advanced': '5–6 han',
-      'Yakuman': '13+ han',
-    };
+    final icons = {'Beginner': '🌱', 'Intermediate': '🔥', 'Advanced': '💎', 'Yakuman': '👑'};
+    final counts = {'Beginner': '1–2 han', 'Intermediate': '2–3 han', 'Advanced': '5–6 han', 'Yakuman': '13+ han'};
 
     final widgets = <Widget>[];
     bool first = true;
@@ -190,9 +185,9 @@ class ScannerScreen extends ConsumerWidget {
             backgroundColor: AppColors.jadeCard.withOpacity(0.3),
             collapsedBackgroundColor: Colors.transparent,
             leading: Text(icons[entry.key] ?? '🀄', style: const TextStyle(fontSize: 20)),
-            title: Text(entry.key, style: const TextStyle(
+            title: Text(titles[entry.key] ?? entry.key, style: const TextStyle(
               fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.jadeWhite)),
-            subtitle: Text('${entry.value.length} yaku · ${counts[entry.key] ?? ''}',
+            subtitle: Text('${l10n.scannerYakuCount(entry.value.length)} · ${counts[entry.key] ?? ''}',
               style: const TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted)),
             children: entry.value.map((y) => Padding(
               padding: const EdgeInsets.only(bottom: 6),

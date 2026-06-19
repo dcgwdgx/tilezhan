@@ -298,6 +298,23 @@ class AppLocalizationsDe extends AppLocalizations {
   String get scannerFavorites => 'FAVORITEN';
 
   @override
+  String get scannerBeginner => 'Anfänger';
+
+  @override
+  String get scannerIntermediate => 'Fortgeschritten';
+
+  @override
+  String get scannerAdvanced => 'Experte';
+
+  @override
+  String get scannerYakuman => 'Yakuman';
+
+  @override
+  String scannerYakuCount(int count) {
+    return '$count Yaku';
+  }
+
+  @override
   String get leaderboardTitle => 'Rangliste';
 
   @override

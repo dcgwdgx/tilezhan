@@ -634,6 +634,36 @@ abstract class AppLocalizations {
   /// **'FAVORITES'**
   String get scannerFavorites;
 
+  /// No description provided for @scannerBeginner.
+  ///
+  /// In en, this message translates to:
+  /// **'Beginner'**
+  String get scannerBeginner;
+
+  /// No description provided for @scannerIntermediate.
+  ///
+  /// In en, this message translates to:
+  /// **'Intermediate'**
+  String get scannerIntermediate;
+
+  /// No description provided for @scannerAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get scannerAdvanced;
+
+  /// No description provided for @scannerYakuman.
+  ///
+  /// In en, this message translates to:
+  /// **'Yakuman'**
+  String get scannerYakuman;
+
+  /// No description provided for @scannerYakuCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} yaku'**
+  String scannerYakuCount(int count);
+
   /// No description provided for @leaderboardTitle.
   ///
   /// In en, this message translates to:
