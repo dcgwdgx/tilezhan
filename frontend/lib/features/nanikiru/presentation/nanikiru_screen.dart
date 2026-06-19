@@ -8,11 +8,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/analytics/analytics_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/elo/elo_provider.dart';
 import '../../../core/providers/player_name_provider.dart';
 import '../../../core/utils/audio_service.dart';
+import '../../../core/utils/review_service.dart';
 import '../../../core/srs/srs_provider.dart';
 import '../../../core/hearts/heart_provider.dart';
 import '../../../core/hearts/heart_provider.dart';
@@ -151,6 +153,13 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
         if (s.isPerfect) {
           hearts.recordCorrect(); // Correct: update stats + streak
           eloNotifier.recordResult(isCorrect: true, isSkip: false);
+          // Request App Store review after sustained success
+          try {
+            final prefs = Hive.box('prefs');
+            final lastReview = prefs.get(kLastReviewKey, defaultValue: '');
+            maybeRequestReview(hearts.allTimeCombo, lastReview);
+            prefs.put(kLastReviewKey, DateTime.now().toIso8601String().substring(0, 10));
+          } catch (_) { /* review request is best-effort */ }
           ref.read(srsNotifierProvider.notifier).recordReview(
             'nanikiru_${s.correctDiscardId}', 'nanikiru', 5);
         } else {
