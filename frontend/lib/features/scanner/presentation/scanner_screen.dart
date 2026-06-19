@@ -130,15 +130,80 @@ class ScannerScreen extends ConsumerWidget {
             ..._buildYakuCards(favorites.toList(), allYaku),
           ],
           const SizedBox(height: 20),
-          // ===== 章节标题 =====
-          Text(l10n.scannerBasicYaku, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5, color: AppColors.jadeWhiteMuted)),
-          const SizedBox(height: 8),
-          // ===== 役种卡片列表 =====
-          // 使用展开运算符遍历全量役种数据，将每条数据映射为一个 _YakuCard 实例
-          ..._buildYakuCards(allYaku.map((y) => y.id).toList(), allYaku),
+          // ===== 按难度分组 =====
+          ..._buildGroupedYaku(allYaku),
+          const SizedBox(height: 40),
         ],
       ),
     );
+  }
+
+  /// Build difficulty-grouped yaku sections with collapsible expansion tiles.
+  ///
+  /// Groups yaku into 4 sections: Beginner → Intermediate → Advanced → Yakuman.
+  /// Each section uses an [ExpansionTile] with a difficulty-appropriate emoji.
+  /// Beginner section is expanded by default.
+  List<Widget> _buildGroupedYaku(List<YakuData> source) {
+    final groups = <String, List<YakuData>>{
+      'Beginner': [],
+      'Intermediate': [],
+      'Advanced': [],
+      'Yakuman': [],
+    };
+    for (final y in source) {
+      // Yakuman: han >= 13
+      if (y.han >= 13) {
+        groups['Yakuman']!.add(y);
+      } else {
+        groups[y.difficulty]?.add(y);
+      }
+    }
+
+    final icons = {
+      'Beginner': '🌱',
+      'Intermediate': '🔥',
+      'Advanced': '💎',
+      'Yakuman': '👑',
+    };
+    final counts = {
+      'Beginner': '1–2 han',
+      'Intermediate': '2–3 han',
+      'Advanced': '5–6 han',
+      'Yakuman': '13+ han',
+    };
+
+    final widgets = <Widget>[];
+    bool first = true;
+    for (final entry in groups.entries) {
+      if (entry.value.isEmpty) continue;
+      widgets.add(
+        Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: AppColors.jadeCard.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ExpansionTile(
+            initiallyExpanded: first,
+            collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: AppColors.jadeCard.withOpacity(0.3),
+            collapsedBackgroundColor: Colors.transparent,
+            leading: Text(icons[entry.key] ?? '🀄', style: const TextStyle(fontSize: 20)),
+            title: Text(entry.key, style: const TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.jadeWhite)),
+            subtitle: Text('${entry.value.length} yaku · ${counts[entry.key] ?? ''}',
+              style: const TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted)),
+            children: entry.value.map((y) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: _YakuCard(_emojiForYaku(y.id), y.nameEn, y.nameJp, y.description, true, y.id),
+            )).toList(),
+          ),
+        ),
+      );
+      first = false;
+    }
+    return widgets;
   }
 
   /// Build yaku card widgets from a list of yaku IDs, sourcing data from [source].

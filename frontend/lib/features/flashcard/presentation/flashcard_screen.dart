@@ -114,8 +114,11 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     ref.read(flashcardQuizProvider.notifier).submitAnswer(false);
     _recordSrs(0); // 质量分 0 = 完全遗忘，SRS 间隔重置为最短
     _showMnemonic();
-    ref.read(heartServiceProvider).recordWrong();
+    final hearts = ref.read(heartServiceProvider);
+    hearts.recordWrong();
     ref.read(eloProvider.notifier).recordResult(isCorrect: false, isSkip: false);
+    final name = ref.read(playerNameProvider);
+    LeaderboardService.reportScore(name: name, elo: ref.read(eloProvider), streak: hearts.allTimeCombo);
   }
 
   /// 回答提交后的流程：录战绩 → 扣体力 → 弹促销/战绩窗口。
