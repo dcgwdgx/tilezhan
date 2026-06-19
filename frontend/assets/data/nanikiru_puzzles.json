@@ -670,8 +670,8 @@
     ],
     "difficulty": 900,
     "hint": "East Wind is lone. The 1-2-2-3 manzu has a kanchan embedded — keep it, it may complete.",
-    "hintFr": "East Wind is lone. The 1-2-2-3 manzu has a kanchan embedded — keep it, it may complete.",
-    "hintDe": "East Wind is lone. The 1-2-2-3 manzu has a kanchan embedded — keep it, it may complete."
+    "hintFr": "Le Vent d'Est est seul. Le 1-2-2-3 manzu a un kanchan intégré — gardez-le, il pourrait se compléter.",
+    "hintDe": "Ostwind ist allein. Die 1-2-2-3 Manzu hat ein eingebettetes Kanchan — behalte es, es könnte sich vervollständigen."
   },
   {
     "hand13Ids": [
@@ -706,8 +706,8 @@
     ],
     "difficulty": 900,
     "hint": "Chun is lone. The 7-8-8-9 manzu is a kanchan-wait shape — keep it for tenpai potential.",
-    "hintFr": "Chun is lone. The 7-8-8-9 manzu is a kanchan-wait shape — keep it for tenpai potential.",
-    "hintDe": "Chun is lone. The 7-8-8-9 manzu is a kanchan-wait shape — keep it for tenpai potential."
+    "hintFr": "Chun est seul. Le 7-8-8-9 manzu est une forme d'attente kanchan — gardez-le pour le potentiel tenpai.",
+    "hintDe": "Chun ist allein. Die 7-8-8-9 Manzu ist eine Kanchan-Warteform — behalte sie für Tenpai-Potenzial."
   },
   {
     "hand13Ids": [
@@ -742,8 +742,8 @@
     ],
     "difficulty": 910,
     "hint": "Hatsu is lone. West pair is a potential yakuhai. The 3-4-4-5 pinzu is promising.",
-    "hintFr": "Hatsu is lone. West pair is a potential yakuhai. The 3-4-4-5 pinzu is promising.",
-    "hintDe": "Hatsu is lone. West pair is a potential yakuhai. The 3-4-4-5 pinzu is promising."
+    "hintFr": "Hatsu est seul. La paire Ouest est un yakuhai potentiel. Le 3-4-4-5 pinzu est prometteur.",
+    "hintDe": "Hatsu ist allein. Das West-Paar ist ein potenzielles Yakuhai. Das 3-4-4-5 Pinzu ist vielversprechend."
   },
   {
     "hand13Ids": [
@@ -778,8 +778,8 @@
     ],
     "difficulty": 910,
     "hint": "White Dragon is lone. The 6-7-7-8 pinzu shape is strong — keep it.",
-    "hintFr": "White Dragon is lone. The 6-7-7-8 pinzu shape is strong — keep it.",
-    "hintDe": "White Dragon is lone. The 6-7-7-8 pinzu shape is strong — keep it."
+    "hintFr": "Le Dragon Blanc est seul. La forme 6-7-7-8 pinzu est forte — gardez-la.",
+    "hintDe": "Der Weiße Drache ist allein. Die 6-7-7-8 Pinzu-Form ist stark — behalte sie."
   },
   {
     "hand13Ids": [
@@ -844,8 +844,8 @@
     ],
     "difficulty": 930,
     "hint": "Two honor pairs and two sequences. 8m and 9m are isolated — discard 8m, keep 9m for potential manzu build.",
-    "hintFr": "Two honor pairs and two sequences. 8m and 9m are isolated — discard 8m, keep 9m for potential manzu build.",
-    "hintDe": "Two honor pairs and two sequences. 8m and 9m are isolated — discard 8m, keep 9m for potential manzu build."
+    "hintFr": "Deux paires d'honneur et deux séquences. 8m et 9m sont isolés — défaussez 8m, gardez 9m pour un potentiel manzu.",
+    "hintDe": "Zwei Ehren-Paare und zwei Sequenzen. 8m und 9m sind isoliert — wirf 8m ab, behalte 9m für potenziellen Manzu-Aufbau."
   },
   {
     "hand13Ids": [
@@ -967,8 +967,8 @@
     ],
     "difficulty": 980,
     "hint": "East Wind is lone. Hatsu pair is a yakuhai candidate. 1-2-2-3 pinzu is a solid penchan shape.",
-    "hintFr": "East Wind is lone. Hatsu pair is a yakuhai candidate. 1-2-2-3 pinzu is a solid penchan shape.",
-    "hintDe": "East Wind is lone. Hatsu pair is a yakuhai candidate. 1-2-2-3 pinzu is a solid penchan shape."
+    "hintFr": "Le Vent d'Est est seul. La paire Hatsu est un candidat yakuhai. 1-2-2-3 pinzu est une forme penchan solide.",
+    "hintDe": "Ostwind ist allein. Das Hatsu-Paar ist ein Yakuhai-Kandidat. 1-2-2-3 Pinzu ist eine solide Penchan-Form."
   },
   {
     "hand13Ids": [
@@ -1003,8 +1003,8 @@
     ],
     "difficulty": 990,
     "hint": "West Wind is lone. 6-7-7-8 pinzu is a strong shape with White Dragon pair as yakuhai.",
-    "hintFr": "West Wind is lone. 6-7-7-8 pinzu is a strong shape with White Dragon pair as yakuhai.",
-    "hintDe": "West Wind is lone. 6-7-7-8 pinzu is a strong shape with White Dragon pair as yakuhai."
+    "hintFr": "Le Vent d'Ouest est seul. 6-7-7-8 pinzu est une forme forte avec la paire Dragon Blanc comme yakuhai.",
+    "hintDe": "Westwind ist allein. 6-7-7-8 Pinzu ist eine starke Form mit Weißer-Drache-Paar als Yakuhai."
   },
   {
     "hand13Ids": [
@@ -1038,8 +1038,8 @@
     ],
     "difficulty": 1000,
     "hint": "Hatsu is isolated. You have a complex manzu double-pair shape (3-4-4-5-5) — very powerful, don't touch it.",
-    "hintFr": "Hatsu is isolated. You have a complex manzu double-pair shape (3-4-4-5-5) — very powerful, don't touch it.",
-    "hintDe": "Hatsu is isolated. You have a complex manzu double-pair shape (3-4-4-5-5) — very powerful, don't touch it."
+    "hintFr": "Hatsu est isolé. Vous avez une forme complexe à double paire manzu (3-4-4-5-5) — très puissante, n'y touchez pas.",
+    "hintDe": "Hatsu ist isoliert. Du hast eine komplexe Manzu-Doppelpaar-Form (3-4-4-5-5) — sehr mächtig, nicht anfassen."
   },
   {
     "hand13Ids": [
@@ -1072,8 +1072,8 @@
     ],
     "difficulty": 1010,
     "hint": "1m is isolated. The 5-6-6-7 manzu and 1-2-2-3 souzu are both promising shapes.",
-    "hintFr": "1m is isolated. The 5-6-6-7 manzu and 1-2-2-3 souzu are both promising shapes.",
-    "hintDe": "1m is isolated. The 5-6-6-7 manzu and 1-2-2-3 souzu are both promising shapes."
+    "hintFr": "1m est isolé. Le 5-6-6-7 manzu et le 1-2-2-3 souzu sont tous deux des formes prometteuses.",
+    "hintDe": "1m ist isoliert. Die 5-6-6-7 Manzu und 1-2-2-3 Souzu sind beide vielversprechende Formen."
   },
   {
     "hand13Ids": [
@@ -1106,8 +1106,8 @@
     ],
     "difficulty": 1020,
     "hint": "2p is too far from your 5-6-6-7 pinzu shape. Manzu 2-3-3-4 and souzu 3-4-5 are solid.",
-    "hintFr": "2p is too far from your 5-6-6-7 pinzu shape. Manzu 2-3-3-4 and souzu 3-4-5 are solid.",
-    "hintDe": "2p is too far from your 5-6-6-7 pinzu shape. Manzu 2-3-3-4 and souzu 3-4-5 are solid."
+    "hintFr": "2p est trop loin de votre forme 5-6-6-7 pinzu. Manzu 2-3-3-4 et souzu 3-4-5 sont solides.",
+    "hintDe": "2p ist zu weit von deiner 5-6-6-7 Pinzu-Form. Manzu 2-3-3-4 und Souzu 3-4-5 sind solide."
   },
   {
     "hand13Ids": [
