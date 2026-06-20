@@ -255,6 +255,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
 
   /// Top navigation bar: back button, title, and session counter.
   Widget _buildNavBar() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 4, 12, 0),
       child: Row(
