@@ -263,8 +263,8 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
             icon: const Icon(Icons.arrow_back, color: AppColors.jadeWhiteDim),
             onPressed: () => context.pop(),
           ),
-          const Expanded(
-            child: Text(l10n.nanikiruNavTitle, style: TextStyle(
+          Expanded(
+            child: Text(l10n.nanikiruNavTitle, style: const TextStyle(
               fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.jadeWhite,
             )),
           ),

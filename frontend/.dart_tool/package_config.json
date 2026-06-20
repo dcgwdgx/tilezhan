@@ -368,6 +368,18 @@
       "languageVersion": "3.10"
     },
     {
+      "name": "in_app_review",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/in_app_review-2.0.12",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "in_app_review_platform_interface",
+      "rootUri": "file:///C:/Users/vic/AppData/Local/Pub/Cache/hosted/pub.dev/in_app_review_platform_interface-2.0.5",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "integration_test",
       "rootUri": "file:///C:/flutter/packages/integration_test",
       "packageUri": "lib/",

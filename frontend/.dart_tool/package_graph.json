@@ -18,6 +18,7 @@
         "hive_flutter",
         "http",
         "in_app_purchase",
+        "in_app_review",
         "intl",
         "path_provider",
         "share_plus",
@@ -187,6 +188,14 @@
         "http_parser",
         "meta",
         "web"
+      ]
+    },
+    {
+      "name": "in_app_review",
+      "version": "2.0.12",
+      "dependencies": [
+        "flutter",
+        "in_app_review_platform_interface"
       ]
     },
     {
@@ -815,6 +824,16 @@
       ]
     },
     {
+      "name": "in_app_review_platform_interface",
+      "version": "2.0.5",
+      "dependencies": [
+        "flutter",
+        "platform",
+        "plugin_platform_interface",
+        "url_launcher"
+      ]
+    },
+    {
       "name": "url_launcher_windows",
       "version": "3.1.5",
       "dependencies": [
@@ -1255,6 +1274,11 @@
       ]
     },
     {
+      "name": "platform",
+      "version": "3.1.6",
+      "dependencies": []
+    },
+    {
       "name": "plugin_platform_interface",
       "version": "2.1.8",
       "dependencies": [
@@ -1264,11 +1288,6 @@
     {
       "name": "fixnum",
       "version": "1.1.1",
-      "dependencies": []
-    },
-    {
-      "name": "platform",
-      "version": "3.1.6",
       "dependencies": []
     },
     {
