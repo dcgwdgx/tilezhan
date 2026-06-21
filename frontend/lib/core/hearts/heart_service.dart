@@ -172,21 +172,27 @@ class HeartService {
   void _ensureInit() {
     if (_initialized) return;
     _initialized = true;
-    final box = Hive.box(_boxName);
-    _hearts = box.get(_kH, defaultValue: maxHearts);
-    _dailyUsed = box.get(_kDC, defaultValue: 0);
-    _allTimeCombo = box.get(_kCombo, defaultValue: 0);
-    // 检查是否需要每日重置：比较存储日期与今天日期
-    final last = box.get(_kDate, defaultValue: '');
-    final today = DateTime.now().toIso8601String().substring(0, 10);
-    if (last != today) {
-      // 新的一天：恢复满爱心、清零每日挑战使用次数
+    try {
+      final box = Hive.box(_boxName);
+      _hearts = box.get(_kH, defaultValue: maxHearts);
+      _dailyUsed = box.get(_kDC, defaultValue: 0);
+      _allTimeCombo = box.get(_kCombo, defaultValue: 0);
+      final last = box.get(_kDate, defaultValue: '');
+      final today = DateTime.now().toIso8601String().substring(0, 10);
+      if (last != today) {
+        _hearts = maxHearts;
+        _dailyUsed = 0;
+        box.put(_kH, maxHearts);
+        box.put(_kDC, 0);
+        box.put(_kDate, today);
+        _correct = _wrong = _combo = _maxCombo = 0;
+      }
+    } catch (e) {
+      // Hive corrupt — fall back to defaults so the app doesn't crash
+      print('HeartService init failed: $e');
       _hearts = maxHearts;
       _dailyUsed = 0;
-      box.put(_kH, maxHearts);
-      box.put(_kDC, 0);
-      box.put(_kDate, today);
-      // 清零所有会话统计（正确/错误/连击/最高连击）
+      _allTimeCombo = 0;
       _correct = _wrong = _combo = _maxCombo = 0;
     }
   }

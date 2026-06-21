@@ -123,8 +123,8 @@ class StorageService {
       if (!f.existsSync()) return {};
       // 同步读取并解码 JSON
       return jsonDecode(f.readAsStringSync()) as Map<String, dynamic>;
-    } catch (_) {
-      // 解析异常（格式损坏、类型不匹配等）统一静默降级为空 Map
+    } catch (e) {
+      print('StorageService read error ($key): $e');
       return {};
     }
   }
@@ -141,10 +141,8 @@ class StorageService {
       final f = _file(key);
       // 异步写入：将 Map 编码为 JSON 字符串后落盘
       await f.writeAsString(jsonEncode(value));
-    } catch (_) {
-      // I/O 错误（磁盘满、权限不足等）静默吞下
-      // 设计意图：KV 存储不应对调用方暴露 I/O 异常，
-      // 失败后下次读取回退到默认值即可
+    } catch (e) {
+      print('StorageService write error ($key): $e');
     }
   }
 

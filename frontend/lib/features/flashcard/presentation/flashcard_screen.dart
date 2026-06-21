@@ -322,7 +322,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(state.suite == 'all' ? 'All Tiles' : '${state.suite.toUpperCase()} Flashcards',
+                Text(state.suite == 'all' ? l10n.flashcardAllTiles : l10n.flashcardSuiteFormat(state.suite.toUpperCase()),
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
                         color: AppColors.jadeWhite)),
                 const SizedBox(height: 4),
@@ -343,12 +343,13 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   // 支持 All / Man / Pin / Sou / Honor 五类筛选，点击后重新初始化 quiz。
   // 当前激活标签使用金色高亮样式。
   Widget _buildSuitFilter(state) {
+    final l10n = AppLocalizations.of(context)!;
     final suits = [
-      ('all', '🎴 All'),
-      ('man', '🀇 Man'),
-      ('pin', '🀙 Pin'),
-      ('sou', '🀐 Sou'),
-      ('honor', '🀀 Honor'),
+      ('all', l10n.flashcardSuitAll),
+      ('man', l10n.flashcardSuitMan),
+      ('pin', l10n.flashcardSuitPin),
+      ('sou', l10n.flashcardSuitSou),
+      ('honor', l10n.flashcardSuitHonor),
     ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -581,8 +582,8 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   // 未答题时：显示脉冲动画提示（👆 点击牌面查看助记）。
   Widget _buildHint(state) {
     if (state.isAnswering && state.lastWrongId != null) {
-      return const Text('📖 Study the mnemonic to remember this tile',
-          style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim));
+      return Text(l10n.flashcardStudyHint,
+          style: const TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim));
     }
     // 动画提示 — 脉冲箭头指向牌面，引导用户点击查看助记
     return const _PulsingHint();
@@ -699,7 +700,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
                 fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.neonGold,
               )),
               const SizedBox(height: 8),
-              Text('✅ ${state.correctCount} correct · ❌ ${state.wrongCount} wrong',
+              Text(l10n.flashcardFinishedStats('${state.correctCount}', '${state.wrongCount}'),
                   style: const TextStyle(fontSize: 15, color: AppColors.jadeWhiteDim)),
               const SizedBox(height: 4),
               Text('${l10n.flashcardAccuracy}: $accuracy%',

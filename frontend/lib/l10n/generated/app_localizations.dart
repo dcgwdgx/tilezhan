@@ -892,6 +892,156 @@ abstract class AppLocalizations {
   /// **'Not Now'**
   String get consentNotNow;
 
+  /// No description provided for @flashcardSuitAll.
+  ///
+  /// In en, this message translates to:
+  /// **'🎴 All'**
+  String get flashcardSuitAll;
+
+  /// No description provided for @flashcardSuitMan.
+  ///
+  /// In en, this message translates to:
+  /// **'🀇 Man'**
+  String get flashcardSuitMan;
+
+  /// No description provided for @flashcardSuitPin.
+  ///
+  /// In en, this message translates to:
+  /// **'🀙 Pin'**
+  String get flashcardSuitPin;
+
+  /// No description provided for @flashcardSuitSou.
+  ///
+  /// In en, this message translates to:
+  /// **'🀐 Sou'**
+  String get flashcardSuitSou;
+
+  /// No description provided for @flashcardSuitHonor.
+  ///
+  /// In en, this message translates to:
+  /// **'🀀 Honor'**
+  String get flashcardSuitHonor;
+
+  /// No description provided for @flashcardAllTiles.
+  ///
+  /// In en, this message translates to:
+  /// **'All Tiles'**
+  String get flashcardAllTiles;
+
+  /// No description provided for @flashcardSuiteFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'{suite} Flashcards'**
+  String flashcardSuiteFormat(Object suite);
+
+  /// No description provided for @flashcardStudyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'📖 Study the mnemonic to remember this tile'**
+  String get flashcardStudyHint;
+
+  /// No description provided for @flashcardFinishedStats.
+  ///
+  /// In en, this message translates to:
+  /// **'✅ {correct} correct · ❌ {wrong} wrong'**
+  String flashcardFinishedStats(Object correct, Object wrong);
+
+  /// No description provided for @nanikiruNew.
+  ///
+  /// In en, this message translates to:
+  /// **'NEW!'**
+  String get nanikiruNew;
+
+  /// No description provided for @nanikiruDecision.
+  ///
+  /// In en, this message translates to:
+  /// **'⏱ Decision: '**
+  String get nanikiruDecision;
+
+  /// No description provided for @nanikiruHandLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR HAND · 14 TILES'**
+  String get nanikiruHandLabel;
+
+  /// No description provided for @nanikiruSort.
+  ///
+  /// In en, this message translates to:
+  /// **'📐 Sort'**
+  String get nanikiruSort;
+
+  /// No description provided for @nanikiruHintTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'💡 Hint'**
+  String get nanikiruHintTitle;
+
+  /// No description provided for @nanikiruSessionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'⚔{count}'**
+  String nanikiruSessionCount(Object count);
+
+  /// No description provided for @leaderboardYou.
+  ///
+  /// In en, this message translates to:
+  /// **'YOU'**
+  String get leaderboardYou;
+
+  /// No description provided for @leaderboardStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} streak'**
+  String leaderboardStreak(Object count);
+
+  /// No description provided for @leaderboardElo.
+  ///
+  /// In en, this message translates to:
+  /// **'{elo} ELO'**
+  String leaderboardElo(Object elo);
+
+  /// No description provided for @settingsLearning.
+  ///
+  /// In en, this message translates to:
+  /// **'Learning'**
+  String get settingsLearning;
+
+  /// No description provided for @settingsDailyGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Goal'**
+  String get settingsDailyGoal;
+
+  /// No description provided for @settingsCountdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Countdown'**
+  String get settingsCountdown;
+
+  /// No description provided for @settingsAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get settingsAccount;
+
+  /// No description provided for @settingsSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get settingsSignIn;
+
+  /// No description provided for @settingsComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get settingsComingSoon;
+
+  /// No description provided for @settingsVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get settingsVersionLabel;
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:

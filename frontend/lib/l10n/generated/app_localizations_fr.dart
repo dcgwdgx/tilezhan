@@ -431,6 +431,92 @@ class AppLocalizationsFr extends AppLocalizations {
   String get consentNotNow => 'Pas maintenant';
 
   @override
+  String get flashcardSuitAll => '🎴 Tout';
+
+  @override
+  String get flashcardSuitMan => '🀇 Man';
+
+  @override
+  String get flashcardSuitPin => '🀙 Pin';
+
+  @override
+  String get flashcardSuitSou => '🀐 Sou';
+
+  @override
+  String get flashcardSuitHonor => '🀀 Honneur';
+
+  @override
+  String get flashcardAllTiles => 'Toutes les tuiles';
+
+  @override
+  String flashcardSuiteFormat(Object suite) {
+    return '$suite Flashcards';
+  }
+
+  @override
+  String get flashcardStudyHint =>
+      '📖 Étudiez l\'aide pour mémoriser cette tuile';
+
+  @override
+  String flashcardFinishedStats(Object correct, Object wrong) {
+    return '✅ $correct correct · ❌ $wrong faux';
+  }
+
+  @override
+  String get nanikiruNew => 'NOUVEAU!';
+
+  @override
+  String get nanikiruDecision => '⏱ Décision : ';
+
+  @override
+  String get nanikiruHandLabel => 'VOTRE MAIN · 14 TUILES';
+
+  @override
+  String get nanikiruSort => '📐 Trier';
+
+  @override
+  String get nanikiruHintTitle => '💡 Conseil';
+
+  @override
+  String nanikiruSessionCount(Object count) {
+    return '⚔$count';
+  }
+
+  @override
+  String get leaderboardYou => 'VOUS';
+
+  @override
+  String leaderboardStreak(Object count) {
+    return '$count série';
+  }
+
+  @override
+  String leaderboardElo(Object elo) {
+    return '$elo ELO';
+  }
+
+  @override
+  String get settingsLearning => 'Apprentissage';
+
+  @override
+  String get settingsDailyGoal => 'Objectif quotidien';
+
+  @override
+  String get settingsCountdown => 'Compte à rebours';
+
+  @override
+  String get settingsAccount => 'Compte';
+
+  @override
+  String get settingsSignIn => 'Connexion';
+
+  @override
+  String get settingsComingSoon => 'Bientôt disponible';
+
+  @override
+  String get settingsVersionLabel => 'Version';
+
+  @override
   String get settingsTitle => 'Paramètres';
 
   @override

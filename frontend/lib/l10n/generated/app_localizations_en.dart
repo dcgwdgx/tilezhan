@@ -429,6 +429,92 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consentNotNow => 'Not Now';
 
   @override
+  String get flashcardSuitAll => '🎴 All';
+
+  @override
+  String get flashcardSuitMan => '🀇 Man';
+
+  @override
+  String get flashcardSuitPin => '🀙 Pin';
+
+  @override
+  String get flashcardSuitSou => '🀐 Sou';
+
+  @override
+  String get flashcardSuitHonor => '🀀 Honor';
+
+  @override
+  String get flashcardAllTiles => 'All Tiles';
+
+  @override
+  String flashcardSuiteFormat(Object suite) {
+    return '$suite Flashcards';
+  }
+
+  @override
+  String get flashcardStudyHint =>
+      '📖 Study the mnemonic to remember this tile';
+
+  @override
+  String flashcardFinishedStats(Object correct, Object wrong) {
+    return '✅ $correct correct · ❌ $wrong wrong';
+  }
+
+  @override
+  String get nanikiruNew => 'NEW!';
+
+  @override
+  String get nanikiruDecision => '⏱ Decision: ';
+
+  @override
+  String get nanikiruHandLabel => 'YOUR HAND · 14 TILES';
+
+  @override
+  String get nanikiruSort => '📐 Sort';
+
+  @override
+  String get nanikiruHintTitle => '💡 Hint';
+
+  @override
+  String nanikiruSessionCount(Object count) {
+    return '⚔$count';
+  }
+
+  @override
+  String get leaderboardYou => 'YOU';
+
+  @override
+  String leaderboardStreak(Object count) {
+    return '$count streak';
+  }
+
+  @override
+  String leaderboardElo(Object elo) {
+    return '$elo ELO';
+  }
+
+  @override
+  String get settingsLearning => 'Learning';
+
+  @override
+  String get settingsDailyGoal => 'Daily Goal';
+
+  @override
+  String get settingsCountdown => 'Countdown';
+
+  @override
+  String get settingsAccount => 'Account';
+
+  @override
+  String get settingsSignIn => 'Sign In';
+
+  @override
+  String get settingsComingSoon => 'Coming soon';
+
+  @override
+  String get settingsVersionLabel => 'Version';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override

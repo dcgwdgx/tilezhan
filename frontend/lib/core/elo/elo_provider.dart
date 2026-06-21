@@ -79,7 +79,9 @@ class EloNotifier extends StateNotifier<int> {
   void _persist() {
     final storage = _ref.read(storageServiceProvider).valueOrNull;
     if (storage != null) {
-      storage.setInt(StorageService.kElo, state);
+      storage.setInt(StorageService.kElo, state).catchError((e) {
+        print('EloNotifier persist failed: $e');
+      });
     }
   }
 }

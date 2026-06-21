@@ -151,29 +151,23 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
         final hearts = ref.read(heartServiceProvider);
         final eloNotifier = ref.read(eloProvider.notifier);
         if (s.isPerfect) {
-          hearts.recordCorrect(); // Correct: update stats + streak
+          hearts.recordCorrect();
           eloNotifier.recordResult(isCorrect: true, isSkip: false);
-          // Request App Store review after sustained success
           try {
             final prefs = Hive.box('prefs');
             final lastReview = prefs.get(kLastReviewKey, defaultValue: '');
             maybeRequestReview(hearts.allTimeCombo, lastReview);
             prefs.put(kLastReviewKey, DateTime.now().toIso8601String().substring(0, 10));
-          } catch (_) { /* review request is best-effort */ }
+          } catch (_) {}
           ref.read(srsNotifierProvider.notifier).recordReview(
             'nanikiru_${s.correctDiscardId}', 'nanikiru', 5);
+          // Only correct answers consume hearts
+          bool depleted = false;
+          if (!hearts.useDailyChallenge()) depleted = hearts.consume();
+          if (depleted) { _gameOver = true; _maybeShowBattleReport(); }
         } else {
-          hearts.recordWrong(); // Wrong: reset streak, no heart cost (wrong-answer pool for free retry)
+          hearts.recordWrong();
           eloNotifier.recordResult(isCorrect: false, isSkip: false);
-        }
-        // Daily challenge first (free), then consume hearts
-        bool depleted = false;
-        if (!hearts.useDailyChallenge()) {
-          depleted = hearts.consume();
-        }
-        if (depleted) {
-          _gameOver = true;
-          _maybeShowBattleReport();
         }
         // Report to leaderboard (name=consent, per privacy policy)
         final name = ref.read(playerNameProvider);
@@ -239,6 +233,11 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                 panelSlide: _panelSlide,
                 onNextPuzzle: () {
                   _panelCtrl.reverse().then((_) {
+                    if (!ref.read(canPlayProvider)) {
+                      _gameOver = true;
+                      _maybeShowBattleReport();
+                      return;
+                    }
                     _sessionCount++;
                     notifier.nextPuzzle();
                     _startCountdown();
@@ -268,7 +267,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
               fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.jadeWhite,
             )),
           ),
-          Text('⚔️${_sessionCount + 1}', style: TextStyle(
+          Text(l10n.nanikiruSessionCount('${_sessionCount + 1}'), style: TextStyle(
             fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.neonGold,
           )),
         ],
@@ -317,7 +316,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                       fontFamily: 'Noto Serif SC',
                     )),
                     const SizedBox(width: 6),
-                    Text('${drawnTile.label} ← NEW!', style: const TextStyle(
+                    Text('${drawnTile.label} ← ${l10n.nanikiruNew}', style: const TextStyle(
                       fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.neonGold,
                     )),
                   ],
@@ -347,7 +346,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('⏱ Decision: ', style: TextStyle(
+              Text(l10n.nanikiruDecision, style: TextStyle(
                 fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.jadeWhiteMuted,
               )),
               Text(state.countdownValue.toStringAsFixed(1) + 's', style: TextStyle(
@@ -375,7 +374,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           children: [
-            const Text('YOUR HAND · 14 TILES', style: TextStyle(
+            Text(l10n.nanikiruHandLabel, style: const TextStyle(
               fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 2,
               color: AppColors.jadeWhiteMuted,
             )),
@@ -413,14 +412,14 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _toolBtn('📐 Sort', () => notifier.sortHand()),
+          _toolBtn(l10n.nanikiruSort, () => notifier.sortHand()),
           const SizedBox(width: 8),
-          _toolBtn('💡 Hint', () {
+          _toolBtn(l10n.nanikiruHintTitle, () {
             showDialog(
               context: context,
               builder: (_) => AlertDialog(
                 backgroundColor: AppColors.jadeCard,
-                title: const Text('💡 Hint', style: TextStyle(color: AppColors.neonGold)),
+                title: Text(l10n.nanikiruHintTitle, style: const TextStyle(color: AppColors.neonGold)),
                 content: Text(l10n.nanikiruHint,
                     style: const TextStyle(color: AppColors.jadeWhiteDim)),
                 actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.nanikiruGotIt, style: const TextStyle(color: AppColors.neonGold)))],
@@ -447,6 +446,11 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
           _gameOver = true;
           _maybeShowBattleReport();
         }
+            // Report skip to leaderboard
+            final name = ref.read(playerNameProvider);
+            if (name.isNotEmpty) {
+              LeaderboardService.reportScore(name: name, elo: ref.read(eloProvider), streak: hearts.allTimeCombo);
+            }
           }),
         ],
       ),
