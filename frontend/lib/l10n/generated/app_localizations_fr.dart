@@ -418,6 +418,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get leaderboardChangeName => 'Changer de nom';
 
   @override
+  String get consentTitle => 'Classement mondial';
+
+  @override
+  String get consentBody =>
+      'Vos scores seront téléchargés vers le classement mondial. Votre nom sera visible par les autres joueurs. Vous pouvez changer de nom à tout moment.\n\nAucune autre donnée personnelle n\'est collectée. Voir notre politique de confidentialité.';
+
+  @override
+  String get consentAllow => 'Autoriser';
+
+  @override
+  String get consentNotNow => 'Pas maintenant';
+
+  @override
   String get settingsTitle => 'Paramètres';
 
   @override

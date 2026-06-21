@@ -416,6 +416,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get leaderboardChangeName => 'Change name';
 
   @override
+  String get consentTitle => 'Global Leaderboard';
+
+  @override
+  String get consentBody =>
+      'Your scores will be uploaded to the global leaderboard. Your display name will be visible to other players. You can change your name anytime in the leaderboard.\n\nNo other personal data is collected. See our Privacy Policy for details.';
+
+  @override
+  String get consentAllow => 'Allow';
+
+  @override
+  String get consentNotNow => 'Not Now';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override

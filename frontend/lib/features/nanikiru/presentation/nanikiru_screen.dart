@@ -14,6 +14,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/elo/elo_provider.dart';
 import '../../../core/providers/player_name_provider.dart';
 import '../../../core/utils/audio_service.dart';
+import '../../../core/utils/consent_service.dart';
 import '../../../core/utils/review_service.dart';
 import '../../../core/srs/srs_provider.dart';
 import '../../../core/hearts/heart_provider.dart';
@@ -25,7 +26,6 @@ import '../../../shared/widgets/tz_progress_bar.dart';
 import '../../../shared/widgets/tz_slash_painter.dart';
 import '../../../shared/widgets/tz_tile.dart';
 import '../../../core/providers/tile_data_provider.dart';
-import '../../leaderboard/domain/leaderboard_service.dart';
 import '../domain/nanikiru_provider.dart';
 import '../domain/nanikiru_state.dart';
 import 'nanikiru_feedback_panel.dart';
@@ -175,10 +175,10 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
           _gameOver = true;
           _maybeShowBattleReport();
         }
-        // Report to leaderboard (fire-and-forget)
+        // Report to leaderboard with consent
         final name = ref.read(playerNameProvider);
         final elo = ref.read(eloProvider);
-        LeaderboardService.reportScore(name: name, elo: elo, streak: hearts.allTimeCombo);
+        reportWithConsent(context, name, elo, hearts.allTimeCombo);
       });
     }
     // 谜题未完成时重置 _wasFinished 标记，为下一题的上升沿检测做准备

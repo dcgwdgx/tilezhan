@@ -868,6 +868,30 @@ abstract class AppLocalizations {
   /// **'Change name'**
   String get leaderboardChangeName;
 
+  /// No description provided for @consentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Global Leaderboard'**
+  String get consentTitle;
+
+  /// No description provided for @consentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your scores will be uploaded to the global leaderboard. Your display name will be visible to other players. You can change your name anytime in the leaderboard.\n\nNo other personal data is collected. See our Privacy Policy for details.'**
+  String get consentBody;
+
+  /// No description provided for @consentAllow.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow'**
+  String get consentAllow;
+
+  /// No description provided for @consentNotNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Now'**
+  String get consentNotNow;
+
   /// No description provided for @settingsTitle.
   ///
   /// In en, this message translates to:
