@@ -22,14 +22,12 @@ class NanikiruFeedbackPanel extends ConsumerWidget {
   final NaniKiruState state;
   final Animation<Offset> panelSlide;
   final VoidCallback onNextPuzzle;
-  final VoidCallback onReviewAgain;
 
   const NanikiruFeedbackPanel({
     super.key,
     required this.state,
     required this.panelSlide,
     required this.onNextPuzzle,
-    required this.onReviewAgain,
   });
 
   @override
@@ -114,21 +112,17 @@ class NanikiruFeedbackPanel extends ConsumerWidget {
 
                 // ── 按钮 ──
                 const SizedBox(height: 20),
-                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  _toolBtn(l10n.nanikiruReviewAgain, onReviewAgain),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: onNextPuzzle,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.neonGold,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    ),
-                    child: Text(l10n.nanikiruNextPuzzle,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                ElevatedButton(
+                  onPressed: onNextPuzzle,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.neonGold,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                   ),
-                ]),
+                  child: Text(l10n.nanikiruNextPuzzle,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                ),
               ]),
             ),
           ],
@@ -245,17 +239,6 @@ class NanikiruFeedbackPanel extends ConsumerWidget {
         Expanded(child: Text(l10n.nanikiruPerfectExplain,
           style: const TextStyle(fontSize: 13, color: AppColors.jadeWhiteDim, height: 1.5))),
       ]),
-    );
-  }
-
-  Widget _toolBtn(String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.jadeHover)),
-        child: Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.jadeWhiteDim)),
-      ),
     );
   }
 

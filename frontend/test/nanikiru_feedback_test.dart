@@ -22,7 +22,7 @@ void main() {
   final panelSlide = AlwaysStoppedAnimation<Offset>(Offset.zero);
 
   group('NanikiruFeedbackPanel', () {
-    testWidgets('shows PERFECT header and action buttons', (tester) async {
+    testWidgets('shows PERFECT header and Next Puzzle button', (tester) async {
       const state = NaniKiruState(
         isPerfect: true,
         phase: NaniKiruPhase.feedback,
@@ -36,12 +36,10 @@ void main() {
         state: state,
         panelSlide: panelSlide,
         onNextPuzzle: () {},
-        onReviewAgain: () {},
       )));
 
       expect(find.text('🎯 PERFECT!'), findsOneWidget);
       expect(find.text('Next Puzzle'), findsOneWidget);
-      expect(find.text('Review Again'), findsOneWidget);
     });
 
     testWidgets('shows BLUNDER header and comparison bar on wrong answer', (tester) async {
@@ -60,14 +58,11 @@ void main() {
         state: state,
         panelSlide: panelSlide,
         onNextPuzzle: () {},
-        onReviewAgain: () {},
       )));
 
       expect(find.text('💥 BLUNDER!'), findsOneWidget);
       expect(find.text('Acceptance Comparison'), findsOneWidget);
-      // Both action buttons present
       expect(find.text('Next Puzzle'), findsOneWidget);
-      expect(find.text('Review Again'), findsOneWidget);
     });
 
     testWidgets('handles null ukeire data gracefully', (tester) async {
@@ -75,17 +70,14 @@ void main() {
         isPerfect: true,
         phase: NaniKiruPhase.feedback,
         correctDiscardId: 'm1',
-        // No ukeire data at all
       );
 
       await tester.pumpWidget(_wrap(NanikiruFeedbackPanel(
         state: state,
         panelSlide: panelSlide,
         onNextPuzzle: () {},
-        onReviewAgain: () {},
       )));
 
-      // Should still render without crashing
       expect(find.text('🎯 PERFECT!'), findsOneWidget);
     });
   });

@@ -44,19 +44,15 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
   /// 参数 [report] 为当前结算数据，包含总数、正确率和最大连击数。
   /// 分享文案采用 emoji + 关键数据 + APP 域名格式，简洁易传播。
   Future<void> _shareResults(BattleReport report) async {
-    // 构造分享文案：🎯 + 题目数 + 正确率 + 最大连击 + APP 域名
     final text = '🎯 ${report.total} puzzles today · '
         '${(report.accuracy * 100).toInt()}% accuracy · '
-        '${report.maxCombo}× max combo on TileZhan! tilezhan.app';
-
-    // 先关闭弹窗，解决 iOS 模态内分享失败的问题
-    Navigator.pop(context);
-
-    // 等待弹窗关闭动画完成（约 300ms），确保 context 已挂载到新页面
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    // 二次校验：弹窗关闭后当前 context 可能已失效，mounted 检查防止内存泄漏
-    if (context.mounted) await Share.share(text);
+        '${report.maxCombo}× max combo on TileSlash! '
+        'https://apps.apple.com/app/id6743381768';
+    try {
+      await Share.share(text);
+    } catch (_) {
+      await Clipboard.setData(ClipboardData(text: text));
+    }
   }
 
   /// 构建对局结算弹窗的完整 UI
@@ -253,17 +249,10 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
   /// 注意：此处使用 [Future.delayed] + 回调（非 async/await），
   /// 因为该方法由按钮 onTap 同步触发，不需要等待分享结果再返回。
   void _shareInviteLink() {
-    // 邀请分享文案：麻将 emoji + 一句话介绍 + APP 域名
-    final text = '🀄 Join me on TileZhan — master Mahjong tile recognition! '
-        'Free daily puzzles. Get it at tilezhan.app';
-
-    // 先关闭弹窗（与 _shareResults 相同的 iOS 兼容处理）
-    Navigator.pop(context);
-
-    // 延迟 300ms 等弹窗关闭动画完成后调用系统分享
-    Future.delayed(const Duration(milliseconds: 300), () {
-      // 二次校验：若页面已销毁则跳过分享，防止内存泄漏
-      if (context.mounted) Share.share(text);
+    final text = '🀄 Join me on TileSlash — master Mahjong tile recognition! '
+        'Free daily puzzles. https://apps.apple.com/app/id6743381768';
+    Share.share(text).catchError((_) {
+      Clipboard.setData(ClipboardData(text: text));
     });
   }
 

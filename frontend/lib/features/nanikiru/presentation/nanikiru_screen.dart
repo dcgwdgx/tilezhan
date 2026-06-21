@@ -244,9 +244,6 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
                     _startCountdown();
                   });
                 },
-                onReviewAgain: () {
-                  // Keep panel visible — user re-reads feedback
-                },
               ),
             ],
           ],
