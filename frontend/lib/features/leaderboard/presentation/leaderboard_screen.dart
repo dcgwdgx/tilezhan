@@ -269,11 +269,11 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             ),
             const SizedBox(height: 16),
             SizedBox(width: double.infinity, child: ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final name = controller.text.trim();
                 if (name.isNotEmpty) {
                   final storage = ref.read(storageServiceProvider).valueOrNull;
-                  storage?.setString('player_name', name);
+                  await storage?.setString('player_name', name);
                   ref.invalidate(playerNameProvider);
                   Navigator.pop(context);
                 }

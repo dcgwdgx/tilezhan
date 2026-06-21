@@ -13,7 +13,6 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/elo/elo_provider.dart';
 import '../../../core/providers/player_name_provider.dart';
-import '../../../core/utils/consent_service.dart';
 import '../../../core/utils/audio_service.dart';
 import '../../../core/srs/srs_provider.dart';
 import '../../../core/hearts/heart_provider.dart';
@@ -24,6 +23,7 @@ import '../../../shared/widgets/tz_combo_promo.dart';
 import '../../../shared/widgets/tz_countdown_ring.dart';
 import '../../../shared/widgets/tz_progress_bar.dart';
 import '../../../shared/widgets/tz_pulse_painter.dart';
+import '../../leaderboard/domain/leaderboard_service.dart';
 import '../domain/flashcard_provider.dart';
 
 /// 闪卡答题屏幕入口 Widget。
@@ -118,7 +118,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     hearts.recordWrong();
     ref.read(eloProvider.notifier).recordResult(isCorrect: false, isSkip: false);
     final name = ref.read(playerNameProvider);
-    reportWithConsent(context, name, ref.read(eloProvider), hearts.allTimeCombo);
+    LeaderboardService.reportScore(name: name, elo: ref.read(eloProvider), streak: hearts.allTimeCombo);
   }
 
   /// 回答提交后的流程：录战绩 → 扣体力 → 弹促销/战绩窗口。
@@ -158,7 +158,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     // Report ELO to leaderboard with consent
     final name = ref.read(playerNameProvider);
     final elo = ref.read(eloProvider);
-    reportWithConsent(context, name, elo, hearts.allTimeCombo);
+    LeaderboardService.reportScore(name: name, elo: elo, streak: hearts.allTimeCombo);
 
     ref.read(flashcardQuizProvider.notifier).submitAnswer(isCorrect);
     _recordSrs(isCorrect ? 4 : 1); // 正确=质量分4，错误=质量分1
