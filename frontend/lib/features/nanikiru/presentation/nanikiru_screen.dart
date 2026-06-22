@@ -369,6 +369,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
   /// 14-tile hand display with tappable TzTile widgets.
   /// Selected tile is highlighted; tapping a tile toggles selection.
   Widget _buildHandArea(NaniKiruState state, NanikiruNotifier notifier) {
+    final l10n = AppLocalizations.of(context)!;
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
