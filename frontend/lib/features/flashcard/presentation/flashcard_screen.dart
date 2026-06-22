@@ -303,6 +303,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   // 构建顶部导航栏：关闭按钮 | 标题 + 进度条 | 当前题号。
   // 进度条使用 [TzProgressBar] 组件。
   Widget _buildTopBar(state) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Row(
@@ -581,6 +582,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   // 答错时：显示学习助记提示文字。
   // 未答题时：显示脉冲动画提示（👆 点击牌面查看助记）。
   Widget _buildHint(state) {
+    final l10n = AppLocalizations.of(context)!;
     if (state.isAnswering && state.lastWrongId != null) {
       return Text(l10n.flashcardStudyHint,
           style: const TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim));

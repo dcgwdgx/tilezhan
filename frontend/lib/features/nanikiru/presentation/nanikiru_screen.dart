@@ -336,7 +336,7 @@ class _NanikiruScreenState extends ConsumerState<NanikiruScreen>
 
   /// Countdown progress bar. Turns red and urgent below 3 seconds.
   Widget _buildCountdownBar(NaniKiruState state) {
-    // 将倒计时秒数归一化为 0.0–1.0 的进度值（10秒为满值），小于等于3秒触发紧急态
+    final l10n = AppLocalizations.of(context)!;
     final progress = state.countdownValue / 10.0;
     final isUrgent = state.countdownValue <= 3;
     return Padding(
