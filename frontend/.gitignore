@@ -44,3 +44,4 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 test/hive_temp*/
+/android/upload-keystore.jks
