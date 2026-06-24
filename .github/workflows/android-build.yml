@@ -32,3 +32,11 @@ jobs:
           name: tilezhan-aab
           path: frontend/build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
+
+      - name: Upload to Google Play Internal Testing
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+          packageName: com.tilezhan.app
+          releaseFiles: frontend/build/app/outputs/bundle/release/app-release.aab
+          track: internal
