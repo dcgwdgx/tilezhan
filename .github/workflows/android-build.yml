@@ -13,6 +13,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
     defaults: { run: { working-directory: frontend } }
     steps:
       - uses: actions/checkout@v4
@@ -34,14 +36,14 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --build-number=$BUILD_NUMBER
 
       - name: Build release APK
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: flutter build apk --release
+        run: flutter build apk --release --build-number=$BUILD_NUMBER
 
       - uses: actions/upload-artifact@v4
         with:
