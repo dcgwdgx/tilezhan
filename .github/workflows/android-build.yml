@@ -64,4 +64,4 @@ jobs:
           packageName: com.tilezhan.app
           releaseFiles: frontend/build/app/outputs/bundle/release/app-release.aab
           track: production
-          changesNotSentForReview: false
+          changesNotSentForReview: true
