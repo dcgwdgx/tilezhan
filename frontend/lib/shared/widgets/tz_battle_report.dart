@@ -47,7 +47,7 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
     final text = '🎯 ${report.total} puzzles today · '
         '${(report.accuracy * 100).toInt()}% accuracy · '
         '${report.maxCombo}× max combo on TileSlash! '
-        'https://apps.apple.com/app/id6743381768';
+        'https://apps.apple.com/app/id6778444002';
     try {
       await Share.share(text);
     } catch (_) {
@@ -250,7 +250,7 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
   /// 因为该方法由按钮 onTap 同步触发，不需要等待分享结果再返回。
   void _shareInviteLink() {
     final text = '🀄 Join me on TileSlash — master Mahjong tile recognition! '
-        'Free daily puzzles. https://apps.apple.com/app/id6743381768';
+        'Free daily puzzles. https://apps.apple.com/app/id6778444002';
     Share.share(text).catchError((_) {
       Clipboard.setData(ClipboardData(text: text));
     });
