@@ -12,7 +12,7 @@
 ///         ├── _repo       : TileRepository — 牌数据源
 ///         ├── _ref        : Ref — 读取其他 Provider 的钩子
 ///         ├── _allTiles   : 全量牌列表缓存，避免重复加载
-///         └── _puzzleCounter : 单调计数，生成唯一谜题 ID
+///         └── _adaptiveSelector : 难度与弱项自适应选题
 /// ```
 ///
 /// ## 状态流转
@@ -20,12 +20,15 @@
 ///   ready → selecting → feedback → (nextPuzzle) → ready → …
 ///                            │
 ///                            ├── 正确 (isPerfect = true)
-///                            └── 错误 (isPerfect = false, 包含超时/跳过)
+///                            └── 非最优 / 超时 / 跳过（显式 outcome）
 ///
 /// ## 难度自适应
 ///
 /// 每次 [initPuzzle] 都会读取持久化的用户 ELO 分数，通过 [DifficultyScorer.targetRange]
-/// 换算为难度区间，再交由 [PuzzleGenerator.generate] 生成与之匹配的谜题。
+/// 换算为难度区间，再从规则验证题库中选择相近题目；积累足够作答后，
+/// 80% 优先训练较弱主题，20% 保留探索。动态生成仅作为题库不可用时的回退。
+library;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/models/tile_model.dart';
 import '../../../shared/models/puzzle_model.dart';
@@ -33,13 +36,18 @@ import '../../../shared/data/tile_repository.dart';
 import '../../../core/providers/tile_data_provider.dart';
 import '../../../core/providers/storage_provider.dart';
 import '../../../core/storage/storage_service.dart';
-import 'dart:math';
 import '../../../shared/engine/ukeire_calculator.dart' show UkeireCalculator;
 import '../../../shared/data/static_puzzle_loader.dart';
+import 'adaptive_puzzle_selector.dart';
+import 'nanikiru_skill_mastery.dart';
+import 'nanikiru_skill_mastery_provider.dart';
 import 'nanikiru_state.dart';
-import 'difficulty_scorer.dart';
+import 'nanikiru_snapshot.dart';
+import 'nanikiru_teaching_analysis.dart';
 import 'puzzle_generator.dart';
 import 'difficulty_scorer.dart';
+import '../../../core/srs/srs_item.dart';
+import '../../../core/srs/srs_provider.dart';
 
 /// 何切谜题的全局状态提供者，自动释放以节省内存。
 ///
@@ -80,11 +88,13 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
   /// 避免重复 I/O。生命周期与 [NanikiruNotifier] 实例一致。
   List<TileModel> _allTiles = [];
 
-  /// 谜题序号计数器，自增生成唯一谜题标识符。
-  ///
-  /// 每次 [initPuzzle] 调用递增一次，用于构造 `nanikiru_N` 格式的 [NaniKiruState.puzzleId]，
-  /// 便于日志追踪和统计去重。
-  int _puzzleCounter = 0;
+  /// Source IDs recently shown during this session, used to avoid repetition.
+  final List<String> _recentPuzzleIds = [];
+
+  /// Session-scoped adaptive selector for difficulty, weakness, and variety.
+  final AdaptiveNanikiruPuzzleSelector _adaptiveSelector =
+      AdaptiveNanikiruPuzzleSelector();
+  NanikiruTeachingTag? _sessionFocusTag;
 
   /// 构造一个 [NanikiruNotifier] 实例。
   ///
@@ -100,7 +110,7 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
   ///
   /// 1. **加载牌库** — 从 [_repo] 加载全量牌数据并缓存至 [_allTiles]。
   /// 2. **读取用户 ELO** — 通过 [_ref] 惰性读取 [StorageService] 中持久化的
-  ///    ELO 分数（键名 [StorageService.kElo]），默认 1000。
+  ///    ELO 分数（键名 [StorageService.kElo]），默认 800。
   /// 3. **计算目标难度** — 调用 [DifficultyScorer.targetRange] 将 ELO 映射为
   ///    难度区间。
   /// 4. **生成谜题** — 调用 [PuzzleGenerator.generate] 生成符合目标难度的
@@ -108,35 +118,69 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
   /// 5. **组装手牌** — 按 ID 从缓存中取出 [TileModel] 实例，14 张手牌 =
   ///    13 张原始手牌 + 摸牌（固定在末尾）。
   /// 6. **更新状态** — 构造新的 [NaniKiruState]，阶段设为 [NaniKiruPhase.ready]，
-  ///    倒计时重置为 10.0 秒，puzzleId 递增。
+  ///    倒计时重置为 10.0 秒，并使用稳定 puzzleId。
   ///
   /// ## 异步特性
   ///
   /// 首次调用会触发 I/O 加载牌库（[TileRepository.loadAllTiles]），
   /// 后续调用复用缓存，为同步操作。
-  Future<void> initPuzzle() async {
+  Future<void> initPuzzle({
+    String? reviewItemId,
+    String? preferredSkillId,
+  }) async {
+    if (preferredSkillId != null) {
+      _sessionFocusTag = NanikiruSkillIds.teachingTagFor(preferredSkillId);
+    }
     _allTiles = await _repo.loadAllTiles();
 
-    // Generate puzzle matching user ELO difficulty.
-    // ~40% chance to pull from static hand-crafted puzzle bank for variety.
+    // Select from the offline rule-verified bank first. Dynamic generation is a
+    // resilience fallback only, keeping normal gameplay instant and auditable.
     final storage = _ref.read(storageServiceProvider).valueOrNull;
-    final userElo = storage?.getInt(StorageService.kElo) ?? 1000;
+    final userElo = storage?.getIntOrNull(StorageService.kElo) ?? 800;
     final target = DifficultyScorer.targetRange(userElo);
-    Puzzle puzzle;
-    if (Random().nextDouble() < 0.4) {
-      final staticPuzzle = await pickStaticPuzzle(target);
-      puzzle = staticPuzzle ?? PuzzleGenerator.generate(targetDifficulty: target);
-    } else {
-      puzzle = PuzzleGenerator.generate(targetDifficulty: target);
+    Puzzle? puzzle;
+    if (reviewItemId != null && reviewItemId.isNotEmpty) {
+      puzzle = await _loadReviewPuzzle(reviewItemId);
+      if (puzzle == null) {
+        throw ArgumentError.value(reviewItemId, 'reviewItemId');
+      }
     }
+    if (puzzle == null) {
+      final mastery = _ref.read(nanikiruSkillMasteryProvider);
+      final focusedTags = _sessionFocusTag == null
+          ? mastery.weakestTeachingTags()
+          : <NanikiruTeachingTag>{_sessionFocusTag!};
+      puzzle = _adaptiveSelector.select(
+        puzzles: await loadStaticPuzzles(),
+        targetDifficulty: target,
+        excludedPuzzleIds: _recentPuzzleIds.toSet(),
+        preferredTags: focusedTags,
+        // A plan focus is explicit user intent, so do not take the normal 20%
+        // exploration branch when a matching nearby puzzle exists.
+        explorationRoll: _sessionFocusTag == null ? null : 0.5,
+      );
+      if (puzzle != null) {
+        _recentPuzzleIds.add(puzzle.puzzleId);
+        if (_recentPuzzleIds.length > 12) {
+          _recentPuzzleIds.removeAt(0);
+        }
+      }
+    }
+    puzzle ??= PuzzleGenerator.generate(targetDifficulty: target);
     final handTiles = puzzle.hand13Ids
         .map((id) => _repo.getById(id, _allTiles))
         .whereType<TileModel>()
         .toList();
     final drawnTile = _repo.getById(puzzle.drawnTileId, _allTiles);
 
-    _puzzleCounter++;
-    final puzzleId = 'nanikiru_$_puzzleCounter';
+    if (reviewItemId != null && (handTiles.length != 13 || drawnTile == null)) {
+      throw ArgumentError.value(reviewItemId, 'reviewItemId');
+    }
+
+    // Precision review identity belongs to the persisted SRS key. A snapshot's
+    // hand order may differ after the user sorts it, so re-hashing the restored
+    // content would create a second item and leave the original due forever.
+    final puzzleId = reviewItemId ?? _stablePuzzleId(puzzle);
 
     // Compute per-discard ukeire data for the full 14-tile hand.
     // This feeds the review panel with real acceptance counts for every
@@ -149,6 +193,11 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
       allDiscardUkeire[entry.key] = entry.value.ukeireCount;
       allDiscardUkeireTiles[entry.key] = entry.value.ukeireTypes;
     }
+    final teachingAnalysis = NanikiruTeachingAnalyzer.analyze(
+      hand14: hand14Ids,
+      selectedDiscardId: null,
+      results: ukeireResults,
+    );
 
     state = NaniKiruState(
       handTiles: [...handTiles, if (drawnTile != null) drawnTile],
@@ -160,8 +209,10 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
       ukeireTypes: puzzle.ukeireTypes,
       ukeireTiles: puzzle.ukeireTileIds,
       puzzleId: puzzleId,
+      difficulty: puzzle.difficulty,
       allDiscardUkeire: allDiscardUkeire,
       allDiscardUkeireTiles: allDiscardUkeireTiles,
+      teachingAnalysis: teachingAnalysis,
     );
   }
 
@@ -186,7 +237,7 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
     final newValue = (state.countdownValue - delta).clamp(0.0, 10.0);
     state = state.copyWith(countdownValue: newValue);
     if (newValue <= 0 && !state.isFinished) {
-      confirmDiscard(state.selectedTileId ?? '');
+      confirmDiscard(state.selectedTileId ?? '', isTimedOut: true);
     }
   }
 
@@ -207,7 +258,10 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
   /// 两段式设计（点选 → 再点确认）减少了误触导致的错误提交，同时保留了
   /// 快速双点的流畅体验。
   void onTileTapped(String tileId) {
-    if (state.phase != NaniKiruPhase.ready && state.phase != NaniKiruPhase.selecting) return;
+    if (state.phase != NaniKiruPhase.ready &&
+        state.phase != NaniKiruPhase.selecting) {
+      return;
+    }
 
     if (state.selectedTileId == tileId) {
       confirmDiscard(tileId);
@@ -234,12 +288,81 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
   ///
   /// 将阶段设为 [NaniKiruPhase.feedback]，UI 层根据 [NaniKiruState.isPerfect]
   /// 展示正确 ✓ 或错误 ✗ 的视觉反馈。
-  void confirmDiscard(String tileId, {bool isSkip = false}) {
-    final isPerfect = isSkip ? false : tileId == state.correctDiscardId;
+  void confirmDiscard(
+    String tileId, {
+    bool isSkip = false,
+    bool isTimedOut = false,
+  }) {
+    if (state.isFinished) return;
+    final selectedAnalysis = state.teachingAnalysis?.byDiscard[tileId];
+    final isEngineOptimal =
+        selectedAnalysis?.isOptimal ?? tileId == state.correctDiscardId;
+    final isPerfect = !isSkip && !isTimedOut && isEngineOptimal;
+    final outcome = isSkip
+        ? NaniKiruOutcome.skipped
+        : isTimedOut
+            ? NaniKiruOutcome.timedOut
+            : isPerfect
+                ? NaniKiruOutcome.perfect
+                : NaniKiruOutcome.incorrect;
+    final selectedForAnalysis = isSkip
+        ? null
+        : tileId.isNotEmpty
+            ? tileId
+            : state.selectedTileId;
     state = state.copyWith(
       phase: NaniKiruPhase.feedback,
       isPerfect: isPerfect,
+      outcome: outcome,
+      selectedTileId: tileId.isEmpty ? state.selectedTileId : tileId,
+      clearSelectedTileId: isSkip,
+      teachingAnalysis:
+          state.teachingAnalysis?.withSelectedDiscard(selectedForAnalysis),
     );
+  }
+
+  /// 从 SRS 条目中恢复完整题面，实现“点哪道错题就重做哪道题”。
+  Future<Puzzle?> _loadReviewPuzzle(String itemId) async {
+    try {
+      final inMemory = _ref.read(srsItemsProvider)[itemId];
+      SrsItem? item = inMemory;
+      if (item == null) {
+        final storage = await _ref.read(storageServiceProvider.future);
+        final raw = storage.getJson(StorageService.kSrsItems)[itemId];
+        if (raw is Map) {
+          item = SrsItem.fromJson(Map<String, dynamic>.from(raw));
+        }
+      }
+      if (item == null) return null;
+      final content = item.content;
+      if (content == null || content.isEmpty) return null;
+      final resolved = resolveNanikiruSnapshotContent(
+        content,
+        fallbackPuzzleId: itemId,
+      );
+      if (resolved == null) return null;
+      if (resolved.needsMigration) {
+        _ref
+            .read(srsNotifierProvider.notifier)
+            .replaceContentPreservingSchedule(item, resolved.content);
+      }
+      return resolved.puzzle;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 为动态题生成跨进程稳定的 ID，避免应用重启后 SRS 错题互相覆盖。
+  String _stablePuzzleId(Puzzle puzzle) {
+    final source = '${puzzle.hand13Ids.join(',')}|${puzzle.drawnTileId}';
+    var hash = 0x811c9dc5;
+    for (final unit in source.codeUnits) {
+      hash ^= unit;
+      hash = (hash * 0x01000193) & 0xffffffff;
+    }
+    final prefix =
+        puzzle.puzzleId.startsWith('static_') ? 'static' : 'generated';
+    return '${prefix}_${hash.toUnsigned(32).toRadixString(16).padLeft(8, '0')}';
   }
 
   /// 对手牌按"花色 → 数值"规则排序。
@@ -275,7 +398,5 @@ class NanikiruNotifier extends StateNotifier<NaniKiruState> {
   /// 重新计算难度、生成新谜题、重置倒计时和阶段。
   ///
   /// 通常在反馈阶段由"下一题"按钮触发。
-  void nextPuzzle() {
-    initPuzzle();
-  }
+  Future<void> nextPuzzle() => initPuzzle();
 }

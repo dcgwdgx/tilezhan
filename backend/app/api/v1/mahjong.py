@@ -9,9 +9,11 @@
     {"tiles": ["m1","m2","m3","p1","p2","p3","s1","s2","s3","z1","z1","z1","z2","z2"]}
 
 输入校验：
-    使用 Pydantic field_validator 在请求体解析阶段验证每张牌 ID
-    是否为合法的 34 种牌之一（m1-m9, p1-p9, s1-s9, z1-z7）。
+    使用 Pydantic field_validator 在请求体解析阶段验证牌数为 13 或 14、
+    每张牌 ID 属于 34 种合法牌之一，且同种牌不超过四张。
 """
+
+from collections import Counter
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
@@ -28,7 +30,7 @@ class TilesRequest(BaseModel):
     麻将牌列表请求体。
 
     Attributes:
-        tiles: 牌 ID 列表，每项必须是 34 种合法牌之一。
+        tiles: 13 或 14 张牌的 ID 列表；每项必须合法且同种最多四张。
     """
 
     tiles: list[str]
@@ -37,7 +39,7 @@ class TilesRequest(BaseModel):
     @classmethod
     def validate_tiles(cls, v: list[str]) -> list[str]:
         """
-        Pydantic 字段校验器 — 验证每张牌 ID 是否合法。
+        Pydantic 字段校验器 — 验证牌数、牌 ID 和同种牌数量。
 
         在请求解析阶段执行，不合法时直接返回 422 错误，
         无需进入业务逻辑层。
@@ -49,11 +51,18 @@ class TilesRequest(BaseModel):
             list[str]: 通过验证的原始列表。
 
         Raises:
-            ValueError: 存在不在 VALID_TILE_IDS 中的牌 ID。
+            ValueError: 牌数、牌 ID 或同种牌数量不合法。
         """
+        if len(v) not in (13, 14):
+            raise ValueError("Exactly 13 or 14 tiles required")
+
         for tid in v:
             if tid not in VALID_TILE_IDS:
                 raise ValueError(f"Invalid tile ID: {tid}")
+
+        duplicate = next((tid for tid, count in Counter(v).items() if count > 4), None)
+        if duplicate is not None:
+            raise ValueError(f"Too many copies of tile: {duplicate}")
         return v
 
 
@@ -61,6 +70,9 @@ class TilesRequest(BaseModel):
 async def calculate_shanten(req: TilesRequest, user: dict = Depends(get_current_user)):
     """
     计算当前手牌的向听数。
+
+    仅接受 13 张（打牌后）或 14 张（摸牌后）的闭合手牌；其他长度由
+    Pydantic 请求校验返回 422。
 
     向听数定义为距离听牌（Tenpai）还需更换的最小牌数。
     - 0 = 已听牌

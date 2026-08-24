@@ -48,8 +48,12 @@ class UkeireCalculator {
   ///
   /// [hand14] 必须恰好包含 14 个牌 ID，否则抛出 [ArgumentError]。
   /// 传入的列表不会被拷贝——调用方应确保在计算期间不修改它。
-  UkeireCalculator(this.hand14) {
+  UkeireCalculator(List<String> hand14)
+      : hand14 = List<String>.unmodifiable(hand14) {
     if (hand14.length != 14) throw ArgumentError('Expected 14 tiles');
+    // Validate IDs and the physical four-copy limit before starting the much
+    // more expensive discard analysis.
+    ShantenCalculator.fromIds(hand14);
   }
 
   /// 计算每张可打出的候选牌对应的有効牌信息。
@@ -61,15 +65,15 @@ class UkeireCalculator {
   /// 2. 从手牌中移除该候选牌，得到 13 张残留手牌。
   /// 3. 计算残留手牌的向听数作为基准（`baseShanten`）。
   /// 4. 对全部 34 种牌逐一模拟"摸进 1 张"：
-  ///    - 如果该牌在残留手中已有 4 张（赤牌 / 正常上限），跳过。
+  ///    - 如果原 14 张可见牌中已有 4 张，跳过。
   ///    - 用残留手牌 + 摸进牌（共 14 张）重新计算向听数。
   ///    - 如果新向听数 < 基准向听数 → 此牌是有効牌。
-  /// 5. 有効牌枚数 = Σ(4 - 残留手中该牌的张数)，即考虑了墙中实际
-  ///    剩余数（一副牌同种最多 4 张）。
+  /// 5. 有効牌枚数 = Σ(4 - 原 14 张中该牌的张数)。切出的牌已进入牌河，
+  ///    仍属于可见牌，不能重新计入理论牌山。
   ///
   /// ## 返回值
   ///
-  /// `Map<String, _DiscardResult>` — key 为切牌候选牌的 ID，value 包含：
+  /// `Map<String, DiscardResult>` — key 为切牌候选牌的 ID，value 包含：
   /// - 切牌后的向听数
   /// - 有効牌种类列表
   /// - 有効牌总枚数
@@ -81,6 +85,10 @@ class UkeireCalculator {
   Map<String, DiscardResult> calculate() {
     final results = <String, DiscardResult>{};
     final seen = <String>{};
+    final visibleCounts = <String, int>{};
+    for (final tileId in hand14) {
+      visibleCounts[tileId] = (visibleCounts[tileId] ?? 0) + 1;
+    }
 
     for (var i = 0; i < hand14.length; i++) {
       final discardId = hand14[i];
@@ -89,7 +97,10 @@ class UkeireCalculator {
       seen.add(discardId);
 
       // 移除第 i 张后剩余的 13 张手牌
-      final remaining = <String>[...hand14.sublist(0, i), ...hand14.sublist(i + 1)];
+      final remaining = <String>[
+        ...hand14.sublist(0, i),
+        ...hand14.sublist(i + 1)
+      ];
       final ukeireTypes = <String>[];
       var ukeireCount = 0;
       // 切牌后的基准向听数
@@ -97,15 +108,17 @@ class UkeireCalculator {
 
       // 遍历全部 34 种牌，测试每种摸进是否能降低向听数
       for (final testId in _allTileIds) {
-        // 同种牌手里已有 4 张则不可能再摸到，跳过
-        if (remaining.where((t) => t == testId).length >= 4) continue;
+        // The discarded tile is now visible in the river, so it must still be
+        // deducted from the theoretical wall count.
+        final available = 4 - (visibleCounts[testId] ?? 0);
+        if (available <= 0) continue;
         final candidate = [...remaining, testId];
         final newShanten = ShantenCalculator.fromIds(candidate).calculate();
         if (newShanten < baseShanten) {
           // 此牌摸进后向听数下降 → 是有効牌
           ukeireTypes.add(testId);
-          // 剩余枚数 = 理论 4 张 - 手中已持有的张数
-          ukeireCount += 4 - remaining.where((t) => t == testId).length;
+          // 剩余枚数 = 理论 4 张 - 原 14 张已知牌（含刚切进牌河的牌）。
+          ukeireCount += available;
         }
       }
 
@@ -127,10 +140,40 @@ class UkeireCalculator {
   ///
   /// 此列表为编译时常量，在所有 UkeireCalculator 实例间共享。
   static const _allTileIds = [
-    'm1','m2','m3','m4','m5','m6','m7','m8','m9',
-    'p1','p2','p3','p4','p5','p6','p7','p8','p9',
-    's1','s2','s3','s4','s5','s6','s7','s8','s9',
-    'z1','z2','z3','z4','z5','z6','z7',
+    'm1',
+    'm2',
+    'm3',
+    'm4',
+    'm5',
+    'm6',
+    'm7',
+    'm8',
+    'm9',
+    'p1',
+    'p2',
+    'p3',
+    'p4',
+    'p5',
+    'p6',
+    'p7',
+    'p8',
+    'p9',
+    's1',
+    's2',
+    's3',
+    's4',
+    's5',
+    's6',
+    's7',
+    's8',
+    's9',
+    'z1',
+    'z2',
+    'z3',
+    'z4',
+    'z5',
+    'z6',
+    'z7',
   ];
 }
 
@@ -170,5 +213,8 @@ class DiscardResult {
   /// 构造一个切牌评估结果对象。
   ///
   /// 所有字段为 `required`，调用方必须同时提供向听数、有効牌种类和枚数。
-  const DiscardResult({required this.shantenAfter, required this.ukeireTypes, required this.ukeireCount});
+  const DiscardResult(
+      {required this.shantenAfter,
+      required this.ukeireTypes,
+      required this.ukeireCount});
 }

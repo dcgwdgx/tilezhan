@@ -321,7 +321,7 @@ class _AuthInterceptor extends Interceptor {
   ) async {
     // 仅在 tokenProvider 存在时才尝试注入 token
     if (_tokenProvider != null) {
-      final token = await _tokenProvider!();
+      final token = await _tokenProvider();
       // 注入 Authorization 头：Bearer <token>
       options.headers['Authorization'] = 'Bearer $token';
     }

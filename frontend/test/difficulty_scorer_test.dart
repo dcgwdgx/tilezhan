@@ -1,53 +1,145 @@
-/// DifficultyScorer 题目难度评分器的单元测试
-/// 测试覆盖：分数范围（800-1600）、高牌有效率 = 简单 = 低分、低牌有效率 = 困难 = 高分、目标分数映射
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/features/nanikiru/domain/difficulty_scorer.dart';
+import 'package:tilezhan/shared/engine/ukeire_calculator.dart';
 import 'package:tilezhan/shared/models/puzzle_model.dart';
 
-/// 快速创建用于测试的 Puzzle 对象
-Puzzle _makePuzzle({int ukeireCount = 10, int ukeireTypes = 5}) {
-  return Puzzle(
-    puzzleId: 'test',
-    hand13Ids: List.filled(13, 'm1'),
-    drawnTileId: 's7',
-    correctDiscardId: 'm1',
-    ukeireCount: ukeireCount,
-    ukeireTypes: ukeireTypes,
-    ukeireTileIds: List.filled(ukeireTypes, 'p1'),
-  );
-}
-
 void main() {
-  /// DifficultyScorer 测试组：覆盖评分范围校验、牌有效率与难度关系、目标分数映射、基础分加权叠加四大场景
   group('DifficultyScorer', () {
-    // 评分结果应在 800-1600 的有效范围内
-    test('returns score in valid range', () {
-      final puzzle = _makePuzzle();
-      final score = DifficultyScorer.score(puzzle);
-      expect(score, greaterThanOrEqualTo(800));
-      expect(score, lessThanOrEqualTo(1600));
+    test('uses the full decision landscape and spans commercial ELO bands', () {
+      final easyAnalysis = <String, DiscardResult>{
+        'z2': _result(0, ['p3'], 4),
+        'm1': _result(1, ['m1', 'm4'], 7),
+        'm2': _result(1, ['m2'], 4),
+        'm3': _result(2, ['m3'], 4),
+        'm4': _result(2, ['m4'], 4),
+      };
+      final hardAnalysis = <String, DiscardResult>{
+        'z2': _result(3, _tenWaits, 20),
+        for (var index = 0; index < 13; index++)
+          'candidate_$index': _result(3, ['m1'], 19 - index),
+      };
+
+      final easy = DifficultyScorer.score(
+        _puzzle(ukeireTiles: ['p3'], ukeireCount: 4),
+        discardResults: easyAnalysis,
+      );
+      final hard = DifficultyScorer.score(
+        _puzzle(ukeireTiles: _tenWaits, ukeireCount: 20),
+        discardResults: hardAnalysis,
+      );
+
+      expect(easy, inInclusiveRange(800, 1050));
+      expect(hard, inInclusiveRange(1400, 1600));
+      expect(hard, greaterThan(easy));
     });
 
-    // 牌有效率高 = 容易做对 = 分数低；牌有效率低 = 难以判断 = 分数高
-    test('high ukeire = easier = lower score', () {
-      final easy = DifficultyScorer.score(_makePuzzle(ukeireCount: 24, ukeireTypes: 10));
-      final hard = DifficultyScorer.score(_makePuzzle(ukeireCount: 3, ukeireTypes: 1));
-      expect(easy, lessThan(hard));
+    test('can calculate a real verified puzzle without injected analysis', () {
+      final score = DifficultyScorer.score(
+        Puzzle(
+          puzzleId: 'fallback',
+          hand13Ids: const [
+            'm1',
+            'm2',
+            'm3',
+            'm4',
+            'm5',
+            'm6',
+            'p5',
+            'p6',
+            'p7',
+            'p8',
+            'p9',
+            'z1',
+            'z1',
+          ],
+          drawnTileId: 'z2',
+          correctDiscardId: 'z2',
+          ukeireCount: 7,
+          ukeireTypes: 2,
+          ukeireTileIds: const ['p4', 'p7'],
+        ),
+      );
+
+      expect(score, inInclusiveRange(800, 1600));
     });
 
-    // targetRange 返回适合目标难度的分数区间
-    test('targetRange returns appropriate values', () {
-      expect(DifficultyScorer.targetRange(800), lessThan(1000));
-      expect(DifficultyScorer.targetRange(1000), greaterThanOrEqualTo(950));
-      expect(DifficultyScorer.targetRange(1500), greaterThanOrEqualTo(1200));
+    test('rejects a non-optimal answer or stale ukeire metadata', () {
+      final analysis = <String, DiscardResult>{
+        'z2': _result(0, ['p3'], 4),
+        'm1': _result(0, ['m2', 'm5'], 8),
+      };
+
+      expect(
+        () => DifficultyScorer.score(
+          _puzzle(ukeireTiles: ['p3'], ukeireCount: 4),
+          discardResults: analysis,
+        ),
+        throwsArgumentError,
+      );
+
+      final staleMetadata = <String, DiscardResult>{
+        'z2': _result(0, ['p3'], 4),
+        'm1': _result(1, ['m2'], 4),
+      };
+      expect(
+        () => DifficultyScorer.score(
+          _puzzle(ukeireTiles: ['p3'], ukeireCount: 3),
+          discardResults: staleMetadata,
+        ),
+        throwsArgumentError,
+      );
     });
 
-    // 评分从基础分 800 开始，各维度加权叠加
-    test('uses base 800 + weighted dimensions', () {
-      final puzzle = _makePuzzle();
-      final score = DifficultyScorer.score(puzzle);
-      // All dimensions contribute → score > base
-      expect(score, greaterThanOrEqualTo(800));
+    test('maps player ELO to all four intended bands', () {
+      expect(DifficultyScorer.targetRange(800), 850);
+      expect(DifficultyScorer.targetRange(1000), 1000);
+      expect(DifficultyScorer.targetRange(1200), 1200);
+      expect(DifficultyScorer.targetRange(1500), 1400);
     });
   });
 }
+
+DiscardResult _result(int shanten, List<String> types, int count) =>
+    DiscardResult(
+      shantenAfter: shanten,
+      ukeireTypes: types,
+      ukeireCount: count,
+    );
+
+Puzzle _puzzle({required List<String> ukeireTiles, required int ukeireCount}) =>
+    Puzzle(
+      puzzleId: 'test',
+      hand13Ids: const [
+        'm1',
+        'm2',
+        'm3',
+        'm4',
+        'm5',
+        'm6',
+        'p5',
+        'p6',
+        'p7',
+        'p8',
+        'p9',
+        'z1',
+        'z1',
+      ],
+      drawnTileId: 'z2',
+      correctDiscardId: 'z2',
+      ukeireCount: ukeireCount,
+      ukeireTypes: ukeireTiles.length,
+      ukeireTileIds: ukeireTiles,
+    );
+
+const _tenWaits = [
+  'm1',
+  'm2',
+  'm3',
+  'm4',
+  'm5',
+  'p1',
+  'p2',
+  'p3',
+  's1',
+  's2',
+];

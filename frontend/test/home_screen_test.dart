@@ -1,158 +1,199 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tilezhan/core/commerce/commerce_availability.dart';
 import 'package:tilezhan/core/hearts/heart_provider.dart';
 import 'package:tilezhan/core/hearts/heart_service.dart';
 import 'package:tilezhan/core/iap/iap_provider.dart';
 import 'package:tilezhan/core/iap/iap_service.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:tilezhan/l10n/generated/app_localizations.dart';
+import 'package:tilezhan/core/providers/storage_provider.dart';
+import 'package:tilezhan/core/storage/storage_service.dart';
 import 'package:tilezhan/features/home/presentation/home_screen.dart';
+import 'package:tilezhan/features/training_plan/data/training_plan_store.dart';
+import 'package:tilezhan/features/training_plan/domain/training_plan.dart';
+import 'package:tilezhan/l10n/generated/app_localizations.dart';
 
-/// Fake HeartService — returns preset values, never touches Hive.
 class _FakeHeartService extends HeartService {
-  int h = 8;
-  @override int get hearts => h;
-  @override bool get hasHearts => h > 0;
-  @override int get correct => 3;
-  @override int get wrong => 1;
-  @override int get combo => 0;
-  @override int get maxCombo => 2;
-  @override int get dailyChallengeRemaining => 2;
-  @override Future<void> init() async {}
-  @override void recordCorrect() {}
-  @override void recordWrong() {}
-  @override bool consume() => false;
-  @override bool useDailyChallenge() => true;
-}
+  _FakeHeartService(this._hearts);
 
-/// Fake IapService returning free status.
-class _FakeIapService extends IapService {
+  final int _hearts;
+
+  @override
+  int get hearts => _hearts;
+
+  @override
+  bool get hasHearts => _hearts > 0;
+
   @override
   Future<void> init() async {}
 }
 
-Widget _wrap(Widget child) {
-  return ProviderScope(
-    overrides: [
-      heartServiceProvider
-          .overrideWith((ref) => _FakeHeartService()),
-      iapServiceProvider.overrideWith((ref) => _FakeIapService()),
-    ],
-    child: MaterialApp(
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
+class _FakeIapService implements IapService {
+  @override
+  IapState get state => const IapState(status: IapStatus.ready);
+
+  @override
+  Stream<IapState> get stateStream => const Stream<IapState>.empty();
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<void> purchase(String productId) async {}
+
+  @override
+  Future<void> restore() async {}
+
+  @override
+  void dispose() {}
+}
+
+class _FixedDailyTrainingPlanNotifier extends DailyTrainingPlanNotifier {
+  _FixedDailyTrainingPlanNotifier(this._plan);
+
+  final DailyTrainingPlan _plan;
+
+  @override
+  DailyTrainingPlan? build() => _plan;
+}
+
+DailyTrainingPlan _todayPlan() => DailyTrainingPlan(
+      localDate: DateTime(2026, 8, 24),
+      currentStreak: 4,
+      bestStreak: 7,
+      lastCompletedDate: '2026-08-23',
+      tasks: [
+        TrainingPlanTask(
+          id: 'starter:flashcard',
+          kind: TrainingTaskKind.starterLesson,
+          module: TrainingModule.flashcard,
+          targetAttempts: 3,
+          completedAttempts: 1,
+        ),
+        TrainingPlanTask(
+          id: 'explore:yaku',
+          kind: TrainingTaskKind.exploration,
+          module: TrainingModule.yaku,
+          targetAttempts: 3,
+        ),
+        TrainingPlanTask(
+          id: 'daily:nanikiru',
+          kind: TrainingTaskKind.dailyChallenge,
+          module: TrainingModule.nanikiru,
+          targetAttempts: 3,
+        ),
       ],
-      supportedLocales: const [Locale('en')],
-      home: child,
-    ),
-  );
+    );
+
+class _HomeHarness {
+  _HomeHarness({
+    this.trainingLimitsEnabled = false,
+    this.hearts = 7,
+  });
+
+  final bool trainingLimitsEnabled;
+  final int hearts;
+  int iapProviderReads = 0;
+
+  Widget build() {
+    final plan = _todayPlan();
+    final storageNeverCompletes = Completer<StorageService>();
+    final heartService = _FakeHeartService(hearts);
+    final iapService = _FakeIapService();
+
+    return ProviderScope(
+      overrides: [
+        commerceAvailabilityProvider.overrideWithValue(
+          CommerceAvailability(
+            platform: TargetPlatform.android,
+            salesEnabled: false,
+            trainingLimitsEnabled: trainingLimitsEnabled,
+            restoreEnabled: true,
+          ),
+        ),
+        heartServiceProvider.overrideWith((ref) => heartService),
+        iapServiceProvider.overrideWith((ref) {
+          iapProviderReads++;
+          return iapService;
+        }),
+        storageServiceProvider.overrideWith(
+          (ref) => storageNeverCompletes.future,
+        ),
+        dailyTrainingPlanProvider.overrideWith(
+          () => _FixedDailyTrainingPlanNotifier(plan),
+        ),
+      ],
+      child: const MaterialApp(
+        locale: Locale('en'),
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: [Locale('en')],
+        home: HomeScreen(),
+      ),
+    );
+  }
 }
 
 void main() {
-  // Shimmer animation repeats forever → pump with fixed frames
-  Future<void> settle(WidgetTester tester) async {
-    for (int i = 0; i < 5; i++) {
-      await tester.pump(const Duration(milliseconds: 300));
-    }
-  }
+  group('HomeScreen free release', () {
+    testWidgets('renders the fixed today plan without paid gates',
+        (tester) async {
+      final harness = _HomeHarness();
 
-  group('HomeScreen', () {
-    testWidgets('renders without crashing', (tester) async {
-      await tester.pumpWidget(_wrap(const HomeScreen()));
-      await settle(tester);
+      await tester.pumpWidget(harness.build());
+      await tester.pumpAndSettle();
+
       expect(find.byType(HomeScreen), findsOneWidget);
+      expect(find.byKey(const ValueKey('today-training-card')), findsOneWidget);
+      expect(find.text("Today's 5-minute plan"), findsOneWidget);
+      expect(find.text('1/9 completed'), findsOneWidget);
+      expect(find.text('🔥 4-day learning streak'), findsOneWidget);
+      expect(find.text('Learn the core tiles'), findsOneWidget);
+      expect(find.text('Explore yaku knowledge'), findsOneWidget);
+      expect(find.text('Daily efficiency challenge'), findsOneWidget);
+      expect(find.text('CONTINUE PLAN'), findsOneWidget);
+
+      expect(find.textContaining('/10'), findsNothing);
+      expect(find.textContaining('UPGRADE'), findsNothing);
+      expect(find.text('Premium'), findsNothing);
+      expect(harness.iapProviderReads, 0);
     });
 
-    testWidgets('shows Quick Access grid', (tester) async {
-      await tester.pumpWidget(_wrap(const HomeScreen()));
-      await settle(tester);
+    testWidgets('keeps the real learning shortcuts and navigation',
+        (tester) async {
+      final harness = _HomeHarness();
+
+      await tester.pumpWidget(harness.build());
+      await tester.pumpAndSettle();
+
       expect(find.text('Flashcards'), findsOneWidget);
       expect(find.text('Nani-Kiru'), findsOneWidget);
-      expect(find.text('Scanner'), findsOneWidget);
-    });
-
-    testWidgets('shows bottom tab bar', (tester) async {
-      await tester.pumpWidget(_wrap(const HomeScreen()));
-      await settle(tester);
+      expect(find.text('Hand Analyzer'), findsOneWidget);
+      expect(find.text('Defense Trainer'), findsOneWidget);
       expect(find.text('Home'), findsOneWidget);
       expect(find.text('Tiles'), findsOneWidget);
+      expect(find.text('Profile'), findsOneWidget);
     });
 
-    testWidgets('shows daily challenge card', (tester) async {
-      await tester.pumpWidget(_wrap(const HomeScreen()));
-      await settle(tester);
-      expect(find.textContaining('DAILY CHALLENGE'), findsOneWidget);
-    });
+    testWidgets('shows hearts only when training limits are enabled',
+        (tester) async {
+      final harness = _HomeHarness(trainingLimitsEnabled: true, hearts: 3);
 
-    testWidgets('shows heart count', (tester) async {
-      await tester.pumpWidget(_wrap(const HomeScreen()));
-      await settle(tester);
-      expect(find.text('8/10'), findsOneWidget);
-    });
+      await tester.pumpWidget(harness.build());
+      await tester.pumpAndSettle();
 
-    testWidgets('shows daily challenge start button', (tester) async {
-      await tester.pumpWidget(_wrap(const HomeScreen()));
-      await settle(tester);
-      expect(find.text('⚡ START CHALLENGE'), findsOneWidget);
-    });
-
-    testWidgets('shows free challenge count on daily challenge', (tester) async {
-      await tester.pumpWidget(_wrap(const HomeScreen()));
-      await settle(tester);
-      expect(find.text('2/3 free'), findsOneWidget);
-    });
-
-    testWidgets('premium section has upgrade badge', (tester) async {
-      await tester.pumpWidget(_wrap(const HomeScreen()));
-      await settle(tester);
-      expect(find.textContaining('UPGRADE'), findsOneWidget);
-    });
-
-    testWidgets('shows daily challenge start button', (tester) async {
-      await tester.pumpWidget(_wrap(const HomeScreen()));
-      await settle(tester);
-      expect(find.text('⚡ START CHALLENGE'), findsOneWidget);
-    });
-  });
-
-  group('Heart display integration', () {
-    testWidgets('hearts from service shown on home', (tester) async {
-      final fake = _FakeHeartService()..h = 3;
-      await tester.pumpWidget(ProviderScope(overrides: [
-        heartServiceProvider.overrideWith((r) => fake),
-        iapServiceProvider.overrideWith((r) => _FakeIapService()),
-      ], child: MaterialApp(
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('en')],
-      home: const HomeScreen(),
-    )));
-      await settle(tester);
       expect(find.text('3/10'), findsOneWidget);
-    });
-
-    testWidgets('zero hearts shown as depleted', (tester) async {
-      final fake = _FakeHeartService()..h = 0;
-      await tester.pumpWidget(ProviderScope(overrides: [
-        heartServiceProvider.overrideWith((r) => fake),
-        iapServiceProvider.overrideWith((r) => _FakeIapService()),
-      ], child: MaterialApp(
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('en')],
-      home: const HomeScreen(),
-    )));
-      await settle(tester);
-      expect(find.text('0/10'), findsOneWidget);
+      expect(find.bySemanticsLabel('3 hearts remaining'), findsOneWidget);
+      expect(find.textContaining('UPGRADE'), findsNothing);
+      expect(find.text('Premium'), findsNothing);
+      expect(harness.iapProviderReads, 0);
     });
   });
 }

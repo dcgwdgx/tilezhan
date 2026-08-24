@@ -12,10 +12,8 @@ import 'package:http/http.dart' as http;
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/elo/elo_provider.dart';
-import '../../../core/hearts/heart_provider.dart';
 import '../../../core/providers/player_name_provider.dart';
 import '../../../core/providers/storage_provider.dart';
-import '../../../core/storage/storage_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
@@ -110,14 +108,6 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           style: const TextStyle(fontSize: 13, color: AppColors.jadeWhiteMuted)),
       ]));
     }
-
-    // Find current player in rankings for highlighting.
-    final myEntry = playerName.isNotEmpty
-        ? _rankings!.cast<Map<String, dynamic>?>().firstWhere(
-            (r) => r?['name'] == playerName,
-            orElse: () => null,
-          )
-        : null;
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),

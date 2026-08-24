@@ -21,6 +21,7 @@
 
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../commerce/commerce_availability.dart';
 import 'heart_service.dart';
 import '../iap/iap_provider.dart';
 
@@ -41,10 +42,9 @@ import '../iap/iap_provider.dart';
 /// `ref.watch(heartServiceProvider)` 获取对 HeartService 的引用。
 ///
 /// 返回：生命周期受 Riverpod 管理的 HeartService 实例。
-final heartServiceProvider = Provider<HeartService>((ref) {
+final heartServiceProvider = ChangeNotifierProvider<HeartService>((ref) {
   final svc = HeartService();
   svc.init();
-  ref.onDispose(svc.dispose);
   return svc;
 });
 
@@ -62,7 +62,8 @@ final heartServiceProvider = Provider<HeartService>((ref) {
 final heartsRemainingProvider = StreamProvider<int>((ref) {
   final svc = ref.watch(heartServiceProvider);
   return Stream.periodic(
-    const Duration(seconds: 60), (i) => svc.hearts,
+    const Duration(seconds: 60),
+    (i) => svc.hearts,
   ).asBroadcastStream();
 });
 
@@ -78,9 +79,9 @@ final heartsRemainingProvider = StreamProvider<int>((ref) {
 ///
 /// 返回值：`true` 表示可以进入游戏，`false` 表示该按钮应置灰并提示原因。
 final canPlayProvider = Provider<bool>((ref) {
-  final isPremium = ref.watch(isPremiumProvider);
-  if (isPremium) return true;
-  return ref.watch(heartServiceProvider).hasHearts;
+  final access = ref.watch(trainingAccessProvider);
+  if (access.hasUnlimitedTraining) return true;
+  return access.canPlay(hasHearts: ref.watch(heartServiceProvider).hasHearts);
 });
 
 /// 今日剩余免费挑战次数（每日 00:00 重置）。
@@ -92,6 +93,11 @@ final canPlayProvider = Provider<bool>((ref) {
 /// 返回值：剩余次数，最小为 0。
 final dailyChallengeRemainingProvider = Provider<int>((ref) {
   return ref.watch(heartServiceProvider).dailyChallengeRemaining;
+});
+
+/// 今日挑战的完整进度（已答、正确数、连续完成天数）。
+final dailyChallengeProgressProvider = Provider<DailyChallengeProgress>((ref) {
+  return ref.watch(heartServiceProvider).dailyChallengeProgress;
 });
 
 // =============================================================================
@@ -197,6 +203,7 @@ final allTimeComboProvider = Provider<int>((ref) {
 ///
 /// 返回值：`true` 时 UI 应展示促销 Banner 或弹窗入口。
 final showComboPromoProvider = Provider<bool>((ref) {
+  if (!ref.watch(commerceAvailabilityProvider).salesEnabled) return false;
   final svc = ref.watch(heartServiceProvider);
   final isPremium = ref.watch(isPremiumProvider);
   if (isPremium) return false;

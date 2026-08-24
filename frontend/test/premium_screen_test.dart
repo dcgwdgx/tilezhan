@@ -1,166 +1,270 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:tilezhan/core/hearts/heart_service.dart';
-import 'package:tilezhan/core/hearts/heart_provider.dart';
+import 'package:tilezhan/core/commerce/commerce_availability.dart';
 import 'package:tilezhan/core/iap/iap_provider.dart';
 import 'package:tilezhan/core/iap/iap_service.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:tilezhan/l10n/generated/app_localizations.dart';
 import 'package:tilezhan/features/premium/presentation/premium_screen.dart';
+import 'package:tilezhan/l10n/generated/app_localizations.dart';
 
-/// Fake HeartService — returns no promo, always ready.
-class _FakeHeartService extends HeartService {
-  @override int get hearts => 10;
-  @override Future<void> init() async {}
-  @override bool isLifetimePromoActive(bool _) => true;
-}
-
-/// Fake IapService that returns products without StoreKit.
 class _FakeIapService implements IapService {
-  final _stateCtrl = StreamController<IapState>.broadcast();
-  late IapState _state;
+  _FakeIapService(this._state);
 
-  _FakeIapService() {
-    _state = IapState(
-      status: IapStatus.ready,
-      products: [
-        ProductDetails(
-          id: TzProducts.monthly,
-          title: 'MONTHLY',
-          description: 'Unlimited puzzles',
-          price: '\$4.99',
-          rawPrice: 4.99,
-          currencyCode: 'USD',
-        ),
-        ProductDetails(
-          id: TzProducts.yearly,
-          title: 'ANNUAL',
-          description: 'Best value',
-          price: '\$29.99',
-          rawPrice: 29.99,
-          currencyCode: 'USD',
-        ),
-        ProductDetails(
-          id: TzProducts.lifetime,
-          title: 'LIFETIME',
-          description: 'Pay once',
-          price: '\$49.99',
-          rawPrice: 49.99,
-          currencyCode: 'USD',
-        ),
-      ],
-    );
-    // Emit initial state on next tick so StreamProvider picks it up
-    Future.microtask(() => _stateCtrl.add(_state));
-  }
+  final _stateCtrl = StreamController<IapState>.broadcast();
+  final IapState _state;
+  int initCalls = 0;
+  int restoreCalls = 0;
+  final List<String> purchaseIds = [];
 
   @override
   Stream<IapState> get stateStream => _stateCtrl.stream;
+
   @override
   IapState get state => _state;
 
   @override
-  Future<void> init() async {}
+  Future<void> init() async {
+    initCalls++;
+    scheduleMicrotask(() {
+      if (!_stateCtrl.isClosed) _stateCtrl.add(_state);
+    });
+  }
+
   @override
-  Future<void> purchase(String productId) async {}
+  Future<void> purchase(String productId) async {
+    purchaseIds.add(productId);
+  }
+
   @override
-  Future<void> restore() async {}
+  Future<void> restore() async {
+    restoreCalls++;
+  }
+
   @override
-  void dispose() => _stateCtrl.close();
+  void dispose() {
+    if (!_stateCtrl.isClosed) _stateCtrl.close();
+  }
 }
 
-Widget _wrap(Widget child) {
+CommerceAvailability _availability({
+  required bool salesEnabled,
+  bool restoreEnabled = true,
+}) {
+  return CommerceAvailability(
+    platform: TargetPlatform.iOS,
+    salesEnabled: salesEnabled,
+    trainingLimitsEnabled: false,
+    restoreEnabled: restoreEnabled,
+  );
+}
+
+Widget _wrap({
+  required CommerceAvailability availability,
+  required _FakeIapService service,
+  required VoidCallback onServiceCreated,
+}) {
   return ProviderScope(
     overrides: [
-      iapServiceProvider.overrideWith((ref) => _FakeIapService()),
-      heartServiceProvider.overrideWith((ref) => _FakeHeartService()),
+      commerceAvailabilityProvider.overrideWithValue(availability),
+      iapServiceProvider.overrideWith((ref) {
+        onServiceCreated();
+        service.init();
+        return service;
+      }),
     ],
-    child: MaterialApp(
-      localizationsDelegates: const [
+    child: const MaterialApp(
+      localizationsDelegates: [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
       ],
-      supportedLocales: const [Locale('en')],
-      home: child,
+      supportedLocales: [Locale('en')],
+      home: PremiumScreen(),
     ),
   );
 }
 
+ProductDetails _product({
+  required String id,
+  required String title,
+  required String description,
+  required String price,
+  required double rawPrice,
+}) {
+  return ProductDetails(
+    id: id,
+    title: title,
+    description: description,
+    price: price,
+    rawPrice: rawPrice,
+    currencyCode: 'USD',
+  );
+}
+
 void main() {
-  group('PremiumScreen', () {
-    testWidgets('renders title and plan names', (tester) async {
-      await tester.pumpWidget(_wrap(const PremiumScreen()));
-      await tester.pumpAndSettle();
+  group('PremiumScreen release availability', () {
+    testWidgets('free release does not initialize or expose IAP sales',
+        (tester) async {
+      var serviceCreations = 0;
+      final service = _FakeIapService(const IapState(status: IapStatus.ready));
+      addTearDown(service.dispose);
 
-      expect(find.text('Choose Your Plan'), findsOneWidget);
-      expect(find.text('FREE'), findsOneWidget);
-      expect(find.text('MONTHLY'), findsOneWidget);
-      expect(find.text('ANNUAL'), findsOneWidget);
-      expect(find.text('LIFETIME'), findsOneWidget);
+      await tester.pumpWidget(_wrap(
+        availability: _availability(salesEnabled: false),
+        service: service,
+        onServiceCreated: () => serviceCreations++,
+      ));
+      await tester.pump();
+
+      expect(
+        find.text('All training is free in this version'),
+        findsOneWidget,
+      );
+      expect(find.text('Choose Your Plan'), findsNothing);
+      expect(find.text('CONTINUE'), findsNothing);
+      expect(find.textContaining(r'$'), findsNothing);
+      expect(serviceCreations, 0);
+      expect(service.initCalls, 0);
     });
 
-    testWidgets('shows correct price for each plan', (tester) async {
-      await tester.pumpWidget(_wrap(const PremiumScreen()));
-      await tester.pumpAndSettle();
+    testWidgets('restore initializes IAP only after the explicit tap',
+        (tester) async {
+      var serviceCreations = 0;
+      final service = _FakeIapService(const IapState(status: IapStatus.ready));
+      addTearDown(service.dispose);
 
-      expect(find.text('\$0'), findsOneWidget);
-      expect(find.text('\$4.99'), findsOneWidget);
-      expect(find.text('\$29.99'), findsOneWidget);
-      expect(find.text('\$49.99'), findsOneWidget);
+      await tester.pumpWidget(_wrap(
+        availability: _availability(salesEnabled: false),
+        service: service,
+        onServiceCreated: () => serviceCreations++,
+      ));
+      await tester.pump();
+
+      expect(serviceCreations, 0);
+      await tester.tap(find.text('Restore Purchases'));
+      await tester.pump();
+
+      expect(serviceCreations, 1);
+      expect(service.initCalls, 1);
+      expect(service.restoreCalls, 1);
     });
 
-    testWidgets('shows popular badge on monthly', (tester) async {
-      await tester.pumpWidget(_wrap(const PremiumScreen()));
-      await tester.pumpAndSettle();
+    testWidgets('restore action is absent when the platform disables it',
+        (tester) async {
+      var serviceCreations = 0;
+      final service = _FakeIapService(const IapState(status: IapStatus.ready));
+      addTearDown(service.dispose);
 
-      expect(find.text('★ POPULAR'), findsOneWidget);
+      await tester.pumpWidget(_wrap(
+        availability: _availability(
+          salesEnabled: false,
+          restoreEnabled: false,
+        ),
+        service: service,
+        onServiceCreated: () => serviceCreations++,
+      ));
+      await tester.pump();
+
+      expect(find.text('Restore Purchases'), findsNothing);
+      expect(serviceCreations, 0);
     });
 
-    testWidgets('shows best value badge on annual', (tester) async {
-      await tester.pumpWidget(_wrap(const PremiumScreen()));
+    testWidgets('sales mode renders only actual store products',
+        (tester) async {
+      var serviceCreations = 0;
+      final service = _FakeIapService(IapState(
+        status: IapStatus.ready,
+        products: [
+          _product(
+            id: TzProducts.monthly,
+            title: 'Store Monthly',
+            description: 'Localized store description',
+            price: r'$7.31',
+            rawPrice: 7.31,
+          ),
+        ],
+      ));
+      addTearDown(service.dispose);
+
+      await tester.pumpWidget(_wrap(
+        availability: _availability(salesEnabled: true),
+        service: service,
+        onServiceCreated: () => serviceCreations++,
+      ));
       await tester.pumpAndSettle();
 
-      expect(find.text('BEST VALUE — Save 50%'), findsOneWidget);
+      expect(serviceCreations, 1);
+      expect(find.text('Store Monthly'), findsOneWidget);
+      expect(find.text(r'$7.31'), findsOneWidget);
+      expect(find.text('Localized store description'), findsOneWidget);
+      expect(find.text('MONTHLY'), findsNothing);
+      expect(find.text('ANNUAL'), findsNothing);
+      expect(find.text('LIFETIME'), findsNothing);
+      expect(find.text(r'$4.99'), findsNothing);
+      expect(find.text(r'$29.99'), findsNothing);
+      expect(find.text(r'$49.99'), findsNothing);
+      expect(find.text('★ POPULAR'), findsNothing);
     });
 
-    testWidgets('shows pay once badge on lifetime', (tester) async {
-      await tester.pumpWidget(_wrap(const PremiumScreen()));
+    testWidgets('sales mode with no products exposes no purchase CTA',
+        (tester) async {
+      final service = _FakeIapService(const IapState(
+        status: IapStatus.ready,
+        products: [],
+      ));
+      addTearDown(service.dispose);
+
+      await tester.pumpWidget(_wrap(
+        availability: _availability(salesEnabled: true),
+        service: service,
+        onServiceCreated: () {},
+      ));
       await tester.pumpAndSettle();
 
-      expect(find.text('PAY ONCE'), findsOneWidget);
+      expect(
+        find.text(
+          'Purchases are temporarily unavailable. '
+          'No store products are currently offered.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('SELECT A PLAN'), findsNothing);
+      expect(find.text('CONTINUE'), findsNothing);
+      expect(find.textContaining(r'$'), findsNothing);
     });
 
-    testWidgets('shows restore purchases', (tester) async {
-      await tester.pumpWidget(_wrap(const PremiumScreen()));
+    testWidgets('purchase uses the selected real product id', (tester) async {
+      final service = _FakeIapService(IapState(
+        status: IapStatus.ready,
+        products: [
+          _product(
+            id: TzProducts.lifetime,
+            title: 'Store Lifetime',
+            description: '',
+            price: '€41.00',
+            rawPrice: 41,
+          ),
+        ],
+      ));
+      addTearDown(service.dispose);
+
+      await tester.pumpWidget(_wrap(
+        availability: _availability(salesEnabled: true),
+        service: service,
+        onServiceCreated: () {},
+      ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Restore Purchases'), findsOneWidget);
-    });
+      await tester.tap(find.text('Store Lifetime'));
+      await tester.pump();
+      await tester.tap(find.text('CONTINUE'));
+      await tester.pump();
 
-    testWidgets('free plan features listed', (tester) async {
-      await tester.pumpWidget(_wrap(const PremiumScreen()));
-      await tester.pumpAndSettle();
-
-      expect(find.text('10 puzzles/day'), findsOneWidget);
-      expect(find.text('Mistakes free forever'), findsOneWidget);
-    });
-
-    testWidgets('unlimited feature in paid plans', (tester) async {
-      await tester.pumpWidget(_wrap(const PremiumScreen()));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Unlimited puzzles'), findsOneWidget);
-    });
-
-    testWidgets('footer lists what all plans include', (tester) async {
-      await tester.pumpWidget(_wrap(const PremiumScreen()));
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('All paid plans include:'), findsOneWidget);
+      expect(service.purchaseIds, [TzProducts.lifetime]);
     });
   });
 }

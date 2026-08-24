@@ -2,21 +2,9 @@
 ///
 /// Tests the complete flow: hearts consume → daily challenge → battle report,
 /// onboarding display, and home screen rendering. Uses real Hive + providers.
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:tilezhan/core/hearts/heart_provider.dart';
 import 'package:tilezhan/core/hearts/heart_service.dart';
-import 'package:tilezhan/core/iap/iap_provider.dart';
-import 'package:tilezhan/core/iap/iap_service.dart';
-import 'package:tilezhan/features/home/presentation/home_screen.dart';
-
-/// Helper: pump enough frames to settle shimmer/repeat animations.
-Future<void> _settle(WidgetTester t) async {
-  for (int i = 0; i < 10; i++) await t.pump(const Duration(milliseconds: 300));
-}
 
 void main() {
   setUpAll(() async {
@@ -26,7 +14,8 @@ void main() {
   });
 
   group('Hearts drain (full cycle)', () {
-    testWidgets('hearts go 10→0 with consume, daily challenge consumed first', (tester) async {
+    testWidgets('hearts go 10→0 with consume, daily challenge consumed first',
+        (tester) async {
       final heart = HeartService();
       await heart.init();
 
@@ -59,7 +48,6 @@ void main() {
       expect(heart.consume(), isFalse);
       expect(heart.hearts, 0);
     });
-
   });
 
   group('Combo tracking', () {

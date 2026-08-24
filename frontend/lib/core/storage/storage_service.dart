@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -26,6 +27,10 @@ class StorageService {
   /// 标记是否已完成初始化。
   /// [init] 调用后将置为 `true`，防止未初始化时的误读写。
   bool _init = false;
+
+  /// Per-key serialization keeps concurrent callers from sharing one staging
+  /// file while allowing unrelated JSON keys to continue writing in parallel.
+  final Map<String, Future<void>> _writeQueues = {};
 
   // 私有构造函数，强制通过 [init] 工厂方法获取实例。
   StorageService._();
@@ -54,6 +59,10 @@ class StorageService {
   /// 文件路径为 `{_dir.path}/{key}.json`。
   File _file(String key) => File('${_dir.path}/$key.json');
 
+  File _backupFile(String key) => File('${_dir.path}/$key.json.bak');
+
+  File _temporaryFile(String key) => File('${_dir.path}/$key.json.tmp');
+
   // ── 简单值存取（统一存储在 prefs.json 中）──
 
   /// 读取存储在 [key] 下的 int 值，不存在时返回 `0`。
@@ -62,6 +71,16 @@ class StorageService {
   int getInt(String key) {
     final all = _readJson('prefs');
     return all[key] as int? ?? 0;
+  }
+
+  /// 读取存储在 [key] 下的 int 值，不存在或类型不匹配时返回 `null`。
+  ///
+  /// 与 [getInt] 不同，此方法可以区分“尚未保存”和显式保存的 `0`。
+  /// 现有调用方继续使用 [getInt] 时，其缺省为 `0` 的语义保持不变。
+  int? getIntOrNull(String key) {
+    final all = _readJson('prefs');
+    final value = all[key];
+    return value is int ? value : null;
   }
 
   /// 将 int [value] 持久化到 [key] 下，写入 `prefs.json`。
@@ -118,13 +137,28 @@ class StorageService {
     // 未初始化时直接返回空 Map，防止空指针
     if (!_init) return {};
     try {
-      final f = _file(key);
-      // 文件不存在时返回空 Map，而非抛异常
-      if (!f.existsSync()) return {};
-      // 同步读取并解码 JSON
-      return jsonDecode(f.readAsStringSync()) as Map<String, dynamic>;
+      final target = _file(key);
+      final primary = _tryReadJsonFile(
+        target,
+        key: key,
+        role: 'target',
+      );
+      if (primary != null) return primary;
+
+      // A valid .bak is a previously committed target. A .tmp is only staged
+      // data and is deliberately never considered readable/committed.
+      final backup = _tryReadJsonFile(
+        _backupFile(key),
+        key: key,
+        role: 'backup',
+      );
+      if (backup != null) {
+        debugPrint('StorageService recovered backup ($key)');
+        return backup;
+      }
+      return {};
     } catch (e) {
-      print('StorageService read error ($key): $e');
+      debugPrint('StorageService read error ($key): $e');
       return {};
     }
   }
@@ -134,21 +168,112 @@ class StorageService {
   /// 未初始化时直接返回（不执行任何 I/O）。
   /// 写入失败时静默吞下异常——调用方无需处理 I/O 错误，
   /// 下次读取时会自然退回到默认值。
-  Future<void> _writeJson(String key, Map<String, dynamic> value) async {
+  Future<void> _writeJson(String key, Map<String, dynamic> value) {
     // 未初始化时跳过写入，避免空指针
-    if (!_init) return;
+    if (!_init) return Future<void>.value();
+
+    late final String encoded;
     try {
-      final f = _file(key);
-      // 异步写入：将 Map 编码为 JSON 字符串后落盘
-      await f.writeAsString(jsonEncode(value));
+      // Capture the same call-time snapshot as the old direct write did.
+      encoded = jsonEncode(value);
     } catch (e) {
-      print('StorageService write error ($key): $e');
+      debugPrint('StorageService write error ($key): $e');
+      return Future<void>.value();
+    }
+
+    final previous = _writeQueues[key] ?? Future<void>.value();
+    late final Future<void> queued;
+    queued = previous.then((_) async {
+      try {
+        await _commitJson(key, encoded);
+      } catch (e) {
+        // Preserve the existing best-effort public API. Higher-level stores
+        // that need a strict contract perform write-after-read verification.
+        debugPrint('StorageService write error ($key): $e');
+      }
+    }).whenComplete(() {
+      if (identical(_writeQueues[key], queued)) {
+        _writeQueues.remove(key);
+      }
+    });
+    _writeQueues[key] = queued;
+    return queued;
+  }
+
+  Future<void> _commitJson(String key, String encoded) async {
+    final target = _file(key);
+    final backup = _backupFile(key);
+    final temporary = _temporaryFile(key);
+
+    try {
+      // Staging in the same directory keeps the final rename on one volume.
+      // flush:true forces bytes through the file-system boundary before the
+      // previously committed target is moved aside.
+      await temporary.writeAsString(encoded, flush: true);
+      if (await temporary.readAsString() != encoded) {
+        throw StateError('JSON staging verification failed');
+      }
+
+      if (await target.exists()) {
+        final current = _tryReadJsonFile(
+          target,
+          key: key,
+          role: 'target',
+          reportErrors: false,
+        );
+        if (current != null) {
+          // File.rename replaces an existing file on supported Dart platforms.
+          // If the process stops after this step, reads recover from .bak.
+          await target.rename(backup.path);
+        }
+      }
+
+      // A same-directory rename is the commit point. It replaces a corrupt
+      // target but never promotes a stale .tmp during reads.
+      await temporary.rename(target.path);
+    } finally {
+      // Normal failures should not leave staged data around. A real process
+      // interruption may leave .tmp, which reads intentionally ignore.
+      try {
+        if (await temporary.exists()) await temporary.delete();
+      } catch (_) {
+        // Best-effort cleanup; target/backup remain authoritative.
+      }
+    }
+  }
+
+  Map<String, dynamic>? _tryReadJsonFile(
+    File file, {
+    required String key,
+    required String role,
+    bool reportErrors = true,
+  }) {
+    if (!file.existsSync()) return null;
+    try {
+      final decoded = jsonDecode(file.readAsStringSync());
+      if (decoded is! Map) {
+        throw const FormatException('Expected a JSON object');
+      }
+      return Map<String, dynamic>.from(decoded);
+    } catch (e) {
+      if (reportErrors) {
+        debugPrint('StorageService $role read error ($key): $e');
+      }
+      return null;
     }
   }
 
   /// SRS 条目 JSON 存储的 key 常量。
   /// 对应的磁盘文件为 `srs_items.json`。
   static const kSrsItems = 'srs_items';
+
+  /// 何切技能熟练度 JSON 存储的 key 常量。
+  /// 对应的磁盘文件为 `nanikiru_skill_mastery_v1.json`。
+  static const kNanikiruSkillMasteryV1 = 'nanikiru_skill_mastery_v1';
+
+  /// 当日训练计划与连续学习记录的 JSON 存储 key。
+  /// 对应的磁盘文件为 `daily_training_plan_v1.json`。
+  static const kDailyTrainingPlanV1 = 'daily_training_plan_v1';
 
   /// 心数 / 体力状态 int 存储的 key 常量。
   /// 存储在 `prefs.json` 中的 `hearts` 字段。

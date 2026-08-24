@@ -148,6 +148,12 @@ class SrsItem {
   /// 默认值 0 表示从未被复习过（新创建）。
   final int lastReviewedAt;
 
+  /// 可选的学习内容快照。
+  ///
+  /// 闪卡通常无需保存（itemId 即牌 ID）；何切题会保存完整题面，使错题本
+  /// 能精准恢复原手牌，而不是只按“正确舍牌”随机生成另一道题。
+  final Map<String, dynamic>? content;
+
   // =========================================================================
   // 构造函数
   // =========================================================================
@@ -186,6 +192,7 @@ class SrsItem {
     this.errors = 0,
     this.createdAt = 0,
     this.lastReviewedAt = 0,
+    this.content,
   });
 
   // =========================================================================
@@ -281,20 +288,28 @@ class SrsItem {
   /// 此开销可忽略不计。若需批量更新数百个条目，考虑使用 `List.map` + `copyWith`
   /// 的组合而非手动循环。
   SrsItem copyWith({
-    double? ef, int? reps, int? interval, int? nextReviewAt,
-    int? errors, int? createdAt, int? lastReviewedAt,
-  }) => SrsItem(
-    // itemId 和 type 不可变，直接沿用
-    itemId: itemId, type: type,
-    // 各字段：传入值 ?? 当前值（null 表示不覆盖）
-    ef: ef ?? this.ef,
-    reps: reps ?? this.reps,
-    interval: interval ?? this.interval,
-    nextReviewAt: nextReviewAt ?? this.nextReviewAt,
-    errors: errors ?? this.errors,
-    createdAt: createdAt ?? this.createdAt,
-    lastReviewedAt: lastReviewedAt ?? this.lastReviewedAt,
-  );
+    double? ef,
+    int? reps,
+    int? interval,
+    int? nextReviewAt,
+    int? errors,
+    int? createdAt,
+    int? lastReviewedAt,
+    Map<String, dynamic>? content,
+  }) =>
+      SrsItem(
+        // itemId 和 type 不可变，直接沿用
+        itemId: itemId, type: type,
+        // 各字段：传入值 ?? 当前值（null 表示不覆盖）
+        ef: ef ?? this.ef,
+        reps: reps ?? this.reps,
+        interval: interval ?? this.interval,
+        nextReviewAt: nextReviewAt ?? this.nextReviewAt,
+        errors: errors ?? this.errors,
+        createdAt: createdAt ?? this.createdAt,
+        lastReviewedAt: lastReviewedAt ?? this.lastReviewedAt,
+        content: content ?? this.content,
+      );
 
   // =========================================================================
   // 序列化
@@ -321,18 +336,19 @@ class SrsItem {
   /// - **SQLite**：将 Map 各字段映射到列，或整体 JSON 存入 TEXT 列。
   /// - **网络同步**：作为 API 请求/响应的 body 数据。
   Map<String, dynamic> toJson() => {
-    // 字符串字段：原样序列化
-    'itemId': itemId,
-    'type': type,
-    // 数值字段：int → JSON number, double → JSON number（自动兼容）
-    'ef': ef,
-    'reps': reps,
-    'interval': interval,
-    'nextReviewAt': nextReviewAt,
-    'errors': errors,
-    'createdAt': createdAt,
-    'lastReviewedAt': lastReviewedAt,
-  };
+        // 字符串字段：原样序列化
+        'itemId': itemId,
+        'type': type,
+        // 数值字段：int → JSON number, double → JSON number（自动兼容）
+        'ef': ef,
+        'reps': reps,
+        'interval': interval,
+        'nextReviewAt': nextReviewAt,
+        'errors': errors,
+        'createdAt': createdAt,
+        'lastReviewedAt': lastReviewedAt,
+        if (content != null) 'content': content,
+      };
 
   /// 从 JSON 兼容的 [Map] 对象反序列化构造一个 [SrsItem] 实例。
   ///
@@ -363,23 +379,26 @@ class SrsItem {
   /// ## 返回值
   /// 新创建的 [SrsItem] 实例，所有字段均被填充（来自 Map 或默认值）。
   factory SrsItem.fromJson(Map<String, dynamic> j) => SrsItem(
-    // itemId：必填字段，若缺失则置 null（由 SrsItem 构造函数的 required 校验捕获）
-    itemId: j['itemId'],
-    // type：可选字段，缺失时默认 'flashcard'（向后兼容仅闪卡版本的旧存储数据）
-    type: j['type'] ?? 'flashcard',
-    // ef：三层安全转型链——取 Map 值 → as num?（安全转型） → toDouble → 兜底 2.5
-    ef: (j['ef'] as num?)?.toDouble() ?? 2.5,
-    // reps：可选 int，缺失时默认 0（视为新条目）
-    reps: j['reps'] ?? 0,
-    // interval：可选 int，缺失时默认 1（首次复习间隔 1 天）
-    interval: j['interval'] ?? 1,
-    // nextReviewAt：可选 int，缺失时默认 0（未安排复习，调度器视为立即可复习）
-    nextReviewAt: j['nextReviewAt'] ?? 0,
-    // errors：可选 int，缺失时默认 0（无错误记录）
-    errors: j['errors'] ?? 0,
-    // createdAt：可选 int，缺失时默认 0（创建时间未知）
-    createdAt: j['createdAt'] ?? 0,
-    // lastReviewedAt：可选 int，缺失时默认 0（从未被复习）
-    lastReviewedAt: j['lastReviewedAt'] ?? 0,
-  );
+        // itemId：必填字段，若缺失则置 null（由 SrsItem 构造函数的 required 校验捕获）
+        itemId: j['itemId'],
+        // type：可选字段，缺失时默认 'flashcard'（向后兼容仅闪卡版本的旧存储数据）
+        type: j['type'] ?? 'flashcard',
+        // ef：三层安全转型链——取 Map 值 → as num?（安全转型） → toDouble → 兜底 2.5
+        ef: (j['ef'] as num?)?.toDouble() ?? 2.5,
+        // reps：可选 int，缺失时默认 0（视为新条目）
+        reps: j['reps'] ?? 0,
+        // interval：可选 int，缺失时默认 1（首次复习间隔 1 天）
+        interval: j['interval'] ?? 1,
+        // nextReviewAt：可选 int，缺失时默认 0（未安排复习，调度器视为立即可复习）
+        nextReviewAt: j['nextReviewAt'] ?? 0,
+        // errors：可选 int，缺失时默认 0（无错误记录）
+        errors: j['errors'] ?? 0,
+        // createdAt：可选 int，缺失时默认 0（创建时间未知）
+        createdAt: j['createdAt'] ?? 0,
+        // lastReviewedAt：可选 int，缺失时默认 0（从未被复习）
+        lastReviewedAt: j['lastReviewedAt'] ?? 0,
+        content: j['content'] is Map
+            ? Map<String, dynamic>.from(j['content'] as Map)
+            : null,
+      );
 }

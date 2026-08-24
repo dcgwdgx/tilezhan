@@ -103,7 +103,8 @@ async def test_ukeire_returns_dict(client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_ukeire_too_few_tiles(client, auth_headers):
-    response = await client.post("/api/v1/mahjong/ukeire", json={"tiles": ["m1"]*13}, headers=auth_headers)
+    hand = ["m1", "m2", "m3", "m4", "m5", "m6", "p2", "p3", "p4", "p5", "p6", "s1", "s1"]
+    response = await client.post("/api/v1/mahjong/ukeire", json={"tiles": hand}, headers=auth_headers)
     assert response.status_code == 400
 
 

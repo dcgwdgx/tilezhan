@@ -1,7 +1,7 @@
 /// 闪卡答题屏幕 — 牌面识别 + SRS 间隔重复。
 ///
 /// 显示一张麻雀牌，用户回答后正确/错误反馈、连击动画、
-/// 计费逻辑：每日挑战优先免费，其次扣心，心耗尽弹战绩窗口。
+/// 普通训练答错消耗爱心；精准错题复习不消耗爱心。
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -19,11 +19,13 @@ import '../../../core/hearts/heart_provider.dart';
 import '../../../core/iap/iap_provider.dart';
 import '../../../shared/models/tile_model.dart';
 import '../../../shared/widgets/tz_battle_report.dart';
-import '../../../shared/widgets/tz_combo_promo.dart';
 import '../../../shared/widgets/tz_countdown_ring.dart';
 import '../../../shared/widgets/tz_progress_bar.dart';
 import '../../../shared/widgets/tz_pulse_painter.dart';
 import '../../leaderboard/domain/leaderboard_service.dart';
+import '../../training_plan/data/training_progress_persistence.dart';
+import '../../training_plan/data/training_plan_store.dart';
+import '../../training_plan/domain/training_plan.dart';
 import '../domain/flashcard_provider.dart';
 
 /// 闪卡答题屏幕入口 Widget。
@@ -31,7 +33,16 @@ import '../domain/flashcard_provider.dart';
 /// 接受可选 [suite] 参数过滤花色（如 'man', 'pin', 'sou', 'honor'），默认为 'all' 全部。
 class FlashcardScreen extends ConsumerStatefulWidget {
   final String suite; // 花色过滤参数：'all' | 'man' | 'pin' | 'sou' | 'honor'
-  const FlashcardScreen({super.key, this.suite = 'all'});
+  final String? reviewCardId;
+  final int? planTarget;
+  final bool requirePlanProgressForTarget;
+  const FlashcardScreen({
+    super.key,
+    this.suite = 'all',
+    this.reviewCardId,
+    this.planTarget,
+    this.requirePlanProgressForTarget = false,
+  });
 
   @override
   ConsumerState<FlashcardScreen> createState() => _FlashcardScreenState();
@@ -44,23 +55,56 @@ class FlashcardScreen extends ConsumerStatefulWidget {
 class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     with SingleTickerProviderStateMixin {
   Timer? _countdownTimer; // 倒计时定时器，每 50ms 滴答一次
+  Timer? _autoAdvanceTimer; // 正确答案 800ms 后的自动推进，可被手动关闭取消
+  Timer? _nextCardTimer; // 助记关闭动画后的 150ms 切题定时器
   double _countdownValue = 8.0; // 当前倒计时剩余秒数（8.0 → 0.0）
   late AnimationController _feedbackCtrl; // 答题反馈动画控制器（正确 pulse / 成功条滑入）
   static const _totalTime = 8.0; // 每题总倒计时时长（秒）
+  bool get _isReview => widget.reviewCardId != null;
+  late final String _trainingSessionId;
+  late final String _trainingSessionDateKey;
+  int _trainingEventIndex = 0;
+  int _trainingAttempts = 0;
+  bool _planContextChanged = false;
+  int _answerSequence = 0;
+  int? _claimedAdvanceSequence;
+  bool _hasUnflushedProgress = false;
+  bool _savingProgress = false;
+  void Function()? _pendingExactReviewSrsMutation;
+  bool _allowPop = false;
+  bool get _planTargetReached =>
+      _planContextChanged ||
+      (widget.planTarget != null && _trainingAttempts >= widget.planTarget!);
 
   @override
   void initState() {
     super.initState();
+    _trainingSessionId = DateTime.now().microsecondsSinceEpoch.toString();
+    _trainingSessionDateKey = trainingDateKey(DateTime.now());
     // 初始化答题反馈动画控制器，1000ms 周期驱动 pulse 与 success bar 动画
-    _feedbackCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
+    _feedbackCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1000));
     // 微任务延迟初始化：确保 Widget 树构建完成后才开始 quiz 逻辑
-    Future.microtask(() {
+    Future.microtask(() async {
+      if (!mounted) return;
       // 免费用户体力/每日挑战耗尽时弹窗，不开始 quiz
-      if (!ref.read(canPlayProvider)) {
+      if (!_isReview && !ref.read(canPlayProvider)) {
         _maybeShowBattleReport();
         return;
       }
-      ref.read(flashcardQuizProvider.notifier).initQuiz(suite: widget.suite);
+      try {
+        await ref.read(flashcardQuizProvider.notifier).initQuiz(
+              suite: widget.suite,
+              reviewCardId: widget.reviewCardId,
+            );
+      } on ArgumentError {
+        if (!mounted) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/');
+        }
+      }
     });
   }
 
@@ -68,6 +112,8 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   void dispose() {
     // 释放定时器与动画控制器资源，防止内存泄漏
     _countdownTimer?.cancel();
+    _autoAdvanceTimer?.cancel();
+    _nextCardTimer?.cancel();
     _feedbackCtrl.dispose();
     super.dispose();
   }
@@ -110,23 +156,50 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   // 倒计时超时处理：播放错误音效 → 提交错误答案 → SRS 记录（质量 0）→ 展示助记 → 体力服务记错。
   // 超时不扣心，但归零连斩并进错题池。
   void _handleTimeout() {
+    final quiz = ref.read(flashcardQuizProvider);
+    if (_gameOver || quiz.isAnswering) return;
+    _beginAnswerAdvance();
+    final tileId = quiz.currentTile?.id;
     AudioService.playWrong();
-    ref.read(flashcardQuizProvider.notifier).submitAnswer(false);
-    _recordSrs(0); // 质量分 0 = 完全遗忘，SRS 间隔重置为最短
+    AnalyticsService.answered('flashcard', false);
+    ref.read(flashcardQuizProvider.notifier).submitTimeout();
+    if (tileId != null) {
+      _recordAcceptedProgress(tileId: tileId, quality: 0);
+    }
     _showMnemonic();
     final hearts = ref.read(heartServiceProvider);
     hearts.recordWrong();
-    ref.read(eloProvider.notifier).recordResult(isCorrect: false, isSkip: false);
-    final name = ref.read(playerNameProvider);
-    LeaderboardService.reportScore(name: name, elo: ref.read(eloProvider), streak: hearts.allTimeCombo);
+    if (!_isReview) {
+      ref
+          .read(eloProvider.notifier)
+          .recordResult(isCorrect: false, isSkip: false);
+      if (ref.read(trainingAccessProvider).shouldConsumeHearts) {
+        _gameOver = hearts.consume();
+      }
+      final name = ref.read(playerNameProvider);
+      if (name.isNotEmpty) {
+        LeaderboardService.reportScore(
+          name: name,
+          elo: ref.read(eloProvider),
+          streak: hearts.allTimeCombo,
+        );
+      }
+    }
   }
 
   /// 回答提交后的流程：录战绩 → 扣体力 → 弹促销/战绩窗口。
   ///
   /// 费用逻辑：每日挑战 3 题免费 → 心数消耗 → 心耗尽弹窗。
   /// 错误回答不耗心（进错题池），但会归零连斩。
-  void _handleAnswer(bool isCorrect) {
-    if (_gameOver) return; // 心已耗尽，禁止继续答题
+  void _handleAnswer(String selectedTileId) {
+    final quiz = ref.read(flashcardQuizProvider);
+    if (_gameOver || quiz.isAnswering) return;
+    final answerSequence = _beginAnswerAdvance();
+    final questionIndex = quiz.currentIndex;
+    final tileId = quiz.currentTile?.id;
+    final isCorrect = ref
+        .read(flashcardQuizProvider.notifier)
+        .submitSelection(selectedTileId);
     AnalyticsService.answered('flashcard', isCorrect);
     _feedbackCtrl.forward(from: 0);
     final hearts = ref.read(heartServiceProvider);
@@ -134,39 +207,46 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     if (isCorrect) {
       AudioService.playCorrect();
       hearts.recordCorrect(); // 更新战绩 + 全时连斩 +1
-      ref.read(eloProvider.notifier).recordResult(isCorrect: true, isSkip: false);
-
-      // ── 心数消耗流程（二级计费）──
-      // 第一级：每日挑战（每日 3 题免费额度），优先消耗
-      // 第二级：心数（IAP 购买或奖励获取），每日挑战耗尽后使用
-      bool depleted = false;
-      if (!hearts.useDailyChallenge()) {
-        // 每日挑战额度已用完 → 消耗 1 颗心
-        depleted = hearts.consume();
-      }
-      if (depleted) {
-        // 心已耗尽 → 封锁后续答题 + 弹出战绩/购买窗口
-        _gameOver = true;
-        _maybeShowBattleReport();
-      }
     } else {
       AudioService.playWrong();
-      hearts.recordWrong(); // 错误不耗心，但归零连斩
-      ref.read(eloProvider.notifier).recordResult(isCorrect: false, isSkip: false);
+      hearts.recordWrong();
     }
 
-    // Report ELO to leaderboard with consent
-    final name = ref.read(playerNameProvider);
-    final elo = ref.read(eloProvider);
-    LeaderboardService.reportScore(name: name, elo: elo, streak: hearts.allTimeCombo);
+    if (!_isReview) {
+      ref.read(eloProvider.notifier).recordResult(
+            isCorrect: isCorrect,
+            isSkip: false,
+          );
+      if (!isCorrect && ref.read(trainingAccessProvider).shouldConsumeHearts) {
+        _gameOver = hearts.consume();
+      }
+      final name = ref.read(playerNameProvider);
+      if (name.isNotEmpty) {
+        LeaderboardService.reportScore(
+          name: name,
+          elo: ref.read(eloProvider),
+          streak: hearts.allTimeCombo,
+        );
+      }
+    }
 
-    ref.read(flashcardQuizProvider.notifier).submitAnswer(isCorrect);
-    _recordSrs(isCorrect ? 4 : 1); // 正确=质量分4，错误=质量分1
+    if (tileId != null) {
+      _recordAcceptedProgress(
+        tileId: tileId,
+        quality: isCorrect ? 4 : 1,
+      );
+    }
     _countdownTimer?.cancel(); // 答题后立即停止倒计时
     if (isCorrect) {
       // 正确：延迟 800ms 后自动隐藏助记并切换到下一题
-      Future.delayed(const Duration(milliseconds: 800), () {
-        if (mounted) _hideMnemonic();
+      _autoAdvanceTimer = Timer(const Duration(milliseconds: 800), () {
+        _autoAdvanceTimer = null;
+        if (!mounted) return;
+        _hideMnemonic(
+          expectedAnswerSequence: answerSequence,
+          expectedQuestionIndex: questionIndex,
+          expectedTileId: tileId,
+        );
       });
     } else {
       // 错误：立即展示助记卡片，用户需手动关闭
@@ -177,8 +257,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
 
   /// 弹战绩分享窗口。关闭后留在本页——gate 封堵不让答题。
   void _maybeShowBattleReport() {
-    final isPremium = ref.read(isPremiumProvider);
-    if (isPremium) return;
+    if (!ref.read(trainingAccessProvider).shouldConsumeHearts) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -190,10 +269,111 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   // 向 SRS（间隔重复系统）记录本次答题质量分。
   // quality: 0-5，正确=4，错误=1，超时=0。
   // SRS 根据质量分自动计算下次复习间隔。
-  void _recordSrs(int quality) {
-    final tile = ref.read(flashcardQuizProvider).currentTile;
-    if (tile == null) return;
-    ref.read(srsNotifierProvider.notifier).recordReview(tile.id, 'flashcard', quality);
+  void _recordSrs(String tileId, int quality) {
+    ref
+        .read(srsNotifierProvider.notifier)
+        .recordReview(tileId, 'flashcard', quality);
+  }
+
+  void _recordAcceptedProgress({
+    required String tileId,
+    required int quality,
+  }) {
+    if (_isReview) {
+      _pendingExactReviewSrsMutation = () => _recordSrs(tileId, quality);
+    } else {
+      _recordSrs(tileId, quality);
+    }
+    _recordTrainingAttempt(tileId);
+    _hasUnflushedProgress = true;
+  }
+
+  Future<bool> _flushAcceptedProgress() async {
+    if (!_hasUnflushedProgress) return true;
+    if (_savingProgress) return false;
+
+    _savingProgress = true;
+    try {
+      final pendingExactReview = _pendingExactReviewSrsMutation;
+      if (pendingExactReview != null) {
+        await ref.read(dailyTrainingPlanProvider.notifier).flush();
+        pendingExactReview();
+        _pendingExactReviewSrsMutation = null;
+      }
+      await ref.read(trainingProgressPersistenceProvider).flush();
+      _hasUnflushedProgress = false;
+      return true;
+    } on Object {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(l10n.trainingSaveError)));
+      }
+      return false;
+    } finally {
+      _savingProgress = false;
+    }
+  }
+
+  Future<void> _closeScreen() async {
+    if (!await _flushAcceptedProgress() || !mounted) return;
+    _leaveScreen();
+  }
+
+  Future<void> _finishReview() async {
+    _cancelTimer();
+    if (!await _flushAcceptedProgress() || !mounted) return;
+    _leaveScreen(true);
+  }
+
+  void _leaveScreen([Object? result]) {
+    if (!mounted) return;
+    if (!context.canPop()) {
+      context.go('/');
+      return;
+    }
+    setState(() => _allowPop = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (context.canPop()) {
+        context.pop(result);
+      } else {
+        context.go('/');
+      }
+    });
+  }
+
+  Widget _withProgressPopGuard(Widget child) {
+    return PopScope<Object?>(
+      canPop: _allowPop || !_hasUnflushedProgress,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _closeScreen();
+      },
+      child: child,
+    );
+  }
+
+  void _recordTrainingAttempt(String tileId) {
+    final now = DateTime.now();
+    final occurredAt = now.millisecondsSinceEpoch;
+    if (widget.requirePlanProgressForTarget &&
+        trainingDateKey(now) != _trainingSessionDateKey) {
+      _planContextChanged = true;
+    }
+    final planAdvanced =
+        ref.read(dailyTrainingPlanProvider.notifier).recordAcceptedAttempt(
+              TrainingAttemptEvent(
+                eventId:
+                    'flashcard:$_trainingSessionId:${_trainingEventIndex++}:$tileId',
+                module: TrainingModule.flashcard,
+                occurredAt: occurredAt,
+                isReview: _isReview,
+              ),
+            );
+    if (!widget.requirePlanProgressForTarget || planAdvanced) {
+      _trainingAttempts += 1;
+    }
   }
 
   // 显示当前牌面的助记卡片覆盖层。
@@ -203,14 +383,67 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     setState(() {});
   }
 
+  int _beginAnswerAdvance() {
+    _autoAdvanceTimer?.cancel();
+    _autoAdvanceTimer = null;
+    _nextCardTimer?.cancel();
+    _nextCardTimer = null;
+    _claimedAdvanceSequence = null;
+    return ++_answerSequence;
+  }
+
   // 关闭助记覆盖层 → 重启倒计时 → 延迟 150ms 后切换到下一题。
   //
   // 分两步 [Future.delayed] 是为了让覆盖层关闭动画有时间播放，
   // 同时确保下一题的倒计时在新牌面渲染完成后才开始。
-  void _hideMnemonic() {
+  Future<void> _hideMnemonic({
+    int? expectedAnswerSequence,
+    int? expectedQuestionIndex,
+    String? expectedTileId,
+  }) async {
+    _autoAdvanceTimer?.cancel();
+    _autoAdvanceTimer = null;
+    final quiz = ref.read(flashcardQuizProvider);
+    if (expectedAnswerSequence != null &&
+        (expectedAnswerSequence != _answerSequence ||
+            expectedQuestionIndex != quiz.currentIndex ||
+            expectedTileId != quiz.currentTile?.id ||
+            !quiz.isAnswering)) {
+      return;
+    }
+    final answerSequence = _answerSequence;
+    final questionIndex = quiz.currentIndex;
+    final tileId = quiz.currentTile?.id;
+    if (_claimedAdvanceSequence == answerSequence) return;
+    if (!await _flushAcceptedProgress() || !mounted) return;
+    final currentAfterSave = ref.read(flashcardQuizProvider);
+    if (answerSequence != _answerSequence ||
+        questionIndex != currentAfterSave.currentIndex ||
+        tileId != currentAfterSave.currentTile?.id ||
+        !currentAfterSave.isAnswering ||
+        _claimedAdvanceSequence == answerSequence) {
+      return;
+    }
+    _claimedAdvanceSequence = answerSequence;
+
     ref.read(flashcardQuizProvider.notifier).hideMnemonic();
-    _startCountdown(); // 重启当前题倒计时（正确答案查看助记后可继续）
-    Future.delayed(const Duration(milliseconds: 150), () {
+    if (_gameOver) {
+      _maybeShowBattleReport();
+      return;
+    }
+    if (_planTargetReached) {
+      _leaveScreen();
+      return;
+    }
+    _nextCardTimer = Timer(const Duration(milliseconds: 150), () {
+      _nextCardTimer = null;
+      if (!mounted || answerSequence != _answerSequence) return;
+      final current = ref.read(flashcardQuizProvider);
+      if (!current.isAnswering ||
+          current.currentIndex != questionIndex ||
+          current.currentTile?.id != tileId) {
+        return;
+      }
       ref.read(flashcardQuizProvider.notifier).nextCard(); // 切换到下一张牌
       _startCountdown(); // 新题倒计时
     });
@@ -233,24 +466,24 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   // - 题库完成时：跳转完成页面
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(flashcardQuizProvider);
     final tile = state.currentTile;
 
     if (state.isFinished) {
-      return _buildFinishedScreen(state);
+      return _withProgressPopGuard(_buildFinishedScreen(state));
     }
 
     if (tile == null || state.totalCount == 0) {
       return const Scaffold(
         backgroundColor: AppColors.jadeDeep,
-        body: Center(child: CircularProgressIndicator(color: AppColors.neonGold)),
+        body:
+            Center(child: CircularProgressIndicator(color: AppColors.neonGold)),
       );
     }
 
     _startCountdownIfNeeded(); // 每次 build 时检查是否需要启动倒计时
 
-    return Scaffold(
+    return _withProgressPopGuard(Scaffold(
       backgroundColor: AppColors.jadeDeep,
       body: SafeArea(
         child: Stack(
@@ -259,7 +492,7 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
               children: [
                 _buildTopBar(state),
                 const SizedBox(height: 8),
-                _buildSuitFilter(state),
+                if (!_isReview) _buildSuitFilter(state),
                 const Spacer(),
                 _buildCountdownRing(),
                 const SizedBox(height: 16),
@@ -275,12 +508,13 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
             ),
             if (state.isShowingMnemonic) // 助记卡片全屏覆盖层
               _buildMnemonicOverlay(tile),
-            if (state.isAnswering && state.lastCorrectId != null) // 答对时底部滑入 slogan 条
+            if (state.isAnswering &&
+                state.lastCorrectId != null) // 答对时底部滑入 slogan 条
               _buildSuccessBar(tile),
           ],
         ),
       ),
-    );
+    ));
   }
 
   bool _countdownStarted = false; // 倒计时是否已启动（防止重复启动）
@@ -309,13 +543,16 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => context.pop(),
+            onTap: _closeScreen,
             child: Container(
-              width: 36, height: 36,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                color: AppColors.jadeCard, borderRadius: BorderRadius.circular(18),
+                color: AppColors.jadeCard,
+                borderRadius: BorderRadius.circular(18),
               ),
-              child: const Icon(Icons.close, color: AppColors.jadeWhiteDim, size: 20),
+              child: const Icon(Icons.close,
+                  color: AppColors.jadeWhiteDim, size: 20),
             ),
           ),
           const SizedBox(width: 12),
@@ -323,8 +560,13 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(state.suite == 'all' ? l10n.flashcardAllTiles : l10n.flashcardSuiteFormat(state.suite.toUpperCase()),
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                Text(
+                    state.suite == 'all'
+                        ? l10n.flashcardAllTiles
+                        : l10n.flashcardSuiteFormat(state.suite.toUpperCase()),
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.jadeWhite)),
                 const SizedBox(height: 4),
                 TzProgressBar(value: state.progress),
@@ -333,7 +575,9 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
           ),
           const SizedBox(width: 12),
           Text('⚡${state.currentIndex + 1}/${state.totalCount}',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
                   color: AppColors.neonGold)),
         ],
       ),
@@ -361,20 +605,31 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
-              onTap: () => ref.read(flashcardQuizProvider.notifier).initQuiz(suite: s.$1),
+              onTap: () => ref
+                  .read(flashcardQuizProvider.notifier)
+                  .initQuiz(suite: s.$1),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
-                  color: isActive ? AppColors.neonGold.withOpacity(0.15) : AppColors.jadeCard,
+                  color: isActive
+                      ? AppColors.neonGold.withOpacity(0.15)
+                      : AppColors.jadeCard,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isActive ? AppColors.neonGold.withOpacity(0.4) : Colors.transparent,
+                    color: isActive
+                        ? AppColors.neonGold.withOpacity(0.4)
+                        : Colors.transparent,
                   ),
                 ),
-                child: Text(s.$2, style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w700,
-                  color: isActive ? AppColors.neonGold : AppColors.jadeWhiteDim,
-                )),
+                child: Text(s.$2,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: isActive
+                          ? AppColors.neonGold
+                          : AppColors.jadeWhiteDim,
+                    )),
               ),
             ),
           );
@@ -405,7 +660,10 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     final assetPath = 'assets/tiles/${tile.id}.svg';
     // 缩放动画曲线：前 30% 放大到最大 1.09x，之后缓动回 1.0
     final scale = isCorrect && _feedbackCtrl.isAnimating
-        ? 1.0 + (_feedbackCtrl.value < 0.3 ? _feedbackCtrl.value * 0.3 : (1 - _feedbackCtrl.value) * 0.15)
+        ? 1.0 +
+            (_feedbackCtrl.value < 0.3
+                ? _feedbackCtrl.value * 0.3
+                : (1 - _feedbackCtrl.value) * 0.15)
         : 1.0;
     return GestureDetector(
       onTap: state.isAnswering ? _showMnemonic : null,
@@ -413,36 +671,43 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
         scale: scale,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          width: 150, height: 210,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isCorrect
-                ? const Color(0xFF2CE574) // 正确：绿色边框
-                : tile.suitColor.withOpacity(0.5), // 默认：牌面对应花色颜色
-            width: 2,
-          ),
-          boxShadow: [
-            if (isCorrect)
-              BoxShadow(color: const Color(0xFF2CE574).withOpacity(0.3), blurRadius: 24, spreadRadius: 2), // 正确：绿色光晕
-            BoxShadow(color: Colors.black54, blurRadius: 12, offset: const Offset(0, 6)), // 底部阴影增加立体感
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              SvgPicture.asset(assetPath, fit: BoxFit.contain),
-              if (isCorrect && _feedbackCtrl.isAnimating)
-                // 正确反馈：叠加金色脉冲波纹动画特效
-                CustomPaint(
-                  painter: TzPulsePainter(progress: _feedbackCtrl.value),
-                ),
+          width: 150,
+          height: 210,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isCorrect
+                  ? const Color(0xFF2CE574) // 正确：绿色边框
+                  : tile.suitColor.withOpacity(0.5), // 默认：牌面对应花色颜色
+              width: 2,
+            ),
+            boxShadow: [
+              if (isCorrect)
+                BoxShadow(
+                    color: const Color(0xFF2CE574).withOpacity(0.3),
+                    blurRadius: 24,
+                    spreadRadius: 2), // 正确：绿色光晕
+              BoxShadow(
+                  color: Colors.black54,
+                  blurRadius: 12,
+                  offset: const Offset(0, 6)), // 底部阴影增加立体感
             ],
           ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                SvgPicture.asset(assetPath, fit: BoxFit.contain),
+                if (isCorrect && _feedbackCtrl.isAnimating)
+                  // 正确反馈：叠加金色脉冲波纹动画特效
+                  CustomPaint(
+                    painter: TzPulsePainter(progress: _feedbackCtrl.value),
+                  ),
+              ],
+            ),
+          ),
         ),
-      ),
       ),
     );
   }
@@ -455,7 +720,8 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     final options = state.options;
     if (options.length != 4) {
       // Fallback: 防御性代码，正常情况下预计算选项始终为 4
-      final distractors = ref.read(flashcardQuizProvider.notifier).getDistractors(tile);
+      final distractors =
+          ref.read(flashcardQuizProvider.notifier).getDistractors(tile);
       final fallback = [...distractors, tile]..shuffle();
       return _buildOptionList(tile, state, fallback);
     }
@@ -480,13 +746,19 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
           final isCorrect = opt.id == tile.id;
           Color? bgColor; // null = 默认背景（未激活状态）
           // ── 选项高亮颜色状态机 ──
-          if (state.isAnswering && state.lastCorrectId == tile.id && isCorrect) {
+          if (state.isAnswering &&
+              state.lastCorrectId == tile.id &&
+              isCorrect) {
             // 用户答对 → 正确项标绿
             bgColor = const Color(0xFF2CE574).withOpacity(0.15);
-          } else if (state.isAnswering && state.lastWrongId != null && isCorrect) {
+          } else if (state.isAnswering &&
+              state.lastWrongId != null &&
+              isCorrect) {
             // 用户答错 → 揭示正确答案（绿色）
             bgColor = const Color(0xFF2CE574).withOpacity(0.15);
-          } else if (state.isAnswering && state.lastWrongId == opt.id && !isCorrect) {
+          } else if (state.isAnswering &&
+              state.lastWrongId == opt.id &&
+              !isCorrect) {
             // 用户答错 → 标记用户所选错误项（红色）
             bgColor = AppColors.vermillion.withOpacity(0.12);
           }
@@ -494,16 +766,19 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: GestureDetector(
-              onTap: state.isAnswering ? null : () => _handleAnswer(isCorrect),
+              onTap: state.isAnswering ? null : () => _handleAnswer(opt.id),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
                 decoration: BoxDecoration(
                   color: bgColor ?? AppColors.jadeCard,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: bgColor != null
-                        ? (isCorrect ? const Color(0xFF2CE574) : AppColors.vermillion)
+                        ? (isCorrect
+                            ? const Color(0xFF2CE574)
+                            : AppColors.vermillion)
                         : AppColors.jadeHover,
                   ),
                 ),
@@ -511,32 +786,46 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
                   children: [
                     // 选项字母圆形标识（A/B/C/D）
                     Container(
-                      width: 26, height: 26,
+                      width: 26,
+                      height: 26,
                       decoration: BoxDecoration(
                         color: bgColor != null
-                            ? (isCorrect ? const Color(0xFF2CE574) : AppColors.vermillion)
+                            ? (isCorrect
+                                ? const Color(0xFF2CE574)
+                                : AppColors.vermillion)
                             : AppColors.jadeHover,
                         shape: BoxShape.circle,
                       ),
                       child: Center(
-                        child: Text(letters[i], style: TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w700,
-                          color: bgColor != null ? Colors.white : AppColors.jadeWhite,
-                        )),
+                        child: Text(letters[i],
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: bgColor != null
+                                  ? Colors.white
+                                  : AppColors.jadeWhite,
+                            )),
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Text(opt.mnemonic.emoji, style: const TextStyle(fontSize: 20)),
+                    Text(opt.mnemonic.emoji,
+                        style: const TextStyle(fontSize: 20)),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(opt.mnemonic.name, style: TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600,
-                        color: bgColor != null ? Colors.white : AppColors.jadeWhite,
-                      )),
+                      child: Text(opt.mnemonic.name,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: bgColor != null
+                                ? Colors.white
+                                : AppColors.jadeWhite,
+                          )),
                     ),
-                    Text(opt.label, style: TextStyle(
-                      fontSize: 11, color: AppColors.jadeWhiteMuted,
-                    )),
+                    Text(opt.label,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.jadeWhiteMuted,
+                        )),
                   ],
                 ),
               ),
@@ -564,12 +853,18 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
           color = AppColors.jadeHover; // 未答题：暗灰色
         }
         return Container(
-          width: 6, height: 6,
+          width: 6,
+          height: 6,
           margin: const EdgeInsets.symmetric(horizontal: 2),
           decoration: BoxDecoration(
-            color: color, shape: BoxShape.circle,
+            color: color,
+            shape: BoxShape.circle,
             boxShadow: i == state.currentIndex
-                ? [BoxShadow(color: AppColors.neonGold.withOpacity(0.5), blurRadius: 4)]
+                ? [
+                    BoxShadow(
+                        color: AppColors.neonGold.withOpacity(0.5),
+                        blurRadius: 4)
+                  ]
                 : null,
           ),
         );
@@ -611,36 +906,53 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(pngPath, width: 280, height: 350, fit: BoxFit.contain),
+                  child: Image.asset(pngPath,
+                      width: 280, height: 350, fit: BoxFit.contain),
                 ),
                 const SizedBox(height: 16),
-                Text(tile.mnemonic.name, style: const TextStyle( // 牌名（金色大号）
-                  fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.neonGold,
-                )),
+                Text(tile.mnemonic.name,
+                    style: const TextStyle(
+                      // 牌名（金色大号）
+                      fontSize: 22, fontWeight: FontWeight.w800,
+                      color: AppColors.neonGold,
+                    )),
                 const SizedBox(height: 4),
-                Text(tile.mnemonic.slogan, style: const TextStyle( // 记忆口号
-                  fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.jadeWhite,
-                )),
+                Text(tile.mnemonic.slogan,
+                    style: const TextStyle(
+                      // 记忆口号
+                      fontSize: 15, fontWeight: FontWeight.w600,
+                      color: AppColors.jadeWhite,
+                    )),
                 const SizedBox(height: 8),
-                Text(tile.mnemonic.desc, textAlign: TextAlign.center, style: const TextStyle( // 详细描述
-                  fontSize: 13, color: AppColors.jadeWhiteDim, height: 1.6,
-                )),
+                Text(tile.mnemonic.desc,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      // 详细描述
+                      fontSize: 13, color: AppColors.jadeWhiteDim, height: 1.6,
+                    )),
                 const SizedBox(height: 8),
-                Text(tile.mnemonic.chinese, style: const TextStyle( // 中文含义（斜体）
-                  fontSize: 12, color: AppColors.jadeWhiteMuted, fontStyle: FontStyle.italic,
-                )),
+                Text(tile.mnemonic.chinese,
+                    style: const TextStyle(
+                      // 中文含义（斜体）
+                      fontSize: 12, color: AppColors.jadeWhiteMuted,
+                      fontStyle: FontStyle.italic,
+                    )),
                 const SizedBox(height: 16),
                 GestureDetector(
                   onTap: _hideMnemonic,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 14),
                     decoration: BoxDecoration(
                       color: AppColors.neonGold,
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    child: Text(l10n.flashcardGotIt, style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black,
-                    )),
+                    child: Text(l10n.flashcardGotIt,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                        )),
                   ),
                 ),
               ],
@@ -657,9 +969,12 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
   // 使用 [AnimatedSlide] + [Curves.elasticOut] 实现弹性动画效果。
   Widget _buildSuccessBar(TileModel tile) {
     return Positioned(
-      bottom: 0, left: 0, right: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
       child: AnimatedSlide(
-        offset: Offset(0, _feedbackCtrl.isAnimating ? 0 : 1), // 动画驱动时滑入（y=0），否则隐藏在屏幕下方（y=1）
+        offset: Offset(0,
+            _feedbackCtrl.isAnimating ? 0 : 1), // 动画驱动时滑入（y=0），否则隐藏在屏幕下方（y=1）
         duration: const Duration(milliseconds: 400),
         curve: Curves.elasticOut, // 弹性缓出曲线：到达终点时轻微回弹
         child: Container(
@@ -670,9 +985,12 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
             children: [
               const Text('✨', style: TextStyle(fontSize: 20)),
               const SizedBox(width: 8),
-              Text('"${tile.mnemonic.slogan}"', style: const TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white,
-              )),
+              Text('"${tile.mnemonic.slogan}"',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  )),
             ],
           ),
         ),
@@ -698,28 +1016,45 @@ class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
             children: [
               const Text('🏆', style: TextStyle(fontSize: 56)),
               const SizedBox(height: 16),
-              Text(l10n.flashcardCorrect, style: const TextStyle(
-                fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.neonGold,
-              )),
+              Text(l10n.flashcardCorrect,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.neonGold,
+                  )),
               const SizedBox(height: 8),
-              Text(l10n.flashcardFinishedStats('${state.correctCount}', '${state.wrongCount}'),
-                  style: const TextStyle(fontSize: 15, color: AppColors.jadeWhiteDim)),
+              Text(
+                  l10n.flashcardFinishedStats(
+                      '${state.correctCount}', '${state.wrongCount}'),
+                  style: const TextStyle(
+                      fontSize: 15, color: AppColors.jadeWhiteDim)),
               const SizedBox(height: 4),
               Text('${l10n.flashcardAccuracy}: $accuracy%',
-                  style: const TextStyle(fontSize: 13, color: AppColors.jadeWhiteMuted)),
+                  style: const TextStyle(
+                      fontSize: 13, color: AppColors.jadeWhiteMuted)),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
                   _cancelTimer(); // 清理残留定时器
-                  ref.read(flashcardQuizProvider.notifier).restart(); // 重置 quiz 状态
+                  if (_isReview) {
+                    _finishReview();
+                    return;
+                  }
+                  ref
+                      .read(flashcardQuizProvider.notifier)
+                      .restart(); // 重置 quiz 状态
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.neonGold,
                   foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
                 ),
-                child: Text(l10n.flashcardPlayAgain, style: const TextStyle(fontWeight: FontWeight.w700)),
+                child: Text(
+                    _isReview ? l10n.reviewFinish : l10n.flashcardPlayAgain,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
             ],
           ),
@@ -783,11 +1118,13 @@ class _PulsingHintState extends State<_PulsingHint>
             const Text('👆', style: TextStyle(fontSize: 16)),
             const SizedBox(width: 6),
             Text(AppLocalizations.of(context)!.flashcardTapHint,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.neonGold)),
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.neonGold)),
           ],
         ),
       ),
     );
   }
 }
-

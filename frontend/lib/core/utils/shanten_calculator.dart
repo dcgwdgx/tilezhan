@@ -1,243 +1,257 @@
-/// 向听数（Shanten）计算器 —— Dart 纯客户端实现。
+/// Closed-hand Japanese mahjong shanten calculator.
 ///
-/// 根据给定的 34 元素手牌计数向量，计算从当前手牌到达听牌（tenpai）所需的
-/// 最小换牌数。本模块是 `lib/core/` 统一布局下的标准实现，其他模块统一引用
-/// 此文件即可。
+/// The result follows the conventional scale:
+/// - `-1`: complete hand
+/// - `0`: tenpai
+/// - `1`: one-shanten
 ///
-/// 牌索引速查: [0-8]=万(m)1-9, [9-17]=筒(p)1-9, [18-26]=索(s)1-9, [27-33]=字(z)1-7
-///
-/// 参考设计文档: lib/core/utils/shanten_calculator.dart
+/// Tile IDs use the project-wide suit-first format (`m1`, `p5`, `s9`, `z7`).
+/// The calculator evaluates standard hands, seven pairs, and thirteen orphans.
 
-/// 幺九牌与字牌的 13 个索引，即国士無双（十三幺 / Kokushi musou）所要求的全部
-/// 牌种。
-///
-/// 具体映射: 万1(0)、万9(8)、筒1(9)、筒9(17)、索1(18)、索9(26)、
-///           字1(27) ~ 字7(33)，共 13 种。
-/// 仅用于国士無双向听数计算，标准牌型不使用此常量。
-const terminalIndices = [0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33];
+library shanten_calculator;
 
-/// 向听数计算器。
+import 'dart:collection';
+import 'dart:math' as math;
+
+/// The thirteen terminal and honor tile indices used by kokushi musou.
+const terminalIndices = [
+  0,
+  8,
+  9,
+  17,
+  18,
+  26,
+  27,
+  28,
+  29,
+  30,
+  31,
+  32,
+  33,
+];
+
+/// Exact shanten values for every closed-hand family supported by the engine.
 ///
-/// 同时支持标准牌型（4 面子 + 1 雀头）的递归回溯分解，以及国士無双特殊牌型
-/// 的专用计算。调用者须保证手牌总数为 3n、3n+1 或 3n+2 张（n 为整数），
-/// 违反此前提将导致未定义结果。
-///
-/// 使用示例:
-/// ```dart
-/// // 方式一: 直接传入 34 元素计数向量
-/// final calc = ShantenCalculator(myCounts);
-/// final shanten = calc.calculate();
-///
-/// // 方式二: 从牌 ID 字符串列表构造
-/// final calc2 = ShantenCalculator.fromIds(['m1','m1','m2','m3','p5',...]);
-/// final shanten2 = calc2.calculate();
-/// ```
+/// All values use the same conventional scale as [ShantenCalculator]: `-1` is
+/// complete, `0` is tenpai, and positive values are that many shanten away.
+class ShantenBreakdown {
+  const ShantenBreakdown({
+    required this.standard,
+    required this.sevenPairs,
+    required this.thirteenOrphans,
+  });
+
+  final int standard;
+  final int sevenPairs;
+  final int thirteenOrphans;
+
+  int get minimum =>
+      math.min(standard, math.min(sevenPairs, thirteenOrphans)).toInt();
+}
+
 class ShantenCalculator {
-  /// 34 元素手牌计数向量。
-  ///
-  /// 每个元素表示对应牌种的持有张数（0-4，因为同种牌最多 4 张）。
-  /// 索引映射: [0-8]=万1~9, [9-17]=筒1~9, [18-26]=索1~9, [27-33]=字1~7。
-  /// 此字段由构造器直接赋值，计算过程中会被临时修改（回溯时恢复）。
+  static const _maxCacheEntries = 8192;
+  static final LinkedHashMap<String, ShantenBreakdown> _cache = LinkedHashMap();
+
+  /// Mutable private working copy of the 34-tile count vector.
   final List<int> tiles34;
 
-  /// 搜索过程中找到的当前最优（最小）向听数。
-  ///
-  /// 初始值为 999（等效无穷大），表示尚未找到任何可行拆分。
-  /// 每次找到一个更小的向听数时更新，用于剪枝：一旦 [_best]==0 即终止搜索。
-  ///
-  /// 该字段在 [calculate] 方法开头重置为 999，随后由 [_kokushiShanten] 和
-  /// [_searchMelds] 逐步收紧。所有搜索分支共享此字段，因此任一分支找到更优解
-  /// 都会立刻惠及其他分支的剪枝判断。
-  int _best = 999;
+  int _standardBest = 8;
 
-  /// 使用原始 34 元素计数向量构造计算器。
-  ///
-  /// [tiles34] 必须恰好包含 34 个整数，每个元素表示对应牌的持有数量。
-  /// 构造后即可调用 [calculate] 获取向听数。
-  ShantenCalculator(this.tiles34) : assert(tiles34.length == 34);
+  ShantenCalculator(List<int> counts) : tiles34 = List<int>.from(counts) {
+    if (counts.length != 34) {
+      throw ArgumentError.value(counts.length, 'counts.length', 'Must be 34');
+    }
+    for (var i = 0; i < counts.length; i++) {
+      final count = counts[i];
+      if (count < 0 || count > 4) {
+        throw ArgumentError.value(
+          count,
+          'counts[$i]',
+          'Must be between 0 and 4',
+        );
+      }
+    }
+    if (counts.fold<int>(0, (sum, count) => sum + count) > 14) {
+      throw ArgumentError.value(
+        counts,
+        'counts',
+        'A closed hand cannot exceed 14 tiles',
+      );
+    }
+  }
 
-  /// 从牌 ID 字符串列表构造计算器（便捷工厂方法）。
-  ///
-  /// 每张牌的格式为"花色字母+数字"，例如 `"m1"`（一万）、`"p5"`（五筒）、
-  /// `"s9"`（九索）、`"z7"`（七字·中）。
-  ///
-  /// 花色字母对照:
-  /// - `m` = 万（Manzu），索引 0-8
-  /// - `p` = 筒（Pinzu），索引 9-17
-  /// - `s` = 索（Souzu），索引 18-26
-  /// - `z` = 字（Jihai），索引 27-33
-  ///
-  /// 重复出现的牌 ID 会正常累加计数（如同种牌有多张）。
   factory ShantenCalculator.fromIds(List<String> tileIds) {
-    final arr = List.filled(34, 0);
-    for (final tid in tileIds) {
-      arr[_tileIdToIndex(tid)] += 1;
+    if (tileIds.length > 14) {
+      throw ArgumentError.value(
+        tileIds.length,
+        'tileIds.length',
+        'A closed hand cannot exceed 14 tiles',
+      );
     }
-    return ShantenCalculator(arr);
+
+    final counts = List<int>.filled(34, 0);
+    for (final tileId in tileIds) {
+      final index = _tileIdToIndex(tileId);
+      counts[index] += 1;
+      if (counts[index] > 4) {
+        throw ArgumentError.value(
+          tileId,
+          'tileIds',
+          'A tile cannot appear more than four times',
+        );
+      }
+    }
+    return ShantenCalculator(counts);
   }
 
-  /// 将牌 ID 字符串（如 `"m1"`）转换为 34 元素数组中的线性索引（0-33）。
+  /// Returns the lowest shanten across standard, chiitoitsu, and kokushi shapes.
+  int calculate() => calculateBreakdown().minimum;
+
+  /// Returns each supported hand family's exact shanten and their minimum.
   ///
-  /// 解析规则: 首字母决定花色基址，剩余部分解析为数字。数字减 1 后叠加到
-  /// 花色基址上。例如 `"p5"` → 筒基址 9 + (5-1) = 13（五筒）。
+  /// This method is the single calculation path used by [calculate], so the
+  /// aggregate result and the three values shown to users cannot diverge.
+  ShantenBreakdown calculateBreakdown() {
+    final cacheKey = String.fromCharCodes(tiles34);
+    final cached = _cache.remove(cacheKey);
+    if (cached != null) {
+      _cache[cacheKey] = cached;
+      return cached;
+    }
+
+    final pairKinds = tiles34.where((count) => count >= 2).length;
+    final uniqueKinds = tiles34.where((count) => count > 0).length;
+    final chiitoitsu = (6 - pairKinds + math.max(0, 7 - uniqueKinds)).toInt();
+
+    var kokushiKinds = 0;
+    var kokushiHasPair = false;
+    for (final index in terminalIndices) {
+      if (tiles34[index] > 0) kokushiKinds++;
+      if (tiles34[index] >= 2) kokushiHasPair = true;
+    }
+    final kokushi = 13 - kokushiKinds - (kokushiHasPair ? 1 : 0);
+
+    _standardBest = 8;
+    _searchStandard(0, 0, 0, 0);
+    final result = ShantenBreakdown(
+      standard: _standardBest,
+      sevenPairs: chiitoitsu,
+      thirteenOrphans: kokushi,
+    );
+    _cache[cacheKey] = result;
+    if (_cache.length > _maxCacheEntries) {
+      _cache.remove(_cache.keys.first);
+    }
+    return result;
+  }
+
+  /// Enumerates every useful decomposition of the first remaining tile.
   ///
-  /// 花色字母对照:
-  /// - `m` = 万（Manzu），基址 0，数字 1-9 映射到索引 0-8
-  /// - `p` = 筒（Pinzu），基址 9，数字 1-9 映射到索引 9-17
-  /// - `s` = 索（Souzu），基址 18，数字 1-9 映射到索引 18-26
-  /// - `z` = 字（Jihai），基址 27，数字 1-7 映射到索引 27-33
-  ///
-  /// 抛出 [ArgumentError] 当花色字母不是 m/p/s/z 之一时。
-  static int _tileIdToIndex(String tid) {
-    final suit = tid[0];
-    final num = int.parse(tid.substring(1));
-    return switch (suit) {
-      'm' => num - 1,        // 万: 基址 0，数字 1-9 → 索引 0-8
-      'p' => 9 + (num - 1),  // 筒: 基址 9，数字 1-9 → 索引 9-17
-      's' => 18 + (num - 1), // 索: 基址 18，数字 1-9 → 索引 18-26
-      'z' => 27 + (num - 1), // 字: 基址 27，数字 1-7 → 索引 27-33
-      _ => throw ArgumentError('Invalid tile: $tid'),
+  /// Processing only the first non-zero tile avoids permutation duplicates while
+  /// the final single-tile skip branch still explores every possible isolation.
+  void _searchStandard(int start, int melds, int taatsu, int pair) {
+    var index = start;
+    while (index < 34 && tiles34[index] == 0) {
+      index++;
+    }
+
+    if (index == 34) {
+      final usableTaatsu = math.min(taatsu, math.max(0, 4 - melds)).toInt();
+      final shanten = 8 - (melds * 2) - usableTaatsu - pair;
+      if (shanten < _standardBest) _standardBest = shanten;
+      return;
+    }
+
+    final count = tiles34[index];
+    final isNumberTile = index < 27;
+    final rank = index % 9;
+
+    if (melds < 4 && count >= 3) {
+      tiles34[index] -= 3;
+      _searchStandard(index, melds + 1, taatsu, pair);
+      tiles34[index] += 3;
+    }
+
+    if (melds < 4 &&
+        isNumberTile &&
+        rank <= 6 &&
+        tiles34[index + 1] > 0 &&
+        tiles34[index + 2] > 0) {
+      tiles34[index]--;
+      tiles34[index + 1]--;
+      tiles34[index + 2]--;
+      _searchStandard(index, melds + 1, taatsu, pair);
+      tiles34[index]++;
+      tiles34[index + 1]++;
+      tiles34[index + 2]++;
+    }
+
+    if (pair == 0 && count >= 2) {
+      tiles34[index] -= 2;
+      _searchStandard(index, melds, taatsu, 1);
+      tiles34[index] += 2;
+    }
+
+    if (taatsu < 4) {
+      if (count >= 2) {
+        tiles34[index] -= 2;
+        _searchStandard(index, melds, taatsu + 1, pair);
+        tiles34[index] += 2;
+      }
+
+      if (isNumberTile && rank <= 7 && tiles34[index + 1] > 0) {
+        tiles34[index]--;
+        tiles34[index + 1]--;
+        _searchStandard(index, melds, taatsu + 1, pair);
+        tiles34[index]++;
+        tiles34[index + 1]++;
+      }
+
+      if (isNumberTile && rank <= 6 && tiles34[index + 2] > 0) {
+        tiles34[index]--;
+        tiles34[index + 2]--;
+        _searchStandard(index, melds, taatsu + 1, pair);
+        tiles34[index]++;
+        tiles34[index + 2]++;
+      }
+    }
+
+    tiles34[index]--;
+    _searchStandard(index, melds, taatsu, pair);
+    tiles34[index]++;
+  }
+
+  static int _tileIdToIndex(String tileId) {
+    if (tileId.length != 2) {
+      throw ArgumentError.value(
+        tileId,
+        'tileId',
+        'Expected m1-m9, p1-p9, s1-s9, or z1-z7',
+      );
+    }
+
+    final suit = tileId[0];
+    final rank = int.tryParse(tileId[1]);
+    final maxRank = suit == 'z' ? 7 : 9;
+    if (!const {'m', 'p', 's', 'z'}.contains(suit) ||
+        rank == null ||
+        rank < 1 ||
+        rank > maxRank) {
+      throw ArgumentError.value(
+        tileId,
+        'tileId',
+        'Expected m1-m9, p1-p9, s1-s9, or z1-z7',
+      );
+    }
+
+    final base = switch (suit) {
+      'm' => 0,
+      'p' => 9,
+      's' => 18,
+      'z' => 27,
+      _ => throw StateError('Unreachable suit'),
     };
-  }
-
-  /// 计算并返回当前手牌的向听数。
-  ///
-  /// 向听数表示从当前手牌到听牌（tenpai）之间还差几张有效进张。
-  ///
-  /// 返回值含义:
-  ///   -1 = 已和牌（agari / 上がり），手牌已构成完整牌型；
-  ///    0 = 听牌（tenpai），再摸 1 张有效牌即可和牌；
-  ///    1 = 一向听（iishanten），需 2 次有效进张才能听牌；
-  ///    n = n 向听，以此类推。
-  ///
-  /// 计算流程:
-  /// 1. 启发式上界（对子计数法）；
-  /// 2. 国士無双专用计算；
-  /// 3. 递归回溯搜索标准 4 面子+1 雀头牌型。
-  /// 三者取最小值作为最终结果。
-  int calculate() {
-    // ---- 第 1 步: 初始化 ----
-    _best = 999; // 重置最优解为无穷大
-
-    // ---- 第 2 步: 启发式上界（对子计数法） ----
-    // 对子越多 → 越容易凑出七对子或标准牌型 → 向听数越小。
-    // 公式: 6 - 对子数 是一个安全上界（七对子最多需 7 对，这里是粗略估计）。
-    final pairs = tiles34.where((c) => c >= 2).length;
-    _best = (_best < 6 - pairs) ? _best : 6 - pairs;
-
-    // ---- 第 3 步: 国士無双向听数 ----
-    // 国士無双是特殊牌型，不遵循 4 面子 + 1 雀头模式，需独立计算。
-    final kokushi = _kokushiShanten();
-    _best = (_best < kokushi) ? _best : kokushi;
-
-    // ---- 第 4 步: 递归搜索标准牌型 ----
-    // 在手牌中回溯搜索 4 组面子（刻子/顺子）和 1 组雀头（对子）。
-    _searchMelds(4, 1);
-
-    return _best;
-  }
-
-  /// 计算国士無双（十三幺 / Kokushi musou）的向听数。
-  ///
-  /// 国士無双的完整牌型要求: 集齐全部 13 种幺九牌（各花色的 1 和 9）及
-  /// 7 种字牌各至少 1 张，并且其中某一种必须有对子（共 14 张）。
-  ///
-  /// 计算公式:
-  /// ```
-  /// 向听数 = 13 - 已收集到的幺九/字牌种类数 - (有对子 ? 1 : 0)
-  /// ```
-  ///
-  /// 示例:
-  ///   - 13 种齐全 + 1 对 → 13-13-1 = -1（和牌 / 国士無双十三面听）
-  ///   - 13 种齐全 + 0 对 → 13-13-0 = 0（国士無双听牌，单骑任一种）
-  ///   - 12 种 + 1 对   → 13-12-1 = 0（听牌，缺的那一种单骑即和）
-  ///   - 12 种 + 0 对   → 13-12-0 = 1（一向听）
-  ///   - 10 种 + 1 对   → 13-10-1 = 2（两向听）
-  ///
-  /// 遍历 [terminalIndices] 中全部 13 种幺九/字牌的索引，统计持有种类数
-  /// 和是否存在对子。时间复杂度 O(13)，常数级。
-  int _kokushiShanten() {
-    int kinds = 0;      // 已收集的幺九/字牌种类数（0-13）
-    bool hasPair = false; // 是否有至少一种幺九/字牌已凑成对子（≥2 张）
-    for (final i in terminalIndices) {
-      if (tiles34[i] > 0) kinds++;
-      if (tiles34[i] >= 2) hasPair = true;
-    }
-    // 满贯国士: 13 种集齐 + 1 对 → kinds=13, hasPair=true → 13-13-1 = -1
-    return 13 - kinds - (hasPair ? 1 : 0);
-  }
-
-  /// 递归回溯搜索面子与雀头的拆分方式。
-  ///
-  /// 在手牌的 34 元素计数向量上尝试删去 [mentsu] 组面子（刻子或顺子）和
-  /// [jantou] 组雀头。若能完全拆分干净（mentsu=0 且 jantou=0），说明当前
-  /// 手牌已构成完整和牌牌型 → 向听数为 0（即 -1，已和牌）。
-  ///
-  /// 算法本质是深度优先搜索（DFS）+ 回溯:
-  ///   1. 尝试删去一个雀头（对子），递归处理剩余牌；
-  ///   2. 尝试删去一个刻子（三同），递归处理剩余牌；
-  ///   3. 尝试删去一个顺子（三连），递归处理剩余牌；
-  ///   4. 每种尝试后恢复手牌状态（回溯），继续尝试下一种可能。
-  ///
-  /// 参数:
-  ///   [mentsu] — 还需找到的面子数量。标准牌型从 4 开始递减。
-  ///              每找到一个刻子或顺子，该值减 1。
-  ///   [jantou] — 还需找到的雀头数量。标准牌型从 1 开始，找到后置 0。
-  ///              雀头最多只有一个，因此该值只能是 0 或 1。
-  ///
-  /// 剪枝策略: 如果 [_best] 已经为 0（已找到最佳解），立即返回不再深入搜索。
-  ///
-  /// 时间复杂度: 最坏情况 O(3^N) 其中 N 为面子数量，但通过剪枝大幅缩减。
-  /// 对于标准 14 张手牌，实际运行时间在微秒级别。
-  void _searchMelds(int mentsu, int jantou) {
-    // ---- 剪枝: 已有最优解 0，无需继续 ----
-    if (_best == 0) return;
-
-    // ---- 终止条件: 所有面子和雀头都已找到 → 和牌 ----
-    if (mentsu == 0 && jantou == 0) { _best = 0; return; }
-
-    // ---- 分支 1: 尝试提取雀头（对子） ----
-    if (jantou == 1) {
-      for (int i = 0; i < 34; i++) {
-        if (tiles34[i] >= 2) {
-          tiles34[i] -= 2;           // 临时从手牌中删除该对子
-          _searchMelds(mentsu, 0);   // 雀头已满足，继续搜索剩余面子
-          tiles34[i] += 2;           // 回溯: 恢复手牌状态
-        }
-      }
-    }
-
-    // ---- 分支 2: 尝试提取面子（需 mentsu > 0） ----
-    if (mentsu > 0) {
-      // ---- 分支 2a: 尝试刻子（三张相同牌 / コーツ） ----
-      for (int i = 0; i < 34; i++) {
-        if (tiles34[i] >= 3) {
-          tiles34[i] -= 3;                  // 临时删除该刻子
-          _searchMelds(mentsu - 1, jantou); // 面子减 1，继续搜索
-          tiles34[i] += 3;                  // 回溯: 恢复
-        }
-      }
-
-      // ---- 分支 2b: 尝试顺子（三张连续同花色 / シュンツ） ----
-      // 顺子只存在于万/筒/索三种数牌中（索引 0-26），字牌不能构成顺子。
-      for (int i = 0; i < 27; i++) {
-        // i % 9 <= 6 保证顺子的起点不超出该花色边界。
-        // 例如万子有 9 张（索引 0-8），顺子起点只能是 0-6（即 1万-7万起），
-        // 这样 i+2 最大为 8（9万），不会越界到筒子区域。
-        if (i % 9 <= 6) {
-          // 连续三张牌都存在（至少各 1 张）才能构成顺子
-          if (tiles34[i] > 0 && tiles34[i + 1] > 0 && tiles34[i + 2] > 0) {
-            tiles34[i] -= 1;
-            tiles34[i + 1] -= 1;
-            tiles34[i + 2] -= 1;
-            _searchMelds(mentsu - 1, jantou);
-            // 回溯: 恢复三张牌
-            tiles34[i] += 1;
-            tiles34[i + 1] += 1;
-            tiles34[i + 2] += 1;
-          }
-        }
-      }
-    }
+    return base + rank - 1;
   }
 }

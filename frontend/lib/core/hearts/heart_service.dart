@@ -23,9 +23,31 @@
 /// bool isGameOver = hs.consume();  // 扣除一颗爱心
 /// hs.recordCorrect();              // 记录答对
 /// ```
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-class HeartService {
+/// 每日挑战一次结算后的不可变快照。
+class DailyChallengeProgress {
+  final int attempted;
+  final int correct;
+  final int remaining;
+  final int streak;
+  final bool completed;
+  final bool wasRecorded;
+
+  const DailyChallengeProgress({
+    required this.attempted,
+    required this.correct,
+    required this.remaining,
+    required this.streak,
+    required this.completed,
+    required this.wasRecorded,
+  });
+
+  double get accuracy => attempted == 0 ? 0 : correct / attempted;
+}
+
+class HeartService extends ChangeNotifier {
   // ────────────────────────────────────────────
   //  Hive 存储键名常量（私有，外部不可见）
   // ────────────────────────────────────────────
@@ -38,6 +60,9 @@ class HeartService {
   static const _kDate = 'last_reset_date';
   // 键: 今日已使用的每日挑战次数
   static const _kDC = 'daily_challenge_used';
+  static const _kDCCorrect = 'daily_challenge_correct';
+  static const _kDCStreak = 'daily_challenge_streak';
+  static const _kDCLastCompleted = 'daily_challenge_last_completed';
   // 键: 终身累计连击数（跨会话持久化）
   static const _kCombo = 'all_time_combo';
 
@@ -61,10 +86,14 @@ class HeartService {
   int _hearts = maxHearts;
   // 今日已使用的每日挑战次数，首次访问时从 Hive 加载
   int _dailyUsed = 0;
+  int _dailyCorrect = 0;
+  int _dailyStreak = 0;
+  String _dailyLastCompleted = '';
   // 终身累计连击数（答对次数，答错归零），跨会话持久化在 Hive 中
   int _allTimeCombo = 0;
   // 标记是否已完成首次懒加载初始化，防止重复从 Hive 读取
   bool _initialized = false;
+  String _activeDate = '';
 
   // ────────────────────────────────────────────
   //  会话统计字段（仅内存，每日重置时清零，不持久化）
@@ -87,30 +116,75 @@ class HeartService {
   ///
   /// 每天初始为 10，每局游戏消耗 1 颗。归零后无法再开始新游戏。
   /// 首次访问时触发从 Hive 的懒加载初始化（见 [_ensureInit]）。
-  int get hearts { _ensureInit(); return _hearts; }
+  int get hearts {
+    _ensureInit();
+    return _hearts;
+  }
 
   /// 玩家是否还有足够的爱心开始至少一局游戏。
   ///
   /// 等价于 `hearts > 0`，提供更具语义化的命名。
   /// UI 层通常用此 getter 决定"开始游戏"按钮是否可用。
-  bool get hasHearts { _ensureInit(); return _hearts > 0; }
+  bool get hasHearts {
+    _ensureInit();
+    return _hearts > 0;
+  }
 
   /// 今日剩余的每日挑战次数（范围 0 ~ [dailyChallengeMax]）。
   ///
   /// 每日挑战是与普通爱心独立的游戏入场券：消耗时不扣爱心，
   /// 每日重置恢复为 3 次。当爱心耗尽时可作为补充游戏次数使用。
-  int get dailyChallengeRemaining { _ensureInit(); return (dailyChallengeMax - _dailyUsed).clamp(0, dailyChallengeMax); }
+  int get dailyChallengeRemaining {
+    _ensureInit();
+    return (dailyChallengeMax - _dailyUsed).clamp(0, dailyChallengeMax);
+  }
 
   /// 是否还有至少一次每日挑战可用。
   ///
   /// 此 getter 只读不写——如需消耗一次，请调用 [useDailyChallenge]。
-  bool get canUseDailyChallenge { _ensureInit(); return _dailyUsed < dailyChallengeMax; }
+  bool get canUseDailyChallenge {
+    _ensureInit();
+    return _dailyUsed < dailyChallengeMax;
+  }
+
+  int get dailyChallengeAttempted {
+    _ensureInit();
+    return _dailyUsed;
+  }
+
+  int get dailyChallengeCorrect {
+    _ensureInit();
+    return _dailyCorrect;
+  }
+
+  int get dailyChallengeStreak {
+    _ensureInit();
+    return _dailyStreak;
+  }
+
+  bool get dailyChallengeCompleted {
+    _ensureInit();
+    return _dailyUsed >= dailyChallengeMax;
+  }
+
+  double get dailyChallengeAccuracy {
+    _ensureInit();
+    return _dailyUsed == 0 ? 0 : _dailyCorrect / _dailyUsed;
+  }
+
+  DailyChallengeProgress get dailyChallengeProgress {
+    _ensureInit();
+    return _dailySnapshot(wasRecorded: false);
+  }
 
   /// 终身累计连击数，用于连击追踪与成就系统。
   ///
   /// 答对时 +1，答错时立即归零。跨应用重启持久化在 Hive 中。
   /// 每日重置不会清零此值——它是跨天的终身统计。
-  int get allTimeCombo { _ensureInit(); return _allTimeCombo; }
+  int get allTimeCombo {
+    _ensureInit();
+    return _allTimeCombo;
+  }
 
   // ── 会话统计（仅内存，每日重置时清零，不持久化到 Hive）──
 
@@ -170,28 +244,44 @@ class HeartService {
   /// （如 "2026-06-17"），与 Hive 中存储的上次重置日期字符串直接比较。
   /// 这种方法简单可靠，不涉及时区转换。
   void _ensureInit() {
-    if (_initialized) return;
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    if (_initialized && _activeDate == today) return;
+    final firstLoad = !_initialized;
     _initialized = true;
+    _activeDate = today;
     try {
       final box = Hive.box(_boxName);
-      _hearts = box.get(_kH, defaultValue: maxHearts);
-      _dailyUsed = box.get(_kDC, defaultValue: 0);
-      _allTimeCombo = box.get(_kCombo, defaultValue: 0);
+      if (firstLoad) {
+        _hearts = box.get(_kH, defaultValue: maxHearts);
+        _dailyUsed = box.get(_kDC, defaultValue: 0);
+        _dailyCorrect = box.get(_kDCCorrect, defaultValue: 0);
+        _dailyStreak = box.get(_kDCStreak, defaultValue: 0);
+        _dailyLastCompleted = box.get(_kDCLastCompleted, defaultValue: '');
+        _allTimeCombo = box.get(_kCombo, defaultValue: 0);
+      }
       final last = box.get(_kDate, defaultValue: '');
-      final today = DateTime.now().toIso8601String().substring(0, 10);
       if (last != today) {
         _hearts = maxHearts;
         _dailyUsed = 0;
+        _dailyCorrect = 0;
+        if (!_isTodayOrYesterday(_dailyLastCompleted)) {
+          _dailyStreak = 0;
+        }
         box.put(_kH, maxHearts);
         box.put(_kDC, 0);
+        box.put(_kDCCorrect, 0);
+        box.put(_kDCStreak, _dailyStreak);
         box.put(_kDate, today);
         _correct = _wrong = _combo = _maxCombo = 0;
       }
     } catch (e) {
       // Hive corrupt — fall back to defaults so the app doesn't crash
-      print('HeartService init failed: $e');
+      debugPrint('HeartService init failed: $e');
       _hearts = maxHearts;
       _dailyUsed = 0;
+      _dailyCorrect = 0;
+      _dailyStreak = 0;
+      _dailyLastCompleted = '';
       _allTimeCombo = 0;
       _correct = _wrong = _combo = _maxCombo = 0;
     }
@@ -211,7 +301,10 @@ class HeartService {
   ///
   /// Hive Box 在应用生命周期内永不关闭（由 `main()` 中的 `Hive.openBox` 管理），
   /// 因此此方法为空操作。如需手动释放资源，应由应用顶层统一管理 Hive 生命周期。
-  void dispose() {}
+  @override
+  void dispose() {
+    super.dispose();
+  }
 
   /// 消耗一次每日挑战次数并将新计数持久化到 Hive。
   ///
@@ -230,7 +323,59 @@ class HeartService {
     if (_dailyUsed >= dailyChallengeMax) return false;
     _dailyUsed++;
     _ensurePersist();
+    notifyListeners();
     return true;
+  }
+
+  /// 记录每日挑战的一题。每题只应调用一次；达到三题时更新连续完成天数。
+  DailyChallengeProgress recordDailyChallengeResult({required bool isCorrect}) {
+    _ensureInit();
+    if (_dailyUsed >= dailyChallengeMax) {
+      return _dailySnapshot(wasRecorded: false);
+    }
+
+    _dailyUsed++;
+    if (isCorrect) _dailyCorrect++;
+
+    if (_dailyUsed == dailyChallengeMax) {
+      final today = DateTime.now().toIso8601String().substring(0, 10);
+      if (_dailyLastCompleted != today) {
+        _dailyStreak = _isYesterday(_dailyLastCompleted) ? _dailyStreak + 1 : 1;
+        _dailyLastCompleted = today;
+      }
+    }
+    _ensurePersist();
+    notifyListeners();
+    return _dailySnapshot(wasRecorded: true);
+  }
+
+  DailyChallengeProgress _dailySnapshot({required bool wasRecorded}) =>
+      DailyChallengeProgress(
+        attempted: _dailyUsed,
+        correct: _dailyCorrect,
+        remaining: (dailyChallengeMax - _dailyUsed).clamp(0, dailyChallengeMax),
+        streak: _dailyStreak,
+        completed: _dailyUsed >= dailyChallengeMax,
+        wasRecorded: wasRecorded,
+      );
+
+  bool _isYesterday(String value) {
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) return false;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final date = DateTime(parsed.year, parsed.month, parsed.day);
+    return today.difference(date).inDays == 1;
+  }
+
+  bool _isTodayOrYesterday(String value) {
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) return false;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final date = DateTime(parsed.year, parsed.month, parsed.day);
+    final days = today.difference(date).inDays;
+    return days == 0 || days == 1;
   }
 
   /// 扣除一颗爱心并将新余额持久化到 Hive。
@@ -253,6 +398,7 @@ class HeartService {
     if (_hearts <= 0) return false;
     _hearts--;
     _ensurePersist();
+    notifyListeners();
     return _hearts <= 0;
   }
 
@@ -270,12 +416,14 @@ class HeartService {
   void recordCorrect() {
     _ensureInit();
     // 会话统计：答对数 +1，连击 +1
-    _correct++; _combo++;
+    _correct++;
+    _combo++;
     // 若当前连击突破历史最高，更新峰值记录
     if (_combo > _maxCombo) _maxCombo = _combo;
     // 终身连击（跨天持久化）累加
     _allTimeCombo++;
     _ensurePersist();
+    notifyListeners();
   }
 
   /// 记录一次错误回答。
@@ -294,8 +442,10 @@ class HeartService {
     _ensureInit();
     _wrong++;
     // 答错即中断：当前连击和终身连击全部归零
-    _combo = 0; _allTimeCombo = 0;
+    _combo = 0;
+    _allTimeCombo = 0;
     _ensurePersist();
+    notifyListeners();
   }
 
   // 将三个持久化字段的当前内存值同步写入 Hive。
@@ -314,6 +464,9 @@ class HeartService {
     final box = Hive.box(_boxName);
     box.put(_kH, _hearts);
     box.put(_kDC, _dailyUsed);
+    box.put(_kDCCorrect, _dailyCorrect);
+    box.put(_kDCStreak, _dailyStreak);
+    box.put(_kDCLastCompleted, _dailyLastCompleted);
     box.put(_kCombo, _allTimeCombo);
   }
 

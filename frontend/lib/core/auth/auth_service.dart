@@ -18,7 +18,6 @@
 /// **当前状态**：API 调用部分为占位代码，待 DioClient 接入后启用。
 import 'dart:convert'; // 用于 user JSON 字符串 ↔ Map 的序列化/反序列化（jsonEncode / jsonDecode）。
 import 'package:hive_flutter/hive_flutter.dart'; // 本地轻量 KV 存储，用于离线持久化 token 和用户信息。
-import '../constants/api_endpoints.dart'; // 后端 API 路径常量（如 /auth/login、/auth/register），当前为占位引用。
 
 /// 用户认证服务 — 整个应用的认证中枢。
 ///

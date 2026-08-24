@@ -8,7 +8,6 @@
 /// ```dart
 /// LeaderboardService.reportScore(name: 'PlayerX', elo: 1200, streak: 5);
 /// ```
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../../core/constants/api_endpoints.dart';
 
