@@ -34,9 +34,9 @@
 ///
 /// 当生成器在 50 次尝试内无法生成合适谜题时，提供一个静态兜底谜题以保证可用性。
 import 'dart:math';
-import '../../../shared/models/puzzle_model.dart';
-import '../../../shared/engine/shanten_calculator.dart';
-import '../../../shared/engine/ukeire_calculator.dart';
+import 'package:tilezhan/shared/engine/shanten_calculator.dart';
+import 'package:tilezhan/shared/engine/ukeire_calculator.dart';
+import 'package:tilezhan/shared/models/puzzle_model.dart';
 import 'difficulty_scorer.dart';
 
 /// Generates random Nani-Kiru (何切る) puzzles with ELO-calibrated difficulty scoring.
@@ -78,10 +78,40 @@ class PuzzleGenerator {
   /// 以及字牌（z1-z7）7 种，共计 34 种牌型。
   /// 每种牌最多 4 张，由随机生成逻辑保证不超过上限。
   static const _all34 = [
-    'm1','m2','m3','m4','m5','m6','m7','m8','m9',
-    'p1','p2','p3','p4','p5','p6','p7','p8','p9',
-    's1','s2','s3','s4','s5','s6','s7','s8','s9',
-    'z1','z2','z3','z4','z5','z6','z7',
+    'm1',
+    'm2',
+    'm3',
+    'm4',
+    'm5',
+    'm6',
+    'm7',
+    'm8',
+    'm9',
+    'p1',
+    'p2',
+    'p3',
+    'p4',
+    'p5',
+    'p6',
+    'p7',
+    'p8',
+    'p9',
+    's1',
+    's2',
+    's3',
+    's4',
+    's5',
+    's6',
+    's7',
+    's8',
+    's9',
+    'z1',
+    'z2',
+    'z3',
+    'z4',
+    'z5',
+    'z6',
+    'z7',
   ];
 
   /// Generate a single Nani-Kiru puzzle.
@@ -110,13 +140,22 @@ class PuzzleGenerator {
   ///
   /// 返回值：一个完全评分的 [Puzzle] 对象，包含手牌、摸牌、正确切牌、
   /// 有效进张数/种类及难度评分。
-  static Puzzle generate({int targetDifficulty = 1000}) {
+  static Puzzle generate({
+    int targetDifficulty = 1000,
+    Random? random,
+    int maxAttempts = 50,
+  }) {
+    if (maxAttempts < 0) {
+      throw ArgumentError.value(
+          maxAttempts, 'maxAttempts', 'Must not be negative');
+    }
+    final rng = random ?? _rng;
     Puzzle? bestPuzzle;
     int bestDiff = 99999;
 
-    for (int attempt = 0; attempt < 50; attempt++) {
-      final hand13 = _randomHand(13);
-      final drawn = _randomDraw(hand13);
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      final hand13 = _randomHand(13, rng);
+      final drawn = _randomDraw(hand13, rng);
       final hand14 = [...hand13, drawn];
 
       final shanten = ShantenCalculator.fromIds(hand14).calculate();
@@ -130,21 +169,27 @@ class PuzzleGenerator {
         if (r.shantenAfter < bestShanten) bestShanten = r.shantenAfter;
       }
 
-      String? best;
       int maxUkeire = -1;
-      int bestTypes = 0;
-      List<String> bestTiles = [];
-      for (final e in results.entries) {
-        final v = e.value;
-        if (v.shantenAfter == bestShanten && v.ukeireCount > maxUkeire) {
-          maxUkeire = v.ukeireCount;
-          best = e.key;
-          bestTypes = v.ukeireTypes.length;
-          bestTiles = v.ukeireTypes;
+      for (final result in results.values) {
+        if (result.shantenAfter == bestShanten &&
+            result.ukeireCount > maxUkeire) {
+          maxUkeire = result.ukeireCount;
         }
       }
 
-      if (best == null || maxUkeire < 2) continue;
+      final bestEntries = results.entries
+          .where((entry) =>
+              entry.value.shantenAfter == bestShanten &&
+              entry.value.ukeireCount == maxUkeire)
+          .toList();
+
+      // This is a single-answer exercise. If multiple tile kinds are equally
+      // optimal, accepting only whichever appeared first would teach a false
+      // distinction, so discard the candidate and sample another hand.
+      if (bestEntries.length != 1 || maxUkeire < 2) continue;
+      final bestEntry = bestEntries.single;
+      final best = bestEntry.key;
+      final bestTiles = bestEntry.value.ukeireTypes;
 
       _counter++;
       final puzzle = Puzzle(
@@ -153,12 +198,15 @@ class PuzzleGenerator {
         drawnTileId: drawn,
         correctDiscardId: best,
         ukeireCount: maxUkeire,
-        ukeireTypes: bestTypes,
+        ukeireTypes: bestTiles.length,
         ukeireTileIds: bestTiles,
         difficulty: 0, // scored below
       );
 
-      final score = DifficultyScorer.score(puzzle);
+      final score = DifficultyScorer.score(
+        puzzle,
+        discardResults: results,
+      );
       final diff = (score - targetDifficulty).abs();
 
       if (diff < bestDiff) {
@@ -169,10 +217,11 @@ class PuzzleGenerator {
           drawnTileId: drawn,
           correctDiscardId: best,
           ukeireCount: maxUkeire,
-          ukeireTypes: bestTypes,
+          ukeireTypes: bestTiles.length,
           ukeireTileIds: bestTiles,
           difficulty: score,
         );
+        if (bestDiff <= 25) return bestPuzzle;
       }
     }
 
@@ -181,14 +230,46 @@ class PuzzleGenerator {
     // Fallback — 兜底谜题：当 50 次尝试全部失败时，返回一个预定义的简单边张听牌手牌，
     // 保证 API 调用方始终能获得一个可用的谜题，不会因随机生成失败而抛出异常。
     _counter++;
-    return Puzzle(
+    final fallback = Puzzle(
       puzzleId: 'fallback_$_counter',
-      hand13Ids: const ['m1','m1','m2','m3','m3','m4','m5','m5','m6','m7','m8','m8','m9'],
-      drawnTileId: 's7',
-      correctDiscardId: 'm4',
-      ukeireCount: 11, ukeireTypes: 3,
-      ukeireTileIds: const ['2p','5p','8p'],
-      difficulty: 950,
+      hand13Ids: const [
+        'm1',
+        'm2',
+        'm3',
+        'm4',
+        'm5',
+        'm6',
+        'p5',
+        'p6',
+        'p7',
+        'p8',
+        'p9',
+        'z1',
+        'z1',
+      ],
+      drawnTileId: 'z2',
+      correctDiscardId: 'z2',
+      ukeireCount: 7,
+      ukeireTypes: 2,
+      ukeireTileIds: const ['p4', 'p7'],
+      difficulty: 0,
+    );
+    final fallbackAnalysis = UkeireCalculator([
+      ...fallback.hand13Ids,
+      fallback.drawnTileId,
+    ]).calculate();
+    return Puzzle(
+      puzzleId: fallback.puzzleId,
+      hand13Ids: fallback.hand13Ids,
+      drawnTileId: fallback.drawnTileId,
+      correctDiscardId: fallback.correctDiscardId,
+      ukeireCount: fallback.ukeireCount,
+      ukeireTypes: fallback.ukeireTypes,
+      ukeireTileIds: fallback.ukeireTileIds,
+      difficulty: DifficultyScorer.score(
+        fallback,
+        discardResults: fallbackAnalysis,
+      ),
     );
   }
 
@@ -199,14 +280,17 @@ class PuzzleGenerator {
   ///
   /// 参数 [count]：需要生成的手牌张数（通常为 13）。
   /// 返回值：长度为 [count] 的牌 ID 字符串列表。
-  static List<String> _randomHand(int count) {
-    final counts = <String, int>{};
-    final hand = <String>[];
-    while (hand.length < count) {
-      final tile = _all34[_rng.nextInt(34)];
-      final c = counts[tile] ?? 0;
-      if (c < 4) { counts[tile] = c + 1; hand.add(tile); }
+  static List<String> _randomHand(int count, Random rng) {
+    if (count < 0 || count > 136) {
+      throw ArgumentError.value(count, 'count', 'Must be between 0 and 136');
     }
+    final wall = [
+      for (final tileId in _all34)
+        for (var copy = 0; copy < 4; copy++) tileId,
+    ]..shuffle(rng);
+    final hand = wall.take(count).toList();
+    hand.sort(
+        (left, right) => _all34.indexOf(left).compareTo(_all34.indexOf(right)));
     return hand;
   }
 
@@ -217,10 +301,15 @@ class PuzzleGenerator {
   ///
   /// 参数 [hand]：当前 13 张手牌列表。
   /// 返回值：一张合法的摸牌 ID 字符串。
-  static String _randomDraw(List<String> hand) {
+  static String _randomDraw(List<String> hand, Random rng) {
     final counts = <String, int>{};
-    for (final t in hand) { counts[t] = (counts[t] ?? 0) + 1; }
-    final candidates = _all34.where((t) => (counts[t] ?? 0) < 4).toList();
-    return candidates[_rng.nextInt(candidates.length)];
+    for (final t in hand) {
+      counts[t] = (counts[t] ?? 0) + 1;
+    }
+    final remainingWall = [
+      for (final tileId in _all34)
+        for (var copy = counts[tileId] ?? 0; copy < 4; copy++) tileId,
+    ];
+    return remainingWall[rng.nextInt(remainingWall.length)];
   }
 }

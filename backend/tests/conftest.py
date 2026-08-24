@@ -8,9 +8,18 @@ Pytest 全局配置与共享 fixtures。
 Fixtures 使用 pytest_asyncio 装饰器，确保在异步测试函数中正确工作。
 """
 
+import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from app.main import app  # FastAPI 应用实例，通过 ASGI 传输层内联调用（无网络开销）
+from app.config import settings
+
+
+@pytest.fixture(autouse=True)
+def explicit_test_auth_bypass(monkeypatch):
+    """现有 API 测试显式使用测试认证，不再依赖 Firebase 配置缺失自动放行。"""
+    monkeypatch.setattr(settings, "APP_ENV", "test")
+    monkeypatch.setattr(settings, "ALLOW_DEV_AUTH_BYPASS", True)
 
 
 @pytest_asyncio.fixture

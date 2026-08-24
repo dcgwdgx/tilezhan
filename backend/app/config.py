@@ -12,6 +12,8 @@
         export ALLOWED_ORIGINS='["https://my.app"]'
 """
 
+from typing import Literal
+
 from pydantic_settings import BaseSettings
 
 
@@ -38,8 +40,14 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     # 应用版本号，语义化版本 (SemVer)，显示于 /health 和 docs
 
+    APP_ENV: Literal["development", "test", "production"] = "development"
+    # 明确的运行环境。安全相关行为不得再通过凭据是否缺失来推断。
+
     DEBUG: bool = False
     # 调试模式开关：True 时启用详细错误页、热重载；生产环境必须为 False
+
+    ALLOW_DEV_AUTH_BYPASS: bool = False
+    # 仅允许在 development/test 中显式开启；生产环境永远禁止绕过 Firebase 认证。
 
     # ── Firebase / Firestore ─────────────────────────────────────
     FIREBASE_PROJECT_ID: str = ""
@@ -87,6 +95,41 @@ class Settings(BaseSettings):
 
 
 # ── 全局单例 ─────────────────────────────────────────────────────────
+PRODUCTION_REQUIRED_SETTINGS = (
+    "FIREBASE_PROJECT_ID",
+    "FIREBASE_PRIVATE_KEY",
+    "FIREBASE_CLIENT_EMAIL",
+    "REVENUECAT_WEBHOOK_SECRET",
+)
+
+
+def validate_runtime_settings(runtime_settings: Settings) -> None:
+    """验证启动时配置；生产环境配置不完整时拒绝启动。"""
+    if runtime_settings.APP_ENV != "production":
+        return
+
+    invalid_flags = []
+    if runtime_settings.DEBUG:
+        invalid_flags.append("DEBUG must be false")
+    if runtime_settings.ALLOW_DEV_AUTH_BYPASS:
+        invalid_flags.append("ALLOW_DEV_AUTH_BYPASS must be false")
+
+    missing = [
+        name
+        for name in PRODUCTION_REQUIRED_SETTINGS
+        if not str(getattr(runtime_settings, name, "")).strip()
+    ]
+
+    problems = []
+    if missing:
+        problems.append(f"missing required settings: {', '.join(missing)}")
+    problems.extend(invalid_flags)
+    if problems:
+        raise RuntimeError(
+            "Invalid production configuration: " + "; ".join(problems)
+        )
+
+
 settings = Settings()
 # 模块级单例：整个应用通过 `from app.config import settings` 获取同一实例
 # 首次导入时自动完成环境变量和 .env 文件的加载与校验

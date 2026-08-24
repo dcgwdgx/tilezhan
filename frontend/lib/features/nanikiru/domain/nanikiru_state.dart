@@ -11,6 +11,7 @@
 /// 这种不可变设计使得状态变更可预测、可追溯，适合与 Riverpod /
 /// BLoC 等状态管理方案配合使用。
 import '../../../shared/models/tile_model.dart';
+import 'nanikiru_teaching_analysis.dart';
 
 /// 何切谜题回合的生命周期阶段。
 ///
@@ -32,6 +33,12 @@ import '../../../shared/models/tile_model.dart';
 ///   进张种类、具体进张牌列表）、SRS 调度信息等。用户点击"下一题"
 ///   后，外部状态管理层创建全新的 [NaniKiruState] 实例进入下一回合。
 enum NaniKiruPhase { ready, selecting, animating, feedback }
+
+/// 一道何切题的最终作答结果。
+///
+/// 将“跳过”和“超时”与普通错误显式区分，避免 UI、ELO、SRS、体力和
+/// 埋点各自推断结果而造成重复结算或统计口径不一致。
+enum NaniKiruOutcome { unanswered, perfect, incorrect, skipped, timedOut }
 
 /// 单个何切谜题回合的不可变状态。
 ///
@@ -162,6 +169,9 @@ class NaniKiruState {
   /// perfect / suboptimal / wrong）。
   final bool isPerfect;
 
+  /// 本题的最终结果；答题前为 [NaniKiruOutcome.unanswered]。
+  final NaniKiruOutcome outcome;
+
   /// 有效进张数（受け入れ枚数 / uke-ire count）。
   ///
   /// 正确弃牌后，摸到能让你听牌（或和牌）的牌的总张数。
@@ -203,6 +213,9 @@ class NaniKiruState {
   /// 默认值为空字符串，表示尚未关联持久化谜题记录。
   final String puzzleId;
 
+  /// 题目的难度评级，用于复盘、精准重做和后续自适应选题。
+  final int difficulty;
+
   /// 创建一个何切谜题回合的不可变状态。
   ///
   /// 所有参数均为可选的命名参数，默认值对应"刚加载、等待开始"的
@@ -222,12 +235,15 @@ class NaniKiruState {
     this.phase = NaniKiruPhase.ready,
     this.countdownValue = 10.0,
     this.isPerfect = false,
+    this.outcome = NaniKiruOutcome.unanswered,
     this.ukeireCount,
     this.ukeireTypes,
     this.ukeireTiles,
     this.puzzleId = '',
+    this.difficulty = 1000,
     this.allDiscardUkeire,
     this.allDiscardUkeireTiles,
+    this.teachingAnalysis,
   });
 
   /// 每种弃牌的进张枚数映射（tileId → ukeireCount）。
@@ -246,6 +262,9 @@ class NaniKiruState {
   /// 具体进张牌 ID 列表。在复盘面板中渲染为迷你牌面网格。
   final Map<String, List<String>>? allDiscardUkeireTiles;
 
+  /// Engine-backed ranked candidates, decision loss, and teaching topics.
+  final NanikiruTeachingAnalysis? teachingAnalysis;
+
   /// 谜题回合是否已经结束（即是否应展示反馈覆盖层）。
   ///
   /// 当 [phase] 为 [NaniKiruPhase.feedback] 时返回 `true`。
@@ -263,6 +282,10 @@ class NaniKiruState {
   /// 等价于 `state.phase == NaniKiruPhase.feedback`，
   /// 但 `isFinished` 更具可读性，且对外隐藏了阶段枚举的实现细节。
   bool get isFinished => phase == NaniKiruPhase.feedback;
+
+  bool get isSkipped => outcome == NaniKiruOutcome.skipped;
+
+  bool get isTimedOut => outcome == NaniKiruOutcome.timedOut;
 
   /// 返回一个新的 [NaniKiruState]，用传入的参数替换对应字段。
   ///
@@ -303,30 +326,39 @@ class NaniKiruState {
     String? drawnTileId,
     String? correctDiscardId,
     String? selectedTileId,
+    bool clearSelectedTileId = false,
     NaniKiruPhase? phase,
     double? countdownValue,
     bool? isPerfect,
+    NaniKiruOutcome? outcome,
     int? ukeireCount,
     int? ukeireTypes,
     List<String>? ukeireTiles,
     String? puzzleId,
+    int? difficulty,
     Map<String, int>? allDiscardUkeire,
     Map<String, List<String>>? allDiscardUkeireTiles,
+    NanikiruTeachingAnalysis? teachingAnalysis,
   }) {
     return NaniKiruState(
       handTiles: handTiles ?? this.handTiles,
       drawnTileId: drawnTileId ?? this.drawnTileId,
       correctDiscardId: correctDiscardId ?? this.correctDiscardId,
-      selectedTileId: selectedTileId ?? this.selectedTileId,
+      selectedTileId:
+          clearSelectedTileId ? null : selectedTileId ?? this.selectedTileId,
       phase: phase ?? this.phase,
       countdownValue: countdownValue ?? this.countdownValue,
       isPerfect: isPerfect ?? this.isPerfect,
+      outcome: outcome ?? this.outcome,
       ukeireCount: ukeireCount ?? this.ukeireCount,
       ukeireTypes: ukeireTypes ?? this.ukeireTypes,
       ukeireTiles: ukeireTiles ?? this.ukeireTiles,
       puzzleId: puzzleId ?? this.puzzleId,
+      difficulty: difficulty ?? this.difficulty,
       allDiscardUkeire: allDiscardUkeire ?? this.allDiscardUkeire,
-      allDiscardUkeireTiles: allDiscardUkeireTiles ?? this.allDiscardUkeireTiles,
+      allDiscardUkeireTiles:
+          allDiscardUkeireTiles ?? this.allDiscardUkeireTiles,
+      teachingAnalysis: teachingAnalysis ?? this.teachingAnalysis,
     );
   }
 }

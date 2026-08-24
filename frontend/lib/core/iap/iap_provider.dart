@@ -5,6 +5,8 @@
 /// [isPremiumProvider] / [maxDifficultyProvider] 用于付费墙判断。
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../commerce/commerce_availability.dart';
+import '../commerce/training_access_policy.dart';
 import 'iap_service.dart';
 
 /// Singleton IAP service, initialised on first read and kept alive.
@@ -22,11 +24,21 @@ final iapStateProvider = StreamProvider<IapState>((ref) {
 
 /// 用户是否是付费会员。
 final isPremiumProvider = Provider<bool>((ref) {
+  final availability = ref.watch(commerceAvailabilityProvider);
+  if (!availability.shouldResolvePremiumStatus) return false;
   return ref.watch(iapStateProvider).valueOrNull?.isPremium ?? false;
 });
 
-/// 付费用户无难度上限，免费用户限制基础难度 (800 ELO 以下)。
+/// Unified access policy for hearts, difficulty and answer-time consumption.
+final trainingAccessProvider = Provider<TrainingAccessPolicy>((ref) {
+  final availability = ref.watch(commerceAvailabilityProvider);
+  return TrainingAccessPolicy(
+    limitsEnabled: availability.trainingLimitsEnabled,
+    isPremium: ref.watch(isPremiumProvider),
+  );
+});
+
+/// Unlimited releases and Premium users have no difficulty ceiling.
 final maxDifficultyProvider = Provider<double>((ref) {
-  final isPremium = ref.watch(isPremiumProvider);
-  return isPremium ? double.infinity : 800.0;
+  return ref.watch(trainingAccessProvider).maxDifficulty();
 });

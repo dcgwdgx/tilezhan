@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../shared/widgets/tz_button.dart';
 import '../domain/yaku_data.dart';
 import '../domain/yaku_favorites_provider.dart';
 
@@ -21,16 +22,19 @@ class YakuDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final yaku = getYakuById(yakuId);
     final favorites = ref.watch(yakuFavoritesProvider);
     final isFavorite = favorites.contains(yakuId);
     if (yaku == null) {
-      final l10n = AppLocalizations.of(context)!;
       return Scaffold(
         backgroundColor: AppColors.jadeDeep,
-        body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(l10n.commonNotFound, style: const TextStyle(color: AppColors.jadeWhiteDim)),
-          TextButton(onPressed: () => context.pop(), child: Text(l10n.commonGoBack)),
+        body: Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(l10n.commonNotFound,
+              style: const TextStyle(color: AppColors.jadeWhiteDim)),
+          TextButton(
+              onPressed: () => context.pop(), child: Text(l10n.commonGoBack)),
         ])),
       );
     }
@@ -43,7 +47,8 @@ class YakuDetailScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back, color: AppColors.jadeWhiteDim),
           onPressed: () => context.pop(),
         ),
-        title: Text(yaku.nameEn, style: const TextStyle(color: AppColors.jadeWhite)),
+        title: Text(yaku.nameEn,
+            style: const TextStyle(color: AppColors.jadeWhite)),
         actions: [
           // ⭐ Favorites toggle — persisted to Hive via yakuFavoritesProvider
           IconButton(
@@ -51,7 +56,8 @@ class YakuDetailScreen extends ConsumerWidget {
               isFavorite ? Icons.star : Icons.star_border,
               color: AppColors.neonGold,
             ),
-            onPressed: () => ref.read(yakuFavoritesProvider.notifier).toggle(yakuId),
+            onPressed: () =>
+                ref.read(yakuFavoritesProvider.notifier).toggle(yakuId),
           ),
         ],
       ),
@@ -62,74 +68,126 @@ class YakuDetailScreen extends ConsumerWidget {
           /// difficulty tag, and a short prose description.
           _card([
             Row(children: [
-              Expanded(child: Text(yaku.nameEn, style: const TextStyle(fontSize: 24,
-                fontWeight: FontWeight.w900, color: AppColors.jadeWhite))),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.neonGold.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12)),
-                child: Text(yaku.nameJp, style: const TextStyle(fontSize: 13,
-                  color: AppColors.neonGold))),
+              Expanded(
+                  child: Text(yaku.nameEn,
+                      style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.jadeWhite))),
+              Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: AppColors.neonGold.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Text(yaku.nameJp,
+                      style: const TextStyle(
+                          fontSize: 13, color: AppColors.neonGold))),
             ]),
             const SizedBox(height: 8),
             Row(children: [
-              _tag('${yaku.han} Han${yaku.hanClosed != yaku.han ? ' (${yaku.hanClosed} closed)' : ''}'),
+              _tag(yaku.openHan == null
+                  ? l10n.yakuDetailClosedHan(yaku.closedHan)
+                  : l10n.yakuDetailClosedOpenHan(
+                      yaku.closedHan,
+                      yaku.openHan!,
+                    )),
               const SizedBox(width: 8),
               _tag(yaku.difficulty),
             ]),
             const SizedBox(height: 12),
-            Text(yaku.description, style: const TextStyle(fontSize: 14,
-              color: AppColors.jadeWhiteDim, height: 1.6)),
+            Text(yaku.description,
+                style: const TextStyle(
+                    fontSize: 14, color: AppColors.jadeWhiteDim, height: 1.6)),
           ]),
           const SizedBox(height: 16),
 
           /// Section 2 — Conditions: checklist of must-have and must-not-have
           /// requirements, each prefixed with ✅ or ❌ for quick scanning.
           _sectionTitle('Conditions'),
-          _card(yaku.conditions.map((c) => Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(c.startsWith('Must not') || c.startsWith('Cannot') || c.startsWith('No')
-                ? '❌' : '✅', style: const TextStyle(fontSize: 14)),
-              const SizedBox(width: 10),
-              Expanded(child: Text(c, style: const TextStyle(fontSize: 14,
-                color: AppColors.jadeWhite, height: 1.5))),
-            ]),
-          )).toList()),
+          _card(yaku.conditions
+              .map((c) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                              c.startsWith('Must not') ||
+                                      c.startsWith('Cannot') ||
+                                      c.startsWith('No')
+                                  ? '❌'
+                                  : '✅',
+                              style: const TextStyle(fontSize: 14)),
+                          const SizedBox(width: 10),
+                          Expanded(
+                              child: Text(c,
+                                  style: const TextStyle(
+                                      fontSize: 14,
+                                      color: AppColors.jadeWhite,
+                                      height: 1.5))),
+                        ]),
+                  ))
+              .toList()),
           const SizedBox(height: 16),
 
           /// Section 3 — Example: one or more tile-layout strings showing
           /// what a winning hand with this yaku looks like.
           _sectionTitle('Example'),
-          _card(yaku.examples.map((e) => Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Text(e, style: const TextStyle(fontSize: 16,
-              color: AppColors.jadeWhite, height: 1.6)),
-          )).toList()),
+          _card(yaku.examples
+              .map((e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(e,
+                        style: const TextStyle(
+                            fontSize: 16,
+                            color: AppColors.jadeWhite,
+                            height: 1.6)),
+                  ))
+              .toList()),
           const SizedBox(height: 16),
 
           /// Section 4 — Common combinations: yaku that frequently appear
           /// together with this one, each showing the combined han total.
           _sectionTitle('Common Combinations'),
-          _card(yaku.combos.map((c) => Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(children: [
-              Expanded(child: Text(c.name, style: const TextStyle(fontSize: 14,
-                color: AppColors.jadeWhite))),
-              Text('${c.totalHan} Han', style: const TextStyle(fontSize: 14,
-                fontWeight: FontWeight.w700, color: AppColors.neonGold)),
-            ]),
-          )).toList()),
+          _card(yaku.combos
+              .map((c) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(children: [
+                      Expanded(
+                          child: Text(c.name,
+                              style: const TextStyle(
+                                  fontSize: 14, color: AppColors.jadeWhite))),
+                      Text('${c.totalHan} Han',
+                          style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.neonGold)),
+                    ]),
+                  ))
+              .toList()),
           const SizedBox(height: 16),
 
           /// Section 5 — Pro tip: a single actionable piece of strategy advice
           /// (prefixed with 💡) to help the player pursue or avoid this yaku.
           _sectionTitle('Pro Tip'),
-          _card([Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('💡', style: TextStyle(fontSize: 18)),
-            const SizedBox(width: 10),
-            Expanded(child: Text(yaku.tip, style: const TextStyle(fontSize: 14,
-              color: AppColors.jadeWhiteDim, height: 1.6))),
-          ])]),
+          _card([
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('💡', style: TextStyle(fontSize: 18)),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: Text(yaku.tip,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.jadeWhiteDim,
+                          height: 1.6))),
+            ])
+          ]),
+          const SizedBox(height: 24),
+          TzButton(
+            label: l10n.yakuQuizStart,
+            style: TzButtonStyle.gold,
+            icon: Icons.school,
+            onPressed: () => context.push('/yaku-quiz'),
+          ),
           const SizedBox(height: 40),
         ]),
       ),
@@ -141,32 +199,40 @@ class YakuDetailScreen extends ConsumerWidget {
   Widget _sectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, left: 4),
-      child: Text(title, style: const TextStyle(fontSize: 12,
-        fontWeight: FontWeight.w700, letterSpacing: 1.5,
-        color: AppColors.neonGold)),
+      child: Text(title,
+          style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.5,
+              color: AppColors.neonGold)),
     );
   }
 
   /// Wraps [children] in a full-width rounded container with the
   /// standard card background, border, and 16 px inner padding.
   Widget _card(List<Widget> children) {
-    return Container(width: double.infinity,
+    return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.jadeCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.jadeHover),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start, children: children),
     );
   }
 
   /// Returns a small rounded pill label for han counts and difficulty
   /// badges, styled with a muted background consistent with the theme.
   Widget _tag(String text) {
-    return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(color: AppColors.jadeHover,
-        borderRadius: BorderRadius.circular(8)),
-      child: Text(text, style: const TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)));
+    return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        decoration: BoxDecoration(
+            color: AppColors.jadeHover, borderRadius: BorderRadius.circular(8)),
+        child: Text(text,
+            style:
+                const TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)));
   }
 }

@@ -2,7 +2,7 @@
 ///
 /// ## 路由架构
 ///
-/// 采用扁平路由结构（无嵌套 ShellRoute），共 14 条顶级路由，每条均通过
+/// 采用扁平路由结构（无嵌套 ShellRoute），共 17 条顶级路由，每条均通过
 /// 统一的 [_page] 工厂构建 [CustomTransitionPage]。
 ///
 /// ## 转场动画
@@ -23,14 +23,17 @@
 /// | `/`               | HomeScreen        | 主页 / 首页              |
 /// | `/flashcard`      | FlashcardScreen   | 闪卡学习（?suite= 牌组）  |
 /// | `/nanikiru`       | NanikiruScreen    | 何切练习                 |
+/// | `/defense-training` | DefenseTrainingPage | 实战防守训练          |
 /// | `/tiles`          | TileBrowserScreen | 牌览 / 牌谱浏览          |
 /// | `/collection`     | CollectionScreen  | 我的收藏                 |
 /// | `/graveyard`      | GraveyardScreen   | 牌河 / 弃牌记录          |
 /// | `/premium`        | PremiumScreen     | 高级版 / 会员            |
-/// | `/scanner`        | ScannerScreen     | 扫码功能                 |
+/// | `/hand-analyzer`  | HandAnalyzerScreen| 手动手牌牌效分析          |
+/// | `/scanner`        | ScannerScreen     | 役种参考（兼容旧路由）   |
 /// | `/profile`        | ProfileScreen     | 个人中心                 |
 /// | `/settings`       | SettingsScreen    | 设置页面                 |
 /// | `/yaku/:id`       | YakuDetailScreen  | 役种详情（路径参数 id）   |
+/// | `/yaku-quiz`      | YakuQuizScreen    | 役种知识训练             |
 /// | `/leaderboard`    | LeaderboardScreen | 排行榜                   |
 ///
 /// ## 导航入口
@@ -59,14 +62,17 @@ import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/flashcard/presentation/flashcard_screen.dart';
 import '../../features/nanikiru/presentation/nanikiru_screen.dart';
+import '../../features/defense_trainer/presentation/defense_training_page.dart';
 import '../../features/tile_browser/presentation/tile_browser_screen.dart';
 import '../../features/collection/presentation/collection_screen.dart';
 import '../../features/graveyard/presentation/graveyard_screen.dart';
 import '../../features/premium/presentation/premium_screen.dart';
+import '../../features/hand_analyzer/presentation/hand_analyzer_screen.dart';
 import '../../features/scanner/presentation/scanner_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/yaku_detail/presentation/yaku_detail_screen.dart';
+import '../../features/yaku_quiz/presentation/yaku_quiz_screen.dart';
 import '../../features/leaderboard/presentation/leaderboard_screen.dart';
 
 // 将 [child] 包装为统一的 [CustomTransitionPage]，提供从右向左滑入 + 淡入的
@@ -90,7 +96,8 @@ CustomTransitionPage _page(Widget child, GoRouterState state) {
         // 构建位移补间：从 X=0.1 (10% 偏移) 到 X=0 (原位)
         position: Tween<Offset>(begin: const Offset(0.1, 0), end: Offset.zero)
             // 使用 easeOutCubic 曲线，先快后慢的减速收尾
-            .animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+            .animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
         child: FadeTransition(
           // 透明度补间：从 0 (全透明) 到 1 (不透明)
           opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
@@ -102,7 +109,7 @@ CustomTransitionPage _page(Widget child, GoRouterState state) {
   );
 }
 
-/// 应用全局路由单例，包含 14 条全屏页面的扁平路由映射。
+/// 应用全局路由单例，包含 17 条全屏页面的扁平路由映射。
 ///
 /// ## 路由设计
 ///
@@ -133,35 +140,175 @@ final appRouter = GoRouter(
   initialLocation: '/splash',
   routes: [
     // 闪屏启动页 —— 显示应用 Logo / 品牌画面，短暂停留后自动跳转
-    GoRoute(path: '/splash', pageBuilder: (_, state) => _page(const SplashScreen(), state)),
+    GoRoute(
+        path: '/splash',
+        pageBuilder: (_, state) => _page(const SplashScreen(), state)),
     // 引导页 —— 首次安装后展示的功能引导 / 新手教学
-    GoRoute(path: '/onboarding', pageBuilder: (_, state) => _page(const OnboardingScreen(), state)),
+    GoRoute(
+        path: '/onboarding',
+        pageBuilder: (_, state) => _page(const OnboardingScreen(), state)),
     // 主页 —— 应用核心入口，聚合各功能模块的导航中枢
-    GoRoute(path: '/', pageBuilder: (_, state) => _page(const HomeScreen(), state)),
+    GoRoute(
+        path: '/', pageBuilder: (_, state) => _page(const HomeScreen(), state)),
     // 闪卡学习页 —— 以卡片形式学习麻将牌型和役种，支持 ?suite= 参数切换牌组
-    GoRoute(path: '/flashcard', pageBuilder: (_, state) => _page(
-      FlashcardScreen(suite: state.uri.queryParameters['suite'] ?? 'all'), state)),
+    GoRoute(
+        path: '/flashcard',
+        redirect: (_, state) {
+          final query = state.uri.queryParameters;
+          return query['mode'] == 'review' &&
+                  _nonEmptyQueryValue(query['contentId']) == null
+              ? '/graveyard'
+              : null;
+        },
+        pageBuilder: (_, state) => _page(
+            FlashcardScreen(
+              suite: _flashcardSuite(state.uri.queryParameters['suite']),
+              reviewCardId:
+                  _nonEmptyQueryValue(state.uri.queryParameters['contentId']),
+              planTarget: _positiveInt(state.uri.queryParameters['target']),
+              requirePlanProgressForTarget:
+                  state.uri.queryParameters['source'] == 'today-plan',
+            ),
+            state)),
     // 何切练习页 —— "何切" 实战训练，给定手牌选择最佳切牌
-    GoRoute(path: '/nanikiru', pageBuilder: (_, state) => _page(const NanikiruScreen(), state)),
+    GoRoute(
+        path: '/nanikiru',
+        redirect: (_, state) {
+          final query = state.uri.queryParameters;
+          final requestedReview = query['mode'] == 'review';
+          final reviewItemId = _nonEmptyQueryValue(query['contentId']);
+          return requestedReview && reviewItemId == null ? '/graveyard' : null;
+        },
+        pageBuilder: (_, state) {
+          final modeName = state.uri.queryParameters['mode'];
+          final reviewItemId =
+              _nonEmptyQueryValue(state.uri.queryParameters['contentId']);
+          final mode = reviewItemId != null
+              ? NanikiruMode.review
+              : modeName == 'daily'
+                  ? NanikiruMode.dailyChallenge
+                  : NanikiruMode.practice;
+          return _page(
+              NanikiruScreen(
+                mode: mode,
+                reviewItemId: reviewItemId,
+                focusSkillId: state.uri.queryParameters['focusSkillId'],
+                planTarget: _positiveInt(state.uri.queryParameters['target']),
+                requirePlanProgressForTarget:
+                    state.uri.queryParameters['source'] == 'today-plan',
+              ),
+              state);
+        }),
+    // 防守训练 —— 现物、筋、壁、字牌可见数与复合线索的单一威胁训练。
+    // contentId 用于从错题本精确重做同一条版本化题目。
+    GoRoute(
+        path: '/defense-training',
+        redirect: (_, state) {
+          final query = state.uri.queryParameters;
+          final requestedReview = query['mode'] == 'review';
+          final reviewQuestionId = _nonEmptyQueryValue(query['contentId']);
+          return requestedReview && reviewQuestionId == null
+              ? '/graveyard'
+              : null;
+        },
+        pageBuilder: (_, state) {
+          final query = state.uri.queryParameters;
+          final reviewQuestionId = _nonEmptyQueryValue(query['contentId']);
+          return _page(
+              DefenseTrainingPage(
+                reviewQuestionId: reviewQuestionId,
+                focusSkillId: query['focusSkillId'],
+                planTarget: _positiveInt(query['target']),
+              ),
+              state);
+        }),
     // 牌览页 —— 浏览全部麻将牌面，含牌谱和图鉴
-    GoRoute(path: '/tiles', pageBuilder: (_, state) => _page(const TileBrowserScreen(), state)),
+    GoRoute(
+        path: '/tiles',
+        pageBuilder: (_, state) => _page(const TileBrowserScreen(), state)),
     // 收藏页 —— 用户收藏的牌型 / 役种 / 牌谱
-    GoRoute(path: '/collection', pageBuilder: (_, state) => _page(const CollectionScreen(), state)),
+    GoRoute(
+        path: '/collection',
+        pageBuilder: (_, state) => _page(const CollectionScreen(), state)),
     // 牌河页 —— 弃牌记录与统计，回顾历史弃牌数据
-    GoRoute(path: '/graveyard', pageBuilder: (_, state) => _page(const GraveyardScreen(), state)),
+    GoRoute(
+        path: '/graveyard',
+        pageBuilder: (_, state) => _page(
+              GraveyardScreen(
+                planTarget: _positiveInt(
+                  state.uri.queryParameters['target'],
+                ),
+              ),
+              state,
+            )),
     // 高级版页 —— 会员订阅 / 高级功能解锁
-    GoRoute(path: '/premium', pageBuilder: (_, state) => _page(const PremiumScreen(), state)),
-    // 扫码页 —— 启动相机扫描二维码 / 牌面识别
-    GoRoute(path: '/scanner', pageBuilder: (_, state) => _page(const ScannerScreen(), state)),
+    GoRoute(
+        path: '/premium',
+        pageBuilder: (_, state) => _page(const PremiumScreen(), state)),
+    // 手牌分析器 —— 手动输入 13/14 张门清手牌，查看精确向听与牌效分析
+    GoRoute(
+        path: '/hand-analyzer',
+        pageBuilder: (_, state) => _page(const HandAnalyzerScreen(), state)),
+    // 役种参考页 —— 保留旧 scanner 路由以兼容已有深链。
+    GoRoute(
+        path: '/scanner',
+        pageBuilder: (_, state) => _page(const ScannerScreen(), state)),
     // 个人中心 —— 用户头像、昵称、战绩统计等个人资料
-    GoRoute(path: '/profile', pageBuilder: (_, state) => _page(const ProfileScreen(), state)),
+    GoRoute(
+        path: '/profile',
+        pageBuilder: (_, state) => _page(const ProfileScreen(), state)),
     // 设置页 —— 全局配置（音效、语言、主题、隐私等）
-    GoRoute(path: '/settings', pageBuilder: (_, state) => _page(const SettingsScreen(), state)),
+    GoRoute(
+        path: '/settings',
+        pageBuilder: (_, state) => _page(const SettingsScreen(), state)),
+    // 役种道场 —— 定义、番数和规则测验；contentId 用于错题精准重做。
+    GoRoute(
+        path: '/yaku-quiz',
+        redirect: (_, state) {
+          final query = state.uri.queryParameters;
+          return query['mode'] == 'review' &&
+                  _nonEmptyQueryValue(query['contentId']) == null
+              ? '/graveyard'
+              : null;
+        },
+        pageBuilder: (_, state) => _page(
+            YakuQuizScreen(
+              reviewQuestionId:
+                  _nonEmptyQueryValue(state.uri.queryParameters['contentId']),
+              planTarget: _positiveInt(state.uri.queryParameters['target']),
+              requirePlanProgressForTarget:
+                  state.uri.queryParameters['source'] == 'today-plan',
+            ),
+            state)),
     // 役种详情页 —— 展示单个役种的定义、牌例、番数等详细信息
     // :id 为役种唯一标识（如 13_orphans、big_three_dragons）
-    GoRoute(path: '/yaku/:id', pageBuilder: (_, state) => _page(
-      YakuDetailScreen(yakuId: state.pathParameters['id']!), state)),
+    GoRoute(
+        path: '/yaku/:id',
+        pageBuilder: (_, state) => _page(
+            YakuDetailScreen(yakuId: state.pathParameters['id']!), state)),
     // 排行榜页 —— 全服或好友间的分数 / 段位排行
-    GoRoute(path: '/leaderboard', pageBuilder: (_, state) => _page(const LeaderboardScreen(), state)),
+    GoRoute(
+        path: '/leaderboard',
+        pageBuilder: (_, state) => _page(const LeaderboardScreen(), state)),
   ],
 );
+
+int? _positiveInt(String? value) {
+  final parsed = int.tryParse(value ?? '');
+  return parsed != null && parsed > 0 && parsed <= 10 ? parsed : null;
+}
+
+String? _nonEmptyQueryValue(String? value) {
+  final normalized = value?.trim();
+  return normalized == null || normalized.isEmpty ? null : normalized;
+}
+
+String _flashcardSuite(String? value) {
+  return switch (value?.trim().toLowerCase()) {
+    'man' => 'man',
+    'pin' => 'pin',
+    'sou' => 'sou',
+    'honor' => 'honor',
+    _ => 'all',
+  };
+}

@@ -1,21 +1,18 @@
-/// 役种扫描参考列表 — 展示一副参考手牌可能组成的全部役种。
+/// 役种参考列表 — 按难度展示完整役种百科。
 ///
-/// MVP 阶段提供一个精选的基础役种列表，每个役种带图标、名称、
-/// 英文名、简介以及解锁状态。V2 将加入完整的手牌扫描功能。
+/// 每个役种带图标、名称和简介，并可进入详情或役种训练。
 ///
 /// Screen 组成结构（自上而下）：
 /// 1. AppBar — 标题 + 搜索图标（占位）
 /// 2. 顶部信息卡片 — 说明当前为参考模式，V2 将支持全手牌扫描
-/// 3. 章节标题 — "BASIC YAKU"（基础役种）
-/// 4. 役种卡片列表 — 10 张 [_YakuCard]，每张展示一个役种及其解锁状态
-///
-/// 数据源：静态常量 [_yakuList]，MVP 阶段硬编码 10 个基础役种
-/// 解锁逻辑：前 6 个默认解锁，后 4 个锁定（V2 将改为动态扫描）
+/// 3. 收藏区
+/// 4. 按难度分组的完整役种列表
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../shared/widgets/tz_button.dart';
 import '../../yaku_detail/domain/yaku_data.dart';
 import '../../yaku_detail/domain/yaku_favorites_provider.dart';
 
@@ -27,33 +24,6 @@ class ScannerScreen extends ConsumerWidget {
   /// 常量化构造函数，接受可选的 [Key] 用于 Widget 树中的身份标识。
   const ScannerScreen({super.key});
 
-  /// 役种静态数据列表。
-  ///
-  /// 每条记录是一个 6 元组：
-  ///   - 字段1 (String): emoji  — 役种图标，用于卡片首列展示
-  ///   - 字段2 (String): name   — 日文/罗马字役种名（如 Tanyao, Pinfu）
-  ///   - 字段3 (String): eng    — 英文译名（如 All Simples, Peace）
-  ///   - 字段4 (String): desc   — 一句话中文/英文简介，描述组成条件
-  ///   - 字段5 (bool):   unlocked — true=已解锁可点击；false=锁定仅展示
-  ///   - 字段6 (String): id     — 路由标识符，用于跳转 `/yaku/$id` 详情页
-  ///
-  /// 当前 MVP 阶段：
-  ///   - 前 6 个役种（Tanyao ~ Honitsu）默认为 unlocked=true
-  ///   - 后 4 个役种（Toitoi ~ Chinitsu）默认为 unlocked=false
-  /// V2 阶段：unlocked 将由手牌扫描结果动态决定。
-  static const _yakuList = [
-    ('🥪', 'Tanyao', 'All Simples', 'No terminals or honors. Only tiles 2-8.', true, 'tanyao'),
-    ('🛗', 'Pinfu', 'Peace', 'All sequences, pair not a value honor, two-sided wait.', true, 'pinfu'),
-    ('🔫', 'Riichi', 'Ready Hand', 'Declare riichi when in tenpai. 1 han + chance for uradora.', true, 'riichi'),
-    ('👑', 'Yakuhai', 'Value Honors', 'Triplet of dragons, seat wind, or round wind.', true, 'yakuhai'),
-    ('🌀', 'Iipeikou', 'Pure Double Sequence', 'Two identical sequences in the same suit. Closed only.', true, 'iipeiko'),
-    ('🎨', 'Honitsu', 'Half Flush', 'All tiles from one suit + honors. Common intermediate yaku.', true, 'honitsu'),
-    ('👯', 'Toitoi', 'All Triplets', 'Four triplets + one pair. Open or closed.', false, 'toitoi'),
-    ('🚢', 'Chiitoitsu', 'Seven Pairs', 'Seven distinct pairs. Always closed. 2 han.', false, 'chitoitsu'),
-    ('🏔️', 'Chanta', 'Terminal in Each Set', 'Every meld and pair contains a terminal or honor.', false, 'chanta'),
-    ('🧹', 'Chinitsu', 'Full Flush', 'All tiles from a single suit. 6 han (menzen) or 5 han (open).', false, 'chinitsu'),
-  ];
-
   /// 构建扫描器页面 UI。
   ///
   /// 布局层次：
@@ -62,14 +32,13 @@ class ScannerScreen extends ConsumerWidget {
   /// ├─ AppBar（左侧返回按钮 + 标题"Yaku Scanner" + 右侧搜索图标占位）
   /// └─ ListView
   ///     ├─ 顶部信息卡片（"Yaku Reference"说明 + V2预告）
-  ///     ├─ 章节标题 "BASIC YAKU"
-  ///     └─ 役种卡片列表（遍历 [_yakuList] 生成 [_YakuCard]）
+  ///     ├─ 收藏役种
+  ///     └─ 按难度分组的役种卡片列表
   /// ```
   ///
   /// 交互说明：
   /// - 点击 AppBar 返回按钮 → [context.pop()] 回退到上一页
-  /// - 点击已解锁的役种卡片 → [context.push('/yaku/$id')] 跳转详情页
-  /// - 已锁定卡片不可点击（[GestureDetector.onTap] 为 null）
+  /// - 点击役种卡片 → [context.push('/yaku/$id')] 跳转详情页
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -86,7 +55,8 @@ class ScannerScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         // 标题
-        title: Text(l10n.scannerTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(l10n.scannerTitle,
+            style: const TextStyle(fontWeight: FontWeight.w700)),
         // 右侧操作区：搜索图标（V2 将实现搜索过滤功能）
         actions: [
           const Text('🔍', style: TextStyle(fontSize: 16)),
@@ -113,19 +83,37 @@ class ScannerScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(l10n.scannerTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.jadeWhite)),
+                      Text(l10n.scannerTitle,
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.jadeWhite)),
                       SizedBox(height: 4),
-                      Text(l10n.scannerDesc, style: const TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)),
+                      Text(l10n.scannerDesc,
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.jadeWhiteDim)),
                     ],
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 12),
+          TzButton(
+            label: l10n.yakuQuizStart,
+            style: TzButtonStyle.gold,
+            icon: Icons.school,
+            onPressed: () => context.push('/yaku-quiz'),
+          ),
           // ===== 收藏分区 =====
           if (favorites.isNotEmpty) ...[
             const SizedBox(height: 20),
-            Text(l10n.scannerFavorites, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5, color: AppColors.neonGold)),
+            Text(l10n.scannerFavorites,
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                    color: AppColors.neonGold)),
             const SizedBox(height: 8),
             ..._buildYakuCards(favorites.toList(), allYaku),
           ],
@@ -151,7 +139,7 @@ class ScannerScreen extends ConsumerWidget {
       'Yakuman': [],
     };
     for (final y in source) {
-      if (y.han >= 13) {
+      if (y.closedHan >= 13) {
         groups['Yakuman']!.add(y);
       } else {
         groups[y.difficulty]?.add(y);
@@ -164,9 +152,12 @@ class ScannerScreen extends ConsumerWidget {
       'Advanced': l10n.scannerAdvanced,
       'Yakuman': l10n.scannerYakuman,
     };
-    final icons = {'Beginner': '🌱', 'Intermediate': '🔥', 'Advanced': '💎', 'Yakuman': '👑'};
-    final counts = {'Beginner': '1–2 han', 'Intermediate': '2–3 han', 'Advanced': '5–6 han', 'Yakuman': '13+ han'};
-
+    final icons = {
+      'Beginner': '🌱',
+      'Intermediate': '🔥',
+      'Advanced': '💎',
+      'Yakuman': '👑'
+    };
     final widgets = <Widget>[];
     bool first = true;
     for (final entry in groups.entries) {
@@ -180,19 +171,29 @@ class ScannerScreen extends ConsumerWidget {
           ),
           child: ExpansionTile(
             initiallyExpanded: first,
-            collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            collapsedShape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             backgroundColor: AppColors.jadeCard.withOpacity(0.3),
             collapsedBackgroundColor: Colors.transparent,
-            leading: Text(icons[entry.key] ?? '🀄', style: const TextStyle(fontSize: 20)),
-            title: Text(titles[entry.key] ?? entry.key, style: const TextStyle(
-              fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.jadeWhite)),
-            subtitle: Text('${l10n.scannerYakuCount(entry.value.length)} · ${counts[entry.key] ?? ''}',
-              style: const TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted)),
-            children: entry.value.map((y) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: _YakuCard(_emojiForYaku(y.id), y.nameEn, y.nameJp, y.description, true, y.id),
-            )).toList(),
+            leading: Text(icons[entry.key] ?? '🀄',
+                style: const TextStyle(fontSize: 20)),
+            title: Text(titles[entry.key] ?? entry.key,
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.jadeWhite)),
+            subtitle: Text(l10n.scannerYakuCount(entry.value.length),
+                style: const TextStyle(
+                    fontSize: 11, color: AppColors.jadeWhiteMuted)),
+            children: entry.value
+                .map((y) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: _YakuCard(_emojiForYaku(y.id), y.nameEn, y.nameJp,
+                          y.description, true, y.id),
+                    ))
+                .toList(),
           ),
         ),
       );
@@ -207,24 +208,53 @@ class ScannerScreen extends ConsumerWidget {
       final yaku = getYakuById(id);
       if (yaku == null) return const SizedBox.shrink();
       final emoji = _emojiForYaku(id);
-      return _YakuCard(emoji, yaku.nameEn, yaku.nameJp, yaku.description, true, yaku.id);
+      return _YakuCard(
+          emoji, yaku.nameEn, yaku.nameJp, yaku.description, true, yaku.id);
     }).toList();
   }
 
   /// Map a yaku ID to a representative emoji for the card icon.
   static String _emojiForYaku(String id) {
     const map = {
-      'riichi': '🔫', 'tanyao': '🥪', 'pinfu': '🛗', 'yakuhai': '👑',
-      'iipeiko': '🌀', 'chanta': '🏔️', 'honitsu': '🎨', 'chitoitsu': '🚢',
-      'toitoi': '👯', 'sanshoku': '🌈', 'ikkitsukan': '🚂', 'chinitsu': '🧹',
-      'menzen_tsumo': '🤲', 'ippatsu': '⚡', 'haitei': '🌊', 'houtei': '🐟',
-      'rinshan_kaihou': '🏔️', 'chankan': '🏴‍☠️', 'double_riichi': '⚡⚡',
-      'sanshoku_doukou': '🎲', 'san_kantsu': '📦', 'san_ankou': '🤫',
-      'shousangen': '🐉', 'honroutou': '👴', 'junchan': '🧼', 'ryanpeikou': '🪞',
-      'kokushi_musou': '👑', 'daisangen': '🐲', 'shousuushi': '🌪️', 'daisuushi': '🌪️🌪️',
-      'tsuuiisou': '📜', 'ryuuiisou': '💚', 'chinroutou': '💀',
-      'chuuren_poutou': '🚪', 'suu_kantsu': '📚', 'tenhou': '☁️', 'chiihou': '🌍',
-      'suu_ankou': '🤐', 'nagashi_mangan': '🌊',
+      'riichi': '🔫',
+      'tanyao': '🥪',
+      'pinfu': '🛗',
+      'yakuhai': '👑',
+      'iipeiko': '🌀',
+      'chanta': '🏔️',
+      'honitsu': '🎨',
+      'chitoitsu': '🚢',
+      'toitoi': '👯',
+      'sanshoku': '🌈',
+      'ikkitsukan': '🚂',
+      'chinitsu': '🧹',
+      'menzen_tsumo': '🤲',
+      'ippatsu': '⚡',
+      'haitei': '🌊',
+      'houtei': '🐟',
+      'rinshan_kaihou': '🏔️',
+      'chankan': '🏴‍☠️',
+      'double_riichi': '⚡⚡',
+      'sanshoku_doukou': '🎲',
+      'san_kantsu': '📦',
+      'san_ankou': '🤫',
+      'shousangen': '🐉',
+      'honroutou': '👴',
+      'junchan': '🧼',
+      'ryanpeikou': '🪞',
+      'kokushi_musou': '👑',
+      'daisangen': '🐲',
+      'shousuushi': '🌪️',
+      'daisuushi': '🌪️🌪️',
+      'tsuuiisou': '📜',
+      'ryuuiisou': '💚',
+      'chinroutou': '💀',
+      'chuuren_poutou': '🚪',
+      'suu_kantsu': '📚',
+      'tenhou': '☁️',
+      'chiihou': '🌍',
+      'suu_ankou': '🤐',
+      'nagashi_mangan': '🌊',
     };
     return map[id] ?? '🀄';
   }
@@ -260,7 +290,8 @@ class _YakuCard extends StatelessWidget {
   ///
   /// 参数顺序与 [_yakuList] 中每条元组的字段顺序一致：
   /// [emoji] → [name] → [eng] → [desc] → [unlocked] → [id]
-  const _YakuCard(this.emoji, this.name, this.eng, this.desc, this.unlocked, this.id);
+  const _YakuCard(
+      this.emoji, this.name, this.eng, this.desc, this.unlocked, this.id);
 
   /// 构建役种卡片 UI。
   ///
@@ -290,29 +321,57 @@ class _YakuCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           // 锁定卡片背景降低不透明度，视觉上后退一层
-          color: unlocked ? AppColors.jadeCard : AppColors.jadeCard.withOpacity(0.4),
+          color: unlocked
+              ? AppColors.jadeCard
+              : AppColors.jadeCard.withOpacity(0.4),
           borderRadius: BorderRadius.circular(12),
           // 锁定卡片边框同样降低不透明度
-          border: Border.all(color: unlocked ? AppColors.jadeHover : AppColors.jadeHover.withOpacity(0.3)),
+          border: Border.all(
+              color: unlocked
+                  ? AppColors.jadeHover
+                  : AppColors.jadeHover.withOpacity(0.3)),
         ),
         child: Row(children: [
           // 首列：役种 emoji 图标，锁定态降低不透明度
-          Text(emoji, style: TextStyle(fontSize: 28, color: unlocked ? null : AppColors.jadeWhiteMuted.withOpacity(0.4))),
+          Text(emoji,
+              style: TextStyle(
+                  fontSize: 28,
+                  color: unlocked
+                      ? null
+                      : AppColors.jadeWhiteMuted.withOpacity(0.4))),
           const SizedBox(width: 12),
           // 中间列：役种名 + 英文名 + 简介，文字颜色均受解锁状态影响
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              // 役种日文名 — 已解锁为霓虹金色醒目标识，锁定为灰色
-              Text(name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
-                color: unlocked ? AppColors.neonGold : AppColors.jadeWhiteMuted)),
-              const SizedBox(width: 8),
-              // 役种英文名 — 已解锁为暗白，锁定为进一步淡化的灰色
-              Text(eng, style: TextStyle(fontSize: 11, color: unlocked ? AppColors.jadeWhiteDim : AppColors.jadeWhiteMuted.withOpacity(0.4))),
-            ]),
-            const SizedBox(height: 2),
-            // 役种简介 — 锁定态极低不透明度，几乎不可读
-            Text(desc, style: TextStyle(fontSize: 11, color: unlocked ? AppColors.jadeWhiteDim : AppColors.jadeWhiteMuted.withOpacity(0.3))),
-          ])),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Row(children: [
+                  // 役种日文名 — 已解锁为霓虹金色醒目标识，锁定为灰色
+                  Text(name,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: unlocked
+                              ? AppColors.neonGold
+                              : AppColors.jadeWhiteMuted)),
+                  const SizedBox(width: 8),
+                  // 役种英文名 — 已解锁为暗白，锁定为进一步淡化的灰色
+                  Text(eng,
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: unlocked
+                              ? AppColors.jadeWhiteDim
+                              : AppColors.jadeWhiteMuted.withOpacity(0.4))),
+                ]),
+                const SizedBox(height: 2),
+                // 役种简介 — 锁定态极低不透明度，几乎不可读
+                Text(desc,
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: unlocked
+                            ? AppColors.jadeWhiteDim
+                            : AppColors.jadeWhiteMuted.withOpacity(0.3))),
+              ])),
           // 末列：锁定图标，仅锁定卡片显示
           if (!unlocked) const Text('🔒', style: TextStyle(fontSize: 14)),
         ]),

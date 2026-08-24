@@ -1,17 +1,36 @@
+import pytest
+
 from app.engine.ukeire import UkeireCalculator
 
 
-def test_ukeire_returns_all_discards():
-    hand = ["m1","m1","m2","m3","m4","m5","m6","m7","m8","m9","m9","p1","p1","p1"]
-    result = UkeireCalculator(hand).calculate()
-    assert len(result) > 0
-    for discard_id, data in result.items():
-        assert "shanten_after" in data
-        assert "ukeire_count" in data
-        assert "ukeire_types" in data
+FALLBACK_HAND = [
+    "m1", "m2", "m3", "m4", "m5", "m6", "p5", "p6",
+    "p7", "p8", "p9", "z1", "z1", "z2",
+]
 
 
-def test_ukeire_requires_exactly_14():
-    import pytest
-    with pytest.raises(ValueError):
-        UkeireCalculator(["m1"] * 13)
+def test_exact_fallback_ukeire_after_discarding_z2():
+    result = UkeireCalculator(FALLBACK_HAND).calculate()["z2"]
+
+    assert result["shanten_after"] == 0
+    assert result["ukeire_types"] == ["p4", "p7"]
+    assert result["ukeire_count"] == 7
+
+
+def test_each_discard_uses_its_own_thirteen_tile_baseline():
+    result = UkeireCalculator(FALLBACK_HAND).calculate()["m1"]
+
+    assert result["shanten_after"] == 1
+    assert "m1" in result["ukeire_types"]
+    assert result["ukeire_count"] == 17
+
+
+def test_ukeire_requires_exactly_fourteen_tiles():
+    with pytest.raises(ValueError, match="Expected 14 tiles"):
+        UkeireCalculator(FALLBACK_HAND[:-1])
+
+
+def test_ukeire_rejects_five_copies():
+    invalid_hand = ["m1"] * 5 + FALLBACK_HAND[:9]
+    with pytest.raises(ValueError, match="Too many copies"):
+        UkeireCalculator(invalid_hand)

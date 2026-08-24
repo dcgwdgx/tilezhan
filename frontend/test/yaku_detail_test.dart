@@ -13,7 +13,10 @@ void main() {
       for (final y in allYaku) {
         expect(y.id, isNotEmpty);
         expect(y.nameEn, isNotEmpty);
-        expect(y.han, greaterThan(0));
+        expect(y.closedHan, greaterThan(0));
+        if (y.openHan != null) {
+          expect(y.openHan, greaterThan(0));
+        }
         expect(y.conditions, isNotEmpty);
         expect(y.examples, isNotEmpty);
         expect(y.tip, isNotEmpty);
@@ -25,15 +28,57 @@ void main() {
       expect(ids.length, allYaku.length);
     });
 
-    test('han values are realistic (1-26, yakuman range)', () {
+    test('han values are realistic and open hands never gain han', () {
       for (final y in allYaku) {
-        expect(y.han, inInclusiveRange(1, 26));
+        expect(y.closedHan, inInclusiveRange(1, 26));
+        if (y.openHan != null) {
+          expect(y.openHan, inInclusiveRange(1, y.closedHan));
+        }
+      }
+    });
+
+    test('open-hand reductions have exact closed and open values', () {
+      const expected = <String, (int, int)>{
+        'chanta': (2, 1),
+        'honitsu': (3, 2),
+        'sanshoku': (2, 1),
+        'ikkitsukan': (2, 1),
+        'chinitsu': (6, 5),
+        'junchan': (3, 2),
+      };
+
+      for (final entry in expected.entries) {
+        final yaku = getYakuById(entry.key)!;
+        expect(yaku.closedHan, entry.value.$1, reason: entry.key);
+        expect(yaku.openHan, entry.value.$2, reason: entry.key);
+      }
+    });
+
+    test('closed-only yaku have no open-hand value', () {
+      const closedOnlyIds = {
+        'riichi',
+        'pinfu',
+        'iipeiko',
+        'chitoitsu',
+        'menzen_tsumo',
+        'ippatsu',
+        'double_riichi',
+        'ryanpeikou',
+        'kokushi_musou',
+        'chuuren_poutou',
+        'tenhou',
+        'chiihou',
+        'suu_ankou',
+      };
+
+      for (final id in closedOnlyIds) {
+        expect(getYakuById(id)!.openHan, isNull, reason: id);
       }
     });
 
     test('getYakuById finds valid IDs', () {
       expect(getYakuById('riichi')!.nameEn, 'Riichi');
-      expect(getYakuById('chinitsu')!.han, 6);
+      expect(getYakuById('chinitsu')!.closedHan, 6);
       expect(getYakuById('tanyao')!.difficulty, 'Beginner');
     });
 
@@ -49,11 +94,24 @@ void main() {
         }
       }
     });
+
+    test('yakuhai never claims the mutually exclusive tanyao combination', () {
+      final comboNames = getYakuById('yakuhai')!.combos.map((c) => c.name);
+      expect(comboNames, isNot(contains('Yakuhai + Tanyao')));
+      expect(comboNames, contains('Yakuhai + Toitoi'));
+    });
   });
 
   group('YakuDetailScreen', () {
     testWidgets('shows yaku name and key sections for riichi', (tester) async {
-      await tester.pumpWidget(ProviderScope(child: MaterialApp(
+      await tester.pumpWidget(ProviderScope(
+          child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en')],
         home: YakuDetailScreen(yakuId: 'riichi'),
       )));
       await tester.pumpAndSettle();
@@ -66,7 +124,14 @@ void main() {
 
     testWidgets('every yaku renders without crash', (tester) async {
       for (final y in allYaku) {
-        await tester.pumpWidget(ProviderScope(child: MaterialApp(
+        await tester.pumpWidget(ProviderScope(
+            child: MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('en')],
           home: YakuDetailScreen(yakuId: y.id),
         )));
         await tester.pump();
@@ -75,7 +140,8 @@ void main() {
     });
 
     testWidgets('shows fallback for unknown yaku', (tester) async {
-      await tester.pumpWidget(ProviderScope(child: MaterialApp(
+      await tester.pumpWidget(ProviderScope(
+          child: MaterialApp(
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,

@@ -104,6 +104,64 @@ void main() {
       expect(svc.canUseDailyChallenge, isFalse);
       expect(svc.useDailyChallenge(), isFalse);
     });
+
+    test('records exactly three attempts and counts correct answers', () {
+      final first = svc.recordDailyChallengeResult(isCorrect: true);
+      expect(first.attempted, 1);
+      expect(first.correct, 1);
+      expect(first.remaining, 2);
+      expect(first.completed, isFalse);
+      expect(first.wasRecorded, isTrue);
+
+      final second = svc.recordDailyChallengeResult(isCorrect: false);
+      expect(second.attempted, 2);
+      expect(second.correct, 1);
+      expect(second.remaining, 1);
+
+      final third = svc.recordDailyChallengeResult(isCorrect: true);
+      expect(third.attempted, 3);
+      expect(third.correct, 2);
+      expect(third.remaining, 0);
+      expect(third.completed, isTrue);
+      expect(third.accuracy, closeTo(2 / 3, 0.0001));
+
+      final duplicate = svc.recordDailyChallengeResult(isCorrect: true);
+      expect(duplicate.wasRecorded, isFalse);
+      expect(duplicate.attempted, 3);
+      expect(duplicate.correct, 2);
+      expect(svc.dailyChallengeAttempted, 3);
+      expect(svc.dailyChallengeCorrect, 2);
+    });
+
+    test('completion streak advances once after a yesterday completion', () async {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final yesterday = today.subtract(const Duration(days: 1));
+      String dayKey(DateTime date) =>
+          '${date.year.toString().padLeft(4, '0')}-'
+          '${date.month.toString().padLeft(2, '0')}-'
+          '${date.day.toString().padLeft(2, '0')}';
+
+      final box = Hive.box('hearts');
+      await box.put('last_reset_date', dayKey(today));
+      await box.put('daily_challenge_used', 0);
+      await box.put('daily_challenge_correct', 0);
+      await box.put('daily_challenge_streak', 4);
+      await box.put('daily_challenge_last_completed', dayKey(yesterday));
+
+      final fresh = HeartService();
+      fresh.recordDailyChallengeResult(isCorrect: true);
+      fresh.recordDailyChallengeResult(isCorrect: true);
+      final completed = fresh.recordDailyChallengeResult(isCorrect: false);
+
+      expect(completed.completed, isTrue);
+      expect(completed.streak, 5);
+
+      final duplicate = fresh.recordDailyChallengeResult(isCorrect: true);
+      expect(duplicate.wasRecorded, isFalse);
+      expect(duplicate.streak, 5);
+      expect(fresh.dailyChallengeStreak, 5);
+    });
   });
 
   group('ComboPromo', () {

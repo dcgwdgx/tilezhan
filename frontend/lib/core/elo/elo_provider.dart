@@ -30,7 +30,8 @@ import '../providers/storage_provider.dart';
 /// 若尚未记录则从基准 800 开始。
 final eloProvider = StateNotifierProvider<EloNotifier, int>((ref) {
   final storageAsync = ref.watch(storageServiceProvider);
-  final currentElo = storageAsync.valueOrNull?.getInt(StorageService.kElo) ?? 800;
+  final currentElo =
+      storageAsync.valueOrNull?.getIntOrNull(StorageService.kElo) ?? 800;
   return EloNotifier(ref, currentElo);
 });
 

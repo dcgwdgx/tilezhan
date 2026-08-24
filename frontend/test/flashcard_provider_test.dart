@@ -30,8 +30,8 @@ class StubTileRepo extends TileRepository {
   @override
   List<TileModel> getDistractors(
       TileModel correct, List<TileModel> allTiles, int count) {
-    final others =
-        allTiles.where((t) => t.id != correct.id).toList()..shuffle();
+    final others = allTiles.where((t) => t.id != correct.id).toList()
+      ..shuffle();
     return others.take(count).toList();
   }
 }
@@ -117,6 +117,56 @@ void main() {
       expect(state.wrongCount, 1);
       expect(state.lastCorrectId, isNull);
       expect(state.lastWrongId, isNotNull);
+    });
+
+    test('submitSelection preserves the exact wrong option', () async {
+      final container = _container(tiles);
+      final notifier = container.read(flashcardQuizProvider.notifier);
+      await notifier.initQuiz(count: 5);
+
+      final before = container.read(flashcardQuizProvider);
+      final correctId = before.currentTile!.id;
+      final wrongId = before.options
+          .map((tile) => tile.id)
+          .firstWhere((id) => id != correctId);
+
+      final isCorrect = notifier.submitSelection(wrongId);
+
+      final state = container.read(flashcardQuizProvider);
+      expect(isCorrect, isFalse);
+      expect(state.wrongCount, 1);
+      expect(state.lastWrongId, wrongId);
+      expect(state.lastWrongId, isNot(correctId));
+    });
+
+    test('reviewCardId creates a one-card precision review session', () async {
+      final container = _container(tiles);
+      final notifier = container.read(flashcardQuizProvider.notifier);
+      final target = tiles.last;
+
+      await notifier.initQuiz(
+        suite: 'man',
+        count: 10,
+        reviewCardId: target.id,
+      );
+
+      final state = container.read(flashcardQuizProvider);
+      expect(state.totalCount, 1);
+      expect(state.currentTile?.id, target.id);
+      expect(state.queue.single.id, target.id);
+      expect(state.options, hasLength(4));
+      expect(state.options.map((tile) => tile.id), contains(target.id));
+    });
+
+    test('unknown reviewCardId is rejected instead of starting a random quiz',
+        () async {
+      final container = _container(tiles);
+      final notifier = container.read(flashcardQuizProvider.notifier);
+
+      await expectLater(
+        notifier.initQuiz(reviewCardId: 'missing-card'),
+        throwsArgumentError,
+      );
     });
 
     // 在答题状态中重复调用 submitAnswer 应被忽略（幂等性）

@@ -49,9 +49,9 @@ import 'flashcard_state.dart';
 /// final quizState = ref.watch(flashcardQuizProvider);
 /// final quizNotifier = ref.read(flashcardQuizProvider.notifier);
 /// ```
-final flashcardQuizProvider =
-    StateNotifierProvider.autoDispose<FlashcardQuizNotifier, FlashcardQuizState>(
-        (ref) => FlashcardQuizNotifier(ref.read(tileRepositoryProvider)));
+final flashcardQuizProvider = StateNotifierProvider.autoDispose<
+        FlashcardQuizNotifier, FlashcardQuizState>(
+    (ref) => FlashcardQuizNotifier(ref.read(tileRepositoryProvider)));
 
 // =============================================================================
 // 状态控制器
@@ -146,7 +146,11 @@ class FlashcardQuizNotifier extends StateNotifier<FlashcardQuizState> {
   ///   可选值：`'all'` | `'honor'`（风牌 + 箭牌）| `'wan'` | `'tong'` | `'tiao'`。
   /// - [count]：本局题目数量，默认 10。当过滤后可用牌数不足时自动
   ///   取较小值。
-  Future<void> initQuiz({String suite = 'all', int count = 10}) async {
+  Future<void> initQuiz({
+    String suite = 'all',
+    int count = 10,
+    String? reviewCardId,
+  }) async {
     // 1. 加载全量牌数据到内存缓存
     _allTiles = await _repo.loadAllTiles();
 
@@ -155,15 +159,30 @@ class FlashcardQuizNotifier extends StateNotifier<FlashcardQuizState> {
         ? _allTiles
         : suite == 'honor'
             ? _allTiles
-                .where((t) => t.suit == TileSuit.wind || t.suit == TileSuit.dragon)
+                .where(
+                    (t) => t.suit == TileSuit.wind || t.suit == TileSuit.dragon)
                 .toList()
             : _allTiles.where((t) => t.suit.name == suite).toList();
 
-    // 3. 随机打乱过滤后的牌列表
-    final shuffled = List<TileModel>.from(filtered)..shuffle();
+    TileModel? reviewCard;
+    if (reviewCardId != null) {
+      for (final tile in _allTiles) {
+        if (tile.id == reviewCardId) {
+          reviewCard = tile;
+          break;
+        }
+      }
+    }
 
-    // 4. 截取答题队列（不超过可用牌数）
-    final queue = shuffled.take(min(count, shuffled.length)).toList();
+    // 精准复习时只加载目标牌；普通模式仍按花色随机生成题组。
+    if (reviewCardId != null && reviewCard == null) {
+      throw ArgumentError.value(reviewCardId, 'reviewCardId');
+    }
+    final queue = reviewCard != null
+        ? <TileModel>[reviewCard]
+        : (List<TileModel>.from(filtered)..shuffle())
+            .take(min(count, filtered.length))
+            .toList();
 
     // 5. 为第一题预构建选项
     final options = queue.isNotEmpty ? _buildOptions(queue[0]) : <TileModel>[];
@@ -213,6 +232,33 @@ class FlashcardQuizNotifier extends StateNotifier<FlashcardQuizState> {
       wrongCount: isCorrect ? state.wrongCount : state.wrongCount + 1,
       lastCorrectId: isCorrect ? state.currentTile?.id : null,
       lastWrongId: isCorrect ? null : state.currentTile?.id,
+    );
+  }
+
+  /// 提交用户实际选择的牌 ID，并返回是否正确。
+  ///
+  /// 与旧的布尔接口相比，这会保留“把哪张牌认成了哪张牌”，为混淆牌专项
+  /// 训练和可信分析数据提供依据。
+  bool submitSelection(String selectedTileId) {
+    if (state.isAnswering) return false;
+    final correctId = state.currentTile?.id;
+    final isCorrect = correctId != null && selectedTileId == correctId;
+    state = state.copyWith(
+      isAnswering: true,
+      correctCount: isCorrect ? state.correctCount + 1 : state.correctCount,
+      wrongCount: isCorrect ? state.wrongCount : state.wrongCount + 1,
+      lastCorrectId: isCorrect ? correctId : null,
+      lastWrongId: isCorrect ? null : selectedTileId,
+    );
+    return isCorrect;
+  }
+
+  /// 记录超时，不把正确牌伪装成用户的错误选择。
+  void submitTimeout() {
+    if (state.isAnswering || state.currentTile == null) return;
+    state = state.copyWith(
+      isAnswering: true,
+      wrongCount: state.wrongCount + 1,
     );
   }
 

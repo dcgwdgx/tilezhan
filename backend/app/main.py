@@ -17,7 +17,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import settings  # 全局配置单例，包含 APP_NAME / APP_VERSION / ALLOWED_ORIGINS 等
+from app.config import settings, validate_runtime_settings
+from app.core.firebase import initialize_firebase
 from app.api.v1.router import api_router  # v1 版本的全部路由聚合器
 
 
@@ -35,8 +36,11 @@ async def lifespan(app: FastAPI):
     Yields:
         None: 控制权交给 FastAPI，应用在 yield 期间正常运行。
     """
-    # ========== 启动阶段 ==========
-    # 可在此处执行: 数据库连接池初始化、Redis 客户端连接、模型预加载等
+    # 生产配置必须在接收请求前完成校验；Firebase 也必须先于认证请求初始化。
+    validate_runtime_settings(settings)
+    app.state.firebase_app = initialize_firebase(
+        required=settings.APP_ENV == "production"
+    )
     yield
     # ========== 关闭阶段 ==========
     # 可在此处执行: 关闭数据库连接池、断开 Redis、清理临时文件等

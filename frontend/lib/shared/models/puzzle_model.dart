@@ -12,7 +12,7 @@
 /// - 1 张自摸牌 (drawnTileId)：当巡摸到的牌，与手牌合为 14 张待切牌面
 /// - 1 张正确舍牌 (correctDiscardId)：专家验证的最优解，即最应该舍弃的那张牌
 /// - 接受度信息 (ukeire)：正确舍牌后的进张统计，含进张数量、种类及具体牌列表
-/// - 难度评级 (difficulty)：Puzzle Rating 评分，范围 800-1300
+/// - 难度评级 (difficulty)：Puzzle Rating 评分，范围 800-1600
 ///
 /// ## 数据来源
 /// 题目数据通常来自：
@@ -22,9 +22,9 @@
 ///
 /// ## 与牌 ID 系统的关系
 /// 牌 ID 字符串格式遵循 TileZhan 统一约定：
-/// - 数字(1-9) + 花色(m/p/s) 表示数牌，如 "1m" = 一萬, "9p" = 九筒, "5s" = 五索
-/// - 数字(1-7) + "z" 表示字牌，如 "1z" = 東, "2z" = 南, "5z" = 白
-/// - "0m"/"0p"/"0s" 表示赤宝牌（赤ドラ），仅在特定规则下出现
+/// - 花色(m/p/s) + 数字(1-9) 表示数牌，如 "m1" = 一萬, "p9" = 九筒, "s5" = 五索
+/// - "z" + 数字(1-7) 表示字牌，如 "z1" = 東, "z2" = 南, "z5" = 白
+/// - "m0"/"p0"/"s0" 表示赤宝牌（赤ドラ），仅在特定规则下出现
 ///
 /// ## 与 PuzzleAttempt / PuzzleStats 的关系
 /// - 用户作答时创建 [PuzzleAttempt] 记录一次尝试
@@ -53,23 +53,23 @@
 /// ```dart
 /// final puzzle = Puzzle(
 ///   puzzleId: 'p001',
-///   hand13Ids: ['1m','1m','2m','3m','...'],
-///   drawnTileId: '4m',
-///   correctDiscardId: '1m',
+///   hand13Ids: ['m1','m1','m2','m3','...'],
+///   drawnTileId: 'm4',
+///   correctDiscardId: 'm1',
 ///   ukeireCount: 32,
 ///   ukeireTypes: 12,
-///   ukeireTileIds: ['2m','3m','...'],
+///   ukeireTileIds: ['m2','m3','...'],
 ///   difficulty: 850,
 /// );
 /// ```
 ///
 /// ## 不变式 (Invariants)
 /// - hand13Ids 固定为 13 张，长度受 PuzzleValidator 校验
-/// - drawnTileId 不存在于 hand13Ids 中（自摸牌独立于手牌）
+/// - drawnTileId 可与 hand13Ids 中已有的牌同种，但 14 张牌中同种牌不能超过 4 张
 /// - correctDiscardId 必须是 hand13Ids 或 drawnTileId 之一
 /// - ukeireCount >= ukeireTypes（因为同一进张种类可能有多张）
 /// - ukeireTileIds 的种类数 == ukeireTypes
-/// - difficulty 范围 [800, 1300]
+/// - difficulty 范围 [800, 1600]
 ///
 /// ## 不可变性
 /// 本类所有字段均为 final，通过 const 构造函数创建后不可修改。
@@ -102,9 +102,9 @@ class Puzzle {
   ///
   /// ## 牌 ID 格式
   /// 遵循 TileZhan 统一牌 ID 约定：
-  /// - 数牌：`"{数字1-9}{花色m/p/s}"`，如 `"1m"` = 一萬, `"5p"` = 五筒, `"9s"` = 九索
-  /// - 字牌：`"{数字1-7}z"`，如 `"1z"` = 東, `"2z"` = 南, `"3z"` = 西, `"4z"` = 北, `"5z"` = 白, `"6z"` = 發, `"7z"` = 中
-  /// - 赤宝牌：`"0m"`, `"0p"`, `"0s"`（仅在含赤规则下出现）
+  /// - 数牌：`"{花色m/p/s}{数字1-9}"`，如 `"m1"` = 一萬, `"p5"` = 五筒, `"s9"` = 九索
+  /// - 字牌：`"z{数字1-7}"`，如 `"z1"` = 東, `"z2"` = 南, `"z3"` = 西, `"z4"` = 北, `"z5"` = 白, `"z6"` = 發, `"z7"` = 中
+  /// - 赤宝牌：`"m0"`, `"p0"`, `"s0"`（仅在含赤规则下出现）
   ///
   /// ## 数据特征
   /// - 固定 13 张，对应日本麻将的标准手牌数
@@ -134,7 +134,7 @@ class Puzzle {
   ///
   /// ## 约束
   /// - 牌 ID 格式与 [hand13Ids] 中的元素相同
-  /// - 理论上自摸牌可能与手牌中已有的牌相同（如手中有 1m，又摸到 1m），这是完全合法的
+  /// - 理论上自摸牌可能与手牌中已有的牌相同（如手中有 m1，又摸到 m1），这是完全合法的
   /// - 不可为空字符串
   final String drawnTileId;
 
@@ -166,10 +166,10 @@ class Puzzle {
   /// 本字段统计所有有效进张的**总张数**，即考虑每种牌在牌山中的剩余枚数。
   ///
   /// ## 计算方式
-  /// 例如，舍弃某牌后，进张种类为 {2m, 3m, 5p}：
-  /// - 2m 剩余 4 张 → 4
-  /// - 3m 剩余 3 张 → 3
-  /// - 5p 剩余 4 张 → 4
+  /// 例如，舍弃某牌后，进张种类为 {m2, m3, p5}：
+  /// - m2 剩余 4 张 → 4
+  /// - m3 剩余 3 张 → 3
+  /// - p5 剩余 4 张 → 4
   /// - ukeireCount = 4 + 3 + 4 = 11
   ///
   /// ## 与 ukeireTypes 的关系
@@ -189,8 +189,8 @@ class Puzzle {
   /// 进张种类数 = 有多少种**不同的牌**能使向听数减少，不考虑每种牌的剩余枚数。
   ///
   /// ## 示例
-  /// 进张为 {2m, 3m, 5p} → ukeireTypes = 3（3 种不同的牌）
-  /// 进张为 {1m, 4m, 7m, 1p, 4p} → ukeireTypes = 5
+  /// 进张为 {m2, m3, p5} → ukeireTypes = 3（3 种不同的牌）
+  /// 进张为 {m1, m4, m7, p1, p4} → ukeireTypes = 5
   ///
   /// ## 与 ukeireCount 的关系
   /// - ukeireTypes <= ukeireCount 恒成立
@@ -229,7 +229,7 @@ class Puzzle {
   /// - 列表中的每个牌 ID 必须来自标准麻将牌集合（34 种牌）
   final List<String> ukeireTileIds;
 
-  /// 题目难度评级（Puzzle Rating），范围 800-1300，默认 1000。
+  /// 题目难度评级（Puzzle Rating），范围 800-1600，默认 1000。
   ///
   /// ## 评级体系
   /// Puzzle Rating 采用类 ELO 的序数评分系统，用于衡量题目的客观难度：
@@ -253,7 +253,7 @@ class Puzzle {
   /// 新题目的初始难度为 1000，随后根据用户答题数据动态调整。
   ///
   /// ## 约束
-  /// - 范围 [800, 1300]，由 PuzzleValidator 校验
+  /// - 范围 [800, 1600]，由 PuzzleValidator 校验
   /// - 数值越高表示题目越难
   final int difficulty;
 
@@ -279,12 +279,12 @@ class Puzzle {
   /// ```dart
   /// final puzzle = Puzzle(
   ///   puzzleId: 'p042',
-  ///   hand13Ids: ['1m','1m','3m','4m','5m','7m','8m','9m','1p','2p','3p','5s','6s'],
-  ///   drawnTileId: '7s',
-  ///   correctDiscardId: '1m',
+  ///   hand13Ids: ['m1','m1','m3','m4','m5','m7','m8','m9','p1','p2','p3','s5','s6'],
+  ///   drawnTileId: 's7',
+  ///   correctDiscardId: 'm1',
   ///   ukeireCount: 28,
   ///   ukeireTypes: 10,
-  ///   ukeireTileIds: ['2m','3m','...'],
+  ///   ukeireTileIds: ['m2','m3','...'],
   /// );
   /// ```
   const Puzzle({

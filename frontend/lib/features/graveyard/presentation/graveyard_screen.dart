@@ -10,6 +10,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/models/tile_model.dart';
 import '../../../shared/widgets/tz_card.dart';
+import '../../yaku_quiz/data/static_yaku_quiz_repository.dart';
+import '../../yaku_quiz/presentation/yaku_quiz_copy.dart';
 import '../domain/graveyard_provider.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
@@ -17,11 +19,18 @@ import '../../../l10n/generated/app_localizations.dart';
 ///
 /// Displays the user's SRS due queue: a weakness radar summarising error
 /// rates across the five mahjong suits, a scrollable list of overdue
-/// flashcard and nanikiru items, and a "Review All" button that launches
-/// the flashcard session. 所有数据通过 Riverpod providers 驱动。
+/// flashcard, nanikiru and yaku items, and a "Review All" button that walks
+/// the exact mixed-type review queue. 所有数据通过 Riverpod providers 驱动。
 class GraveyardScreen extends ConsumerWidget {
   /// 构造无状态的错题墓地屏幕实例。
-  const GraveyardScreen({super.key});
+  const GraveyardScreen({
+    super.key,
+    this.planTarget,
+  });
+
+  /// Optional remaining count supplied by the fixed daily plan. The list still
+  /// exposes every due item, while Review All stops exactly at this boundary.
+  final int? planTarget;
 
   /// 构建屏幕 UI：顶部导航栏 + 弱点雷达图 + 待复习列表 + 一键复习按钮。
   @override
@@ -33,15 +42,18 @@ class GraveyardScreen extends ConsumerWidget {
         backgroundColor: AppColors.jadeDeep,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.jadeWhiteDim),
-          onPressed: () => context.pop(),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
         title: Row(
           children: [
-            Text(l10n.homeGraveyard, style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text(l10n.homeGraveyard,
+                style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(width: 8),
-            Text(l10n.graveyardSrsReview, style: const TextStyle(
-              fontSize: 13, color: AppColors.demonPurple,
-            )),
+            Text(l10n.graveyardSrsReview,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.demonPurple,
+                )),
           ],
         ),
       ),
@@ -51,6 +63,8 @@ class GraveyardScreen extends ConsumerWidget {
           // dueItems: SRS 到期错题列表；suitRates: 五种牌的加权错误率(man/pin/sou/wind/dragon)。
           final dueItems = ref.watch(graveyardDueProvider);
           final suitRates = ref.watch(suitErrorRatesProvider);
+          final reviewCount =
+              min(planTarget ?? dueItems.length, dueItems.length);
           return Column(
             children: [
               _buildRadarCard(context, suitRates, l10n),
@@ -59,10 +73,14 @@ class GraveyardScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('${l10n.graveyardTodaysReview} · ${l10n.graveyardDueCount(dueItems.length)}', style: const TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5,
-                    color: AppColors.jadeWhiteMuted,
-                  )),
+                  child: Text(
+                      '${l10n.graveyardTodaysReview} · ${l10n.graveyardDueCount(dueItems.length)}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.5,
+                        color: AppColors.jadeWhiteMuted,
+                      )),
                 ),
               ),
               const SizedBox(height: 8),
@@ -74,17 +92,22 @@ class GraveyardScreen extends ConsumerWidget {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    // 无待复习项时按钮禁用（null onPressed），有则跳转到闪卡复习页。
-                    onPressed: dueItems.isEmpty ? null : () => context.push('/flashcard'),
+                    // 按队列逐题打开精确复习；用户主动退出时停止后续跳转。
+                    onPressed: dueItems.isEmpty
+                        ? null
+                        : () => _reviewAll(context, dueItems),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.neonGold,
                       foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30)),
                     ),
-                    child: Text(l10n.graveyardReviewAll(dueItems.length), style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w800,
-                    )),
+                    child: Text(l10n.graveyardReviewAll(reviewCount),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        )),
                   ),
                 ),
               ),
@@ -99,13 +122,15 @@ class GraveyardScreen extends ConsumerWidget {
   ///
   /// [suitRates] key 为花色名('man'/'pin'/'sou'/'wind'/'dragon')，value 为 0~1 的错误率。
   /// 返回一个 [TzCard] 包裹的雷达图组件（含 CustomPaint 五边形图 + 最弱项高亮文本）。
-  Widget _buildRadarCard(BuildContext context, Map<String, double> suitRates, AppLocalizations l10n) {
+  Widget _buildRadarCard(BuildContext context, Map<String, double> suitRates,
+      AppLocalizations l10n) {
     // 五种麻将花色的内部键名与展示标签。
     final suits = ['man', 'pin', 'sou', 'wind', 'dragon'];
     // TODO: add l10n keys for suit labels (graveyardSuitMan, graveyardSuitPin, etc.)
     final labels = ['Man', 'Pin', 'Sou', 'Wind', 'Dgn'];
     // 找出错误率最高的花色，高亮为"最弱项"。
-    final worst = suits.reduce((a, b) => (suitRates[a] ?? 0) > (suitRates[b] ?? 0) ? a : b);
+    final worst = suits
+        .reduce((a, b) => (suitRates[a] ?? 0) > (suitRates[b] ?? 0) ? a : b);
 
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -113,20 +138,30 @@ class GraveyardScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Text(l10n.graveyardWeaknessRadar, style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.jadeWhiteDim,
-            )),
+            Text(l10n.graveyardWeaknessRadar,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.jadeWhiteDim,
+                )),
             const SizedBox(height: 12),
             SizedBox(
-              width: 140, height: 140,
+              width: 140,
+              height: 140,
               child: CustomPaint(
-                painter: _RadarPainter(data: suits.map((s) => suitRates[s] ?? 0).toList()),
+                painter: _RadarPainter(
+                    data: suits.map((s) => suitRates[s] ?? 0).toList()),
               ),
             ),
             const SizedBox(height: 8),
-            Text(l10n.graveyardWeakest(labels[suits.indexOf(worst)], ((suitRates[worst] ?? 0) * 100).round()), style: const TextStyle(
-              fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.vermillionHover,
-            )),
+            Text(
+                l10n.graveyardWeakest(labels[suits.indexOf(worst)],
+                    ((suitRates[worst] ?? 0) * 100).round()),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.vermillionHover,
+                )),
           ],
         ),
       ),
@@ -138,7 +173,8 @@ class GraveyardScreen extends ConsumerWidget {
   /// [dueItems] 为 SRS 到期项列表，每项为 ([SRS条目数据], [TileModel]?) 的 record。
   /// 列表为空时展示庆祝空状态("🎉 Nothing due!")；否则构建可滚动的错题卡片列表，
   /// 每张卡片显示牌面 emoji、题目名称、类型、错误次数、逾期天数，点击跳转到对应复习页面。
-  Widget _buildReviewList(BuildContext context, List<(dynamic, TileModel?)> dueItems) {
+  Widget _buildReviewList(
+      BuildContext context, List<(dynamic, TileModel?)> dueItems) {
     final l10n = AppLocalizations.of(context)!;
     // 无待复习项：展示庆祝空状态。
     if (dueItems.isEmpty) {
@@ -148,7 +184,9 @@ class GraveyardScreen extends ConsumerWidget {
           children: [
             const Text('🎉', style: TextStyle(fontSize: 40)),
             const SizedBox(height: 8),
-            Text(l10n.graveyardNothingDue, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.jadeWhiteDim)),
+            Text(l10n.graveyardNothingDue,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.jadeWhiteDim)),
           ],
         ),
       );
@@ -160,50 +198,117 @@ class GraveyardScreen extends ConsumerWidget {
         // 解构 SRS 条目：item 为 SRS 元数据(类型/错误数/到期时间)，tile 为关联的牌模型(可为空)。
         final (item, tile) = dueItems[i];
         // 优先使用牌面的助记 emoji，无牌面时降级为万用麻将 emoji。
-        final emoji = tile?.mnemonic.emoji ?? '🀄';
+        final emoji = switch (item.type) {
+          'yaku' => '🎓',
+          'defense' => '🛡️',
+          _ => tile?.mnemonic.emoji ?? '🀄',
+        };
         // 优先使用助记名称，降级使用 itemId 作为标题。
-        final name = tile?.mnemonic.name ?? item.itemId;
+        final yakuQuestion = item.type == 'yaku'
+            ? const StaticYakuQuizRepository().findById(item.itemId)
+            : null;
+        final name = switch (item.type) {
+          'yaku' =>
+            yakuQuestion?.promptKey.localize(l10n) ?? l10n.yakuQuizTitle,
+          'defense' => l10n.defenseQuestionPrompt,
+          _ => tile?.mnemonic.name ?? item.itemId,
+        };
         // 计算逾期天数 = (当前毫秒时间戳 - SRS 预定复习时间戳) / 一天毫秒数，四舍五入取整。
-        final daysAgo = ((DateTime.now().millisecondsSinceEpoch - item.nextReviewAt) / 86400000).round();
-        // nanikiru 类型跳转到何切(局面判断)页面，flashcard 类型跳转闪卡页并携带花色参数。
-        final route = item.type == 'nanikiru'
-            ? '/nanikiru'
-            : '/flashcard?suite=${tile?.suit.name ?? 'all'}';
+        final daysAgo =
+            ((DateTime.now().millisecondsSinceEpoch - item.nextReviewAt) /
+                    86400000)
+                .round();
+        final route = _reviewRoute(item, tile);
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: GestureDetector(
-            onTap: () => context.push(route),
-            child: TzCard(
-              padding: const EdgeInsets.all(14),
-              borderRadius: 12,
-              child: Row(
-                children: [
-                  Text(emoji, style: const TextStyle(fontSize: 26)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('$name · ${item.type == 'flashcard' ? l10n.homeFlashcards : l10n.homeNanikiru}', style: const TextStyle( // TODO: homeFlashcards is plural; consider graveyardFlashcard singular key
-                          fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.jadeWhite,
-                        )),
-                        const SizedBox(height: 2),
-                        Text(l10n.graveyardErrorsOverdue('${item.errors}', '$daysAgo'), style: const TextStyle(
-                          fontSize: 11, color: AppColors.jadeWhiteMuted,
-                        )),
-                      ],
-                    ),
+          child: Semantics(
+            button: true,
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                onTap: () => context.push(route),
+                borderRadius: BorderRadius.circular(12),
+                child: TzCard(
+                  padding: const EdgeInsets.all(14),
+                  borderRadius: 12,
+                  child: Row(
+                    children: [
+                      Text(emoji, style: const TextStyle(fontSize: 26)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                                '$name · ${switch (item.type) {
+                                  'flashcard' => l10n.homeFlashcards,
+                                  'yaku' => l10n.yakuQuizTitle,
+                                  'defense' => l10n.homeDefenseTraining,
+                                  _ => l10n.homeNanikiru,
+                                }}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  // TODO: homeFlashcards is plural; consider graveyardFlashcard singular key
+                                  fontSize: 13, fontWeight: FontWeight.w600,
+                                  color: AppColors.jadeWhite,
+                                )),
+                            const SizedBox(height: 2),
+                            Text(
+                                l10n.graveyardErrorsOverdue(
+                                    '${item.errors}', '$daysAgo'),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.jadeWhiteMuted,
+                                )),
+                          ],
+                        ),
+                      ),
+                      Text('${l10n.navReview} →',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.vermillion,
+                          )),
+                    ],
                   ),
-                  Text('${l10n.navReview} →', style: const TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.vermillion,
-                  )),
-                ],
+                ),
               ),
             ),
           ),
         );
       },
     );
+  }
+
+  Future<void> _reviewAll(
+    BuildContext context,
+    List<(dynamic, TileModel?)> dueItems,
+  ) async {
+    final queue = dueItems.take(planTarget ?? dueItems.length).toList();
+    for (final (item, tile) in queue) {
+      if (!context.mounted) return;
+      final completed = await context.push<bool>(_reviewRoute(item, tile));
+      if (completed != true) return;
+    }
+  }
+
+  String _reviewRoute(dynamic item, TileModel? tile) {
+    final reviewPath = switch (item.type) {
+      'nanikiru' => '/nanikiru',
+      'yaku' => '/yaku-quiz',
+      'defense' => '/defense-training',
+      _ => '/flashcard',
+    };
+    return Uri(
+      path: reviewPath,
+      queryParameters: {
+        'mode': 'review',
+        'contentId': item.itemId,
+        if (item.type == 'flashcard') 'suite': tile?.suit.name ?? 'all',
+      },
+    ).toString();
   }
 }
 
@@ -238,9 +343,13 @@ class _RadarPainter extends CustomPainter {
     paint.strokeWidth = 0.5;
     for (int i = 0; i < 5; i++) {
       final angle = -3.14159 / 2 + i * 2 * 3.14159 / 5;
-      canvas.drawLine(center, Offset(
-        center.dx + radius * cos(angle), center.dy + radius * sin(angle),
-      ), paint);
+      canvas.drawLine(
+          center,
+          Offset(
+            center.dx + radius * cos(angle),
+            center.dy + radius * sin(angle),
+          ),
+          paint);
     }
 
     // 绘制弱点数据多边形：根据各花色的错误率按比例确定顶点到中心的距离。
@@ -249,9 +358,12 @@ class _RadarPainter extends CustomPainter {
       final angle = -3.14159 / 2 + i * 2 * 3.14159 / 5; // 每条轴线的角度（-90° 起顺时针）。
       // 顶点半径 = 最大半径 × 错误率（clamp 到 [0,1]），数据不足时退化为 0。
       final r = radius * (data.length > i ? data[i].clamp(0.0, 1.0) : 0.0);
-      final point = Offset(center.dx + r * cos(angle), center.dy + r * sin(angle));
-      if (i == 0) path.moveTo(point.dx, point.dy);
-      else path.lineTo(point.dx, point.dy);
+      final point =
+          Offset(center.dx + r * cos(angle), center.dy + r * sin(angle));
+      if (i == 0)
+        path.moveTo(point.dx, point.dy);
+      else
+        path.lineTo(point.dx, point.dy);
     }
     path.close();
     // 多边形描边：深红色半透明，线宽 2px。
@@ -272,9 +384,12 @@ class _RadarPainter extends CustomPainter {
     for (int i = 0; i < 5; i++) {
       // 五边形顶点角度：-90° + i * 72°，确保顶点朝上。
       final angle = -3.14159 / 2 + i * 2 * 3.14159 / 5;
-      final point = Offset(center.dx + r * cos(angle), center.dy + r * sin(angle));
-      if (i == 0) path.moveTo(point.dx, point.dy);
-      else path.lineTo(point.dx, point.dy);
+      final point =
+          Offset(center.dx + r * cos(angle), center.dy + r * sin(angle));
+      if (i == 0)
+        path.moveTo(point.dx, point.dy);
+      else
+        path.lineTo(point.dx, point.dy);
     }
     path.close();
     canvas.drawPath(path, paint);

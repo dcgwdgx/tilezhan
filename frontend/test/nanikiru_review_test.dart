@@ -7,7 +7,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tilezhan/features/nanikiru/domain/nanikiru_state.dart';
 import 'package:tilezhan/shared/engine/ukeire_calculator.dart';
-import 'package:tilezhan/shared/models/tile_model.dart';
 
 void main() {
   group('DiscardResult', () {

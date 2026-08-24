@@ -1,17 +1,14 @@
-/// Battle report modal — shown when free user runs out of hearts.
-/// 战斗/对局结算弹窗 —— 免费用户爱心耗尽时弹出。
-///
-/// Displays session stats (accuracy, combo, total) with premium CTA,
-/// mistake review link, and a share button to post results on social media.
-/// Premium users never see this.
-/// 展示本轮统计数据（正确率、连击、总数），附带高级版推广入口、
-/// 错题回顾链接，以及分享战绩到社交媒体的按钮。
-/// 高级版用户不会看到此弹窗。
+// Battle report modal — shown when free user runs out of hearts.
+// 战斗/对局结算弹窗 —— 免费用户爱心耗尽时弹出。
+//
+// Displays session stats (accuracy, combo, total), mistake review and sharing.
+// Sales calls to action are controlled by CommerceAvailability.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../core/commerce/commerce_availability.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/hearts/heart_provider.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -44,10 +41,12 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
   /// 参数 [report] 为当前结算数据，包含总数、正确率和最大连击数。
   /// 分享文案采用 emoji + 关键数据 + APP 域名格式，简洁易传播。
   Future<void> _shareResults(BattleReport report) async {
-    final text = '🎯 ${report.total} puzzles today · '
-        '${(report.accuracy * 100).toInt()}% accuracy · '
-        '${report.maxCombo}× max combo on TileSlash! '
-        'https://apps.apple.com/app/id6778444002';
+    final l10n = AppLocalizations.of(context)!;
+    final text = l10n.shareStats(
+      report.total,
+      (report.accuracy * 100).toInt(),
+      report.maxCombo,
+    );
     try {
       await Share.share(text);
     } catch (_) {
@@ -70,6 +69,7 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
 
     // 通过 Riverpod 监听本轮结算数据（total / accuracy / maxCombo）
     final report = ref.watch(battleReportProvider);
+    final salesEnabled = ref.watch(commerceAvailabilityProvider).salesEnabled;
 
     return Container(
       // 内边距：上下左右各 28px，给内容足够呼吸空间
@@ -85,65 +85,77 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         // ── 1. 拖拽手柄条 ──
         // 半透明白色小横条，暗示用户可以下拉关闭弹窗（配合 DraggableScrollableSheet 使用）
-        Container(width: 40, height: 4, decoration: BoxDecoration(
-          color: AppColors.jadeWhiteMuted.withOpacity(0.3),
-          borderRadius: BorderRadius.circular(2),
-        )),
+        Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.jadeWhiteMuted.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(2),
+            )),
         const SizedBox(height: 20),
 
         // ── 2. 战绩分享卡片（可截图分享的视觉模块）──
         Container(
-            padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
 
-            // 深绿渐变背景 + 霓虹金微光描边，营造赛博国风氛围
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF0F3526), Color(0xFF0D3D26)],
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.neonGold.withOpacity(0.2)),
+          // 深绿渐变背景 + 霓虹金微光描边，营造赛博国风氛围
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0F3526), Color(0xFF0D3D26)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-
-            child: Column(children: [
-              // 靶心 emoji（视觉锚点）
-              const Text('🎯', style: TextStyle(fontSize: 36)),
-              const SizedBox(height: 4),
-
-              // 标题："今日对局" 或对应本地化文本
-              Text(l10n.battleTitle,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900,
-                  color: AppColors.neonGold)),
-              const SizedBox(height: 20),
-
-              // 三项核心数据：总题数 / 正确率 / 最大连击
-              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                _stat(l10n.battleTotal, '${report.total}'),
-                _stat(l10n.battleAccuracy, '${(report.accuracy * 100).toInt()}%'),
-                _stat(l10n.battleMaxCombo, '${report.maxCombo}×'),
-              ]),
-              const SizedBox(height: 12),
-
-              // APP 域名标识（卡片底部署名）
-              Text(l10n.battleDomain,
-                style: TextStyle(fontSize: 11, color: AppColors.neonGold.withOpacity(0.6))),
-            ]),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppColors.neonGold.withValues(alpha: 0.2),
+            ),
           ),
+
+          child: Column(children: [
+            // 靶心 emoji（视觉锚点）
+            const Text('🎯', style: TextStyle(fontSize: 36)),
+            const SizedBox(height: 4),
+
+            // 标题："今日对局" 或对应本地化文本
+            Text(l10n.battleTitle,
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.neonGold)),
+            const SizedBox(height: 20),
+
+            // 三项核心数据：总题数 / 正确率 / 最大连击
+            Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+              _stat(l10n.battleTotal, '${report.total}'),
+              _stat(l10n.battleAccuracy, '${(report.accuracy * 100).toInt()}%'),
+              _stat(l10n.battleMaxCombo, '${report.maxCombo}×'),
+            ]),
+            const SizedBox(height: 12),
+
+            // APP 域名标识（卡片底部署名）
+            Text(l10n.battleDomain,
+                style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.neonGold.withValues(alpha: 0.6))),
+          ]),
+        ),
         const SizedBox(height: 16),
 
         // ── 3. 连击促销横幅（条件渲染）──
         // 当连击数 ≥ 10 时触发 showComboPromoProvider 为 true，
         // 显示特殊优惠横幅引导用户升级高级版以保留高连击记录
-        if (ref.watch(showComboPromoProvider))
+        if (salesEnabled && ref.watch(showComboPromoProvider))
           Container(
             padding: const EdgeInsets.all(14),
             margin: const EdgeInsets.only(bottom: 4),
 
             // 霓虹金半透明底色 + 描边，视觉上与战绩卡片呼应
             decoration: BoxDecoration(
-              color: AppColors.neonGold.withOpacity(0.1),
+              color: AppColors.neonGold.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.neonGold.withOpacity(0.3)),
+              border: Border.all(
+                color: AppColors.neonGold.withValues(alpha: 0.3),
+              ),
             ),
 
             // 横向布局：🔥 图标 + 文案区 + 解锁按钮
@@ -153,12 +165,19 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
               const SizedBox(width: 10),
 
               // 促销文案：主标题 + 副标题（垂直排列）
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(l10n.battleComboBanner, style: const TextStyle(fontSize: 14,
-                  fontWeight: FontWeight.w800, color: AppColors.neonGold)),
-                Text(l10n.battleComboSub,
-                  style: TextStyle(fontSize: 12, color: AppColors.jadeWhiteDim)),
-              ])),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text(l10n.battleComboBanner,
+                        style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.neonGold)),
+                    Text(l10n.battleComboSub,
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.jadeWhiteDim)),
+                  ])),
 
               // "立即解锁"按钮：关闭弹窗并导航到高级版页面
               GestureDetector(
@@ -167,13 +186,17 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
                   context.push('/premium');
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.neonGold,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(l10n.battleComboUnlock, style: const TextStyle(fontSize: 11,
-                    fontWeight: FontWeight.w800, color: Colors.black)),
+                  child: Text(l10n.battleComboUnlock,
+                      style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black)),
                 ),
               ),
             ]),
@@ -182,7 +205,8 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
         // ── 4. 操作按钮行 ──
         // 三个等距排列的图标按钮：分享战绩、查看错题、邀请好友
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          _actionBtn(Icons.share, l10n.battleShare, () => _shareResults(report)),
+          _actionBtn(
+              Icons.share, l10n.battleShare, () => _shareResults(report)),
           const SizedBox(width: 24),
           _actionBtn(Icons.auto_fix_high, l10n.battleMistakesBtn, () {
             // 关闭弹窗后跳转到错题本页面（/graveyard 路由）
@@ -199,12 +223,14 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
 
         // ── 5. 高级版 CTA（Call To Action）──
         // 金色主按钮，全宽度，引导用户升级高级版解锁无限爱心
-        TzButton(
-          label: l10n.battlePremiumCTA,
-          style: TzButtonStyle.gold,
-          onPressed: () => context.push('/premium'),
-        ),
-        const SizedBox(height: 16),
+        if (salesEnabled) ...[
+          TzButton(
+            label: l10n.battlePremiumCTA,
+            style: TzButtonStyle.gold,
+            onPressed: () => context.push('/premium'),
+          ),
+          const SizedBox(height: 16),
+        ],
       ]),
     );
   }
@@ -225,7 +251,8 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
       child: Column(children: [
         // 图标容器：44×44 圆角方片，深色卡片底色 + 细描边
         Container(
-          width: 44, height: 44,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
             color: AppColors.jadeCard,
             borderRadius: BorderRadius.circular(14),
@@ -236,7 +263,9 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
         const SizedBox(height: 4),
 
         // 文字标签：小号灰色字体，居中对齐
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.jadeWhiteMuted)),
+        Text(label,
+            style:
+                const TextStyle(fontSize: 10, color: AppColors.jadeWhiteMuted)),
       ]),
     );
   }
@@ -246,14 +275,14 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
   /// 与 [_shareResults] 逻辑相同：先关闭弹窗，延迟 300ms 等待动画完成，
   /// 再调用系统分享面板。分享文案以麻将牌 emoji 开头，包含 APP 介绍和域名。
   ///
-  /// 注意：此处使用 [Future.delayed] + 回调（非 async/await），
-  /// 因为该方法由按钮 onTap 同步触发，不需要等待分享结果再返回。
-  void _shareInviteLink() {
-    final text = '🀄 Join me on TileSlash — master Mahjong tile recognition! '
-        'Free daily puzzles. https://apps.apple.com/app/id6778444002';
-    Share.share(text).catchError((_) {
-      Clipboard.setData(ClipboardData(text: text));
-    });
+  /// 等待系统分享结果；若平台分享不可用，则回退为复制邀请文本。
+  Future<void> _shareInviteLink() async {
+    final text = AppLocalizations.of(context)!.inviteText;
+    try {
+      await Share.share(text);
+    } catch (_) {
+      await Clipboard.setData(ClipboardData(text: text));
+    }
   }
 
   /// 构建单个统计数据展示组件
@@ -269,13 +298,17 @@ class _TzBattleReportState extends ConsumerState<TzBattleReport> {
   Widget _stat(String label, String value) {
     return Column(children: [
       // 数值：24px 粗体白色，醒目展示
-      Text(value, style: const TextStyle(fontSize: 24,
-        fontWeight: FontWeight.w900, color: AppColors.jadeWhite)),
+      Text(value,
+          style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: AppColors.jadeWhite)),
       const SizedBox(height: 4),
 
       // 标签：11px 灰色，居中对齐于数值下方
-      Text(label, style: const TextStyle(fontSize: 11,
-        color: AppColors.jadeWhiteMuted)),
+      Text(label,
+          style:
+              const TextStyle(fontSize: 11, color: AppColors.jadeWhiteMuted)),
     ]);
   }
 }

@@ -50,6 +50,29 @@ void main() {
       expect(restored.lastReviewedAt, now);
     });
 
+    test('content snapshot survives JSON roundtrip', () {
+      final content = <String, dynamic>{
+        'puzzleId': 'efficiency.basic.0001',
+        'hand13Ids': ['m1', 'm2', 'm3', 'p4'],
+        'drawnTileId': 's5',
+        'correctDiscardId': 'p4',
+        'ukeireCount': 16,
+        'ukeireTypes': 4,
+        'ukeireTileIds': ['m1', 'm4', 's2', 's5'],
+        'difficulty': 920,
+      };
+      final item = SrsItem(
+        itemId: 'nanikiru:efficiency.basic.0001',
+        type: 'nanikiru',
+        content: content,
+      );
+
+      final restored = SrsItem.fromJson(item.toJson());
+
+      expect(restored.content, equals(content));
+      expect(restored.toJson()['content'], equals(content));
+    });
+
     // 部分 JSON 数据解析时缺失字段使用默认值
     test('fromJson with partial data uses defaults', () {
       final item = SrsItem.fromJson({'itemId': 'p1'});
