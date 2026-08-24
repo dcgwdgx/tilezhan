@@ -1,11 +1,14 @@
-# TileZhan / TileSlash — Claude Code 行为指南
+# 项目行为指南（TileZhan / TileSlash）
 
 ## 项目概览
-- Flutter 日麻学习 App（闪卡+何切+役种+排行榜），iOS 已上架，Android 在审
-- 前端 `frontend/`（Riverpod + GoRouter + Hive），后端 `backend/`（Python FastAPI + Firebase）
+- Flutter 日麻学习 App，包含闪卡、何切、每日训练计划、防守训练、役种测验、手牌分析和排行榜
+- 前端 `frontend/`（Riverpod + GoRouter + Hive，离线优先），后端 `backend/`（Python FastAPI + Firebase）
+- 应用版本 `1.0.1+4`，包名 `com.tilezhan.app`；iOS/Android 审核与发布状态以商店控制台为准
 - i18n: en/fr/de，l10n 用 ARB + flutter gen-l10n，禁止新增硬编码英文字符串
-- 测试: `flutter test`，部署到 251 服务器前必须先跑测试全绿
+- 测试: 前端执行 `flutter test`，后端执行 `python -m pytest -q`；部署前必须全部通过
+- 何切题库变更后执行 `dart run tool/validate_nanikiru_puzzles.dart`
 - iOS AOT compiler 比 JIT test 严格——`l10n` 在每个方法里都要 `AppLocalizations.of(context)!`，不能依赖外层 scope
+- 项目使用说明见根目录 `README.md`，详细功能边界见 `docs/features.md`
 
 ---
 
