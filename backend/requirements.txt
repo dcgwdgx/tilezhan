@@ -4,7 +4,7 @@ pydantic==2.9.2
 pydantic-settings==2.5.2
 firebase-admin==6.5.0
 google-cloud-firestore==2.18.0
-mahjong==1.2.3
+mahjong==1.2.1
 celery==5.4.0
 redis==5.1.1
 httpx==0.27.2
